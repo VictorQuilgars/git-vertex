@@ -287,6 +287,63 @@ describe('git-core — against a real repository, on both hosts', () => {
     expect(none.base).toBeNull()
   })
 
+  test('resolveCommit names the commit behind a branch, a tag, a short SHA — and nothing else', async () => {
+    run('git tag -a v1 -m "annotated" ' + first)
+    expect((await onBothHosts(repo, r => core.resolveCommit(r, 'main'))).hash).toBe(second)
+    // An annotated tag is its own object: the COMMIT it points at is what is asked for.
+    expect((await onBothHosts(repo, r => core.resolveCommit(r, 'v1'))).hash).toBe(first)
+    expect((await onBothHosts(repo, r => core.resolveCommit(r, first.slice(0, 8)))).hash).toBe(first)
+    expect((await onBothHosts(repo, r => core.resolveCommit(r, 'HEAD~1'))).hash).toBe(first)
+    expect((await onBothHosts(repo, r => core.resolveCommit(r, 'no-such-branch'))).hash).toBeNull()
+    const refused = await onBothHosts(repo, r => core.resolveCommit(r, '--all'))
+    expect(refused.hash).toBeNull()
+    expect(refused.error).toBeTruthy()
+  })
+
+  test('commitsTouching answers file: — a path, a folder, a bare word, a pattern', async () => {
+    fs.mkdirSync(path.join(repo, 'src/Cache'), { recursive: true })
+    write('src/Cache/keys.ts', 'k\n')
+    run('git add -A && git commit -m third')
+    const third = run('git rev-parse HEAD').trim()
+    const touching = (...paths: string[]) => onBothHosts(repo, r => core.commitsTouching(r, paths)).then(r => r.hashes)
+    expect(await touching('a.txt')).toEqual([second, first])
+    expect(await touching('src')).toEqual([third])              // a folder is what is under it
+    expect(await touching('cache')).toEqual([third])            // a bare word: any path containing it, any case
+    expect(await touching('*.ts')).toEqual([])                  // a pattern is anchored where it says…
+    expect(await touching('**/*.ts')).toEqual([third])          // …and `**` is how it reaches down
+    expect(await touching('b.txt', 'keys')).toEqual([third, second])   // several: any of them
+    expect(await touching('nowhere')).toEqual([])
+    expect(await touching()).toEqual([])
+    expect(core.filePathspecs('./src/main')).toEqual([':(icase)src/main'])
+  })
+
+  test('tagDetails reads a lightweight tag and an annotated one apart', async () => {
+    run(`git tag light ${first}`)
+    run(`git -c user.name="Grace" -c user.email=grace@test.com tag -a v1 -m "First release" -m "With a second paragraph." ${first}`)
+    const light = await onBothHosts(repo, r => core.tagDetails(r, 'light'))
+    expect(light.tag).toEqual({ name: 'light', commit: first, annotated: false })
+    const annotated = await onBothHosts(repo, r => core.tagDetails(r, 'v1'))
+    expect(annotated.tag).toMatchObject({
+      name: 'v1', commit: first, annotated: true, tagger: 'Grace', taggerEmail: 'grace@test.com',
+      message: 'First release\n\nWith a second paragraph.',
+    })
+    expect(annotated.tag!.date).toBeGreaterThan(1_600_000_000)
+    expect((await onBothHosts(repo, r => core.tagDetails(r, 'no-such-tag'))).tag).toBeNull()
+    expect((await onBothHosts(repo, r => core.tagDetails(r, '--all'))).error).toBeTruthy()
+  })
+
+  test('tagOnRemote asks the remote, and cannot tell when there is nobody to ask', async () => {
+    const bare = fs.mkdtempSync(path.join(require('os').tmpdir(), 'git-core-remote-'))
+    try {
+      execSync(`git clone -q --bare "${repo}" "${bare}/origin.git"`)
+      run(`git remote add origin "${bare}/origin.git"`)
+      run(`git tag pushed ${first} && git tag local-only ${second} && git push -q origin refs/tags/pushed`)
+      expect(await onBothHosts(repo, r => core.tagOnRemote(r, 'pushed', 'origin'))).toEqual({ pushed: true })
+      expect(await onBothHosts(repo, r => core.tagOnRemote(r, 'local-only', 'origin'))).toEqual({ pushed: false })
+      expect(await onBothHosts(repo, r => core.tagOnRemote(r, 'pushed', 'nowhere'))).toEqual({ pushed: null })
+    } finally { fs.rmSync(bare, { recursive: true, force: true }) }
+  })
+
   test('workingFileDiff reads the working tree and the index apart', async () => {
     write('a.txt', 'one\nTWO\nTHREE\n')
     const unstaged = await onBothHosts(repo, r => core.workingFileDiff(r, 'a.txt', false))
@@ -379,8 +436,21 @@ describe('git-core — against a real repository, on both hosts', () => {
 // Pure parsing, so no repository: what matters here is the shapes git can
 // hand back, several of which broke the porcelain parse this replaced.
 describe('parseBranchRows', () => {
-  const line = (head: string, refname: string, commit: string, track: string, subject: string, date = '1758153600') =>
-    [head, refname, commit, track, date, subject].join('|')
+  const line = (head: string, refname: string, commit: string, track: string, subject: string, date = '1758153600', upstream = '') =>
+    [head, refname, commit, track, date, upstream, subject].join('|')
+
+  test('a local branch names what it tracks — gone or not — and a remote one tracks nothing', () => {
+    const rows = core.parseBranchRows([
+      line(' ', 'refs/heads/a', 'aaa', '[ahead 1]', 's', '1758153600', 'origin/a'),
+      line(' ', 'refs/heads/b', 'bbb', '[gone]', 's', '1758153600', 'origin/b'),
+      line(' ', 'refs/heads/c', 'ccc', '', 's'),
+      line(' ', 'refs/remotes/origin/a', 'aaa', '', 's', '1758153600', 'origin/nonsense'),
+    ].join('\n'))
+    expect(rows.map(r => r.upstream)).toEqual(['origin/a', 'origin/b', undefined, undefined])
+    // A subject holding the separator still comes back whole, past the new field.
+    const [piped] = core.parseBranchRows(line('*', 'refs/heads/main', 'aaa', '', 'fix: a|b', '1758153600', 'origin/main'))
+    expect(piped).toMatchObject({ upstream: 'origin/main', label: 'fix: a|b' })
+  })
 
   test('the tip\'s date rides along, and an unreadable one is simply absent', () => {
     const [dated] = core.parseBranchRows(line(' ', 'refs/heads/a', 'aaa', '', 's', '1758153600'))

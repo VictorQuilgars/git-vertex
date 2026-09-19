@@ -232,7 +232,8 @@ describe('the stacked row, after the screenshots', () => {
   // The band's right-edge bar and the chip connector both pointed at things the
   // stacked layout does not have.
   test('lane bands and chip connectors are column-layout only', () => {
-    const gated = src.split('{!refsBelow && displayLayout.map').length - 1
+    // `windowRows`: the rows near the viewport (graph-window.ts), not every row loaded.
+    const gated = src.split('{!refsBelow && windowRows.map').length - 1
     expect(gated).toBeGreaterThanOrEqual(2)
   })
 

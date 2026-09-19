@@ -84,6 +84,8 @@ export interface BranchRow {
   detached?: boolean
   /** When the tip was committed, as git counts it (seconds since the epoch). */
   date?: number
+  /** The branch a local one tracks, as `%D` decorates it: `origin/main`. */
+  upstream?: string
 }
 
 /**
@@ -99,9 +101,10 @@ export interface BranchRow {
  *
  * `%(contents:subject)` is LAST on purpose: a commit subject may contain the
  * separator and nothing else here can, so everything past the fourth `|`
- * belongs to it.
+ * belongs to it. (`%(upstream:short)` is a ref name, and `|` is not allowed in
+ * one: check-ref-format refuses it, so the sixth field cannot hold the separator.)
  */
-export const BRANCH_FORMAT = '%(HEAD)|%(refname)|%(objectname:short)|%(upstream:track)|%(committerdate:unix)|%(contents:subject)'
+export const BRANCH_FORMAT = '%(HEAD)|%(refname)|%(objectname:short)|%(upstream:track)|%(committerdate:unix)|%(upstream:short)|%(contents:subject)'
 
 export function branchArgs(): string[] {
   return ['for-each-ref', 'refs/heads', 'refs/remotes', `--format=${BRANCH_FORMAT}`]
@@ -122,9 +125,9 @@ export function parseBranchRows(raw: string): BranchRow[] {
   for (const line of raw.split('\n')) {
     if (!line.trim()) continue
     const parts = line.split('|')
-    if (parts.length < 6) continue
-    const [head, refname, commit, track, date] = parts
-    const subject = parts.slice(5).join('|')
+    if (parts.length < 7) continue
+    const [head, refname, commit, track, date, upstream] = parts
+    const subject = parts.slice(6).join('|')
     const remote = refname.startsWith('refs/remotes/')
     // `remotes/origin/main` and `main` — the names the UI has always used,
     // which are what `git branch -a` printed and what every caller compares
@@ -145,6 +148,8 @@ export function parseBranchRows(raw: string): BranchRow[] {
     if (t) Object.assign(row, t)
     const when = parseInt(date, 10)
     if (Number.isFinite(when) && when > 0) row.date = when
+    // Named even when it is gone: "tracks origin/x, which no longer exists" is a fact worth showing.
+    if (!remote && upstream.trim()) row.upstream = upstream.trim()
     rows.push(row)
   }
   return rows
@@ -406,6 +411,123 @@ export async function mergeBase(
   } catch {
     // Unrelated histories: git fails loudly and there is no base to name.
     return { base: null }
+  }
+}
+
+/**
+ * The commit a name stands for — a branch, a tag, a SHA, `HEAD~2`, anything
+ * rev-parse takes — as a full hash, or null when it names no commit.
+ *
+ * The graph reaches a reference beyond its page by position (locateInHistory),
+ * and a position is looked up by hash: a branch row only carries the short one.
+ */
+export async function resolveCommit(
+  run: GitRunner, ref: string,
+): Promise<{ hash: string | null; error?: string }> {
+  const bad = assertRef(ref)
+  if (bad) return { hash: null, error: bad }
+  try {
+    const out = (await run(['rev-parse', '--verify', '--quiet', `${ref.trim()}^{commit}`])).trim()
+    return { hash: /^[0-9a-f]{40,64}$/.test(out) ? out : null }
+  } catch {
+    // `--quiet` makes an unknown name a silent failure: it is not a commit.
+    return { hash: null }
+  }
+}
+
+/**
+ * The pathspecs a `file:` term becomes. A bare word — no slash, no wildcard —
+ * finds any path that CONTAINS it, as a file's name or as a folder's
+ * (`file:cache` is not a file called `cache`); anything shaped like a path is
+ * taken as one, a folder included. Never case sensitive: nobody remembers
+ * whether it was `README` or `Readme`.
+ */
+export function filePathspecs(value: string): string[] {
+  const v = value.trim().replace(/^\.\//, '')
+  if (!/[\/*?[]/.test(v)) return [`:(icase,glob)**/*${v}*`, `:(icase,glob)**/*${v}*/**`]
+  // `:(glob)` for a pattern; a plain path keeps git's own reading, where a folder matches what is under it.
+  return [/[*?[]/.test(v) ? `:(icase,glob)${v}` : `:(icase)${v}`]
+}
+
+/** The commits that touched any of these paths or folders, on any ref. */
+export async function commitsTouching(
+  run: GitRunner, paths: string[],
+): Promise<{ hashes: string[]; error?: string }> {
+  const wanted = paths.map(p => p.trim()).filter(Boolean)
+  if (wanted.length === 0) return { hashes: [] }
+  // A pathspec comes after `--`, where git reads no option: a leading dash is a file name there.
+  if (wanted.some(p => /[\u0000-\u001f]/.test(p))) return { hashes: [], error: 'Invalid path' }
+  try {
+    const out = await run(['log', '--all', '--format=%H', '--', ...wanted.flatMap(filePathspecs)])
+    return { hashes: out.split('\n').map(l => l.trim()).filter(Boolean) }
+  } catch (e) {
+    return { hashes: [], error: reason(e) }
+  }
+}
+
+/** What a tag is: where it points, and — for an annotated one — who made it, when, and what they wrote. */
+export interface TagDetails {
+  name: string
+  /** The COMMIT it points at: an annotated tag is an object of its own, and this is past it. */
+  commit: string
+  annotated: boolean
+  message?: string
+  tagger?: string
+  taggerEmail?: string
+  /** When it was tagged, seconds since the epoch. */
+  date?: number
+}
+
+// Fields are NUL-separated: an annotation is free text, and the last field.
+const TAG_FORMAT = ['%(objecttype)', '%(objectname)', '%(*objectname)', '%(taggername)', '%(taggeremail)', '%(taggerdate:unix)', '%(contents)'].join('%00')
+
+export function parseTagDetails(name: string, raw: string): TagDetails | null {
+  const parts = raw.replace(/\n$/, '').split('\0')
+  if (parts.length < 7) return null
+  const [type, object, peeled, tagger, email, date] = parts
+  const annotated = type === 'tag'
+  const commit = (annotated ? peeled : object).trim()
+  if (!commit) return null
+  const details: TagDetails = { name, commit, annotated }
+  if (!annotated) return details
+  // `%(contents)` of a signed tag carries its signature: what was WRITTEN stops there.
+  const message = parts.slice(6).join('\0').split(/^-----BEGIN [A-Z ]*SIGNATURE-----$/m)[0].trim()
+  if (message) details.message = message
+  if (tagger.trim()) details.tagger = tagger.trim()
+  const mail = email.trim().replace(/^<|>$/g, '')
+  if (mail) details.taggerEmail = mail
+  const when = parseInt(date, 10)
+  if (Number.isFinite(when) && when > 0) details.date = when
+  return details
+}
+
+export async function tagDetails(
+  run: GitRunner, name: string,
+): Promise<{ tag: TagDetails | null; error?: string }> {
+  const bad = assertRef(name, 'tag')
+  if (bad) return { tag: null, error: bad }
+  try {
+    const raw = await run(['for-each-ref', `--format=${TAG_FORMAT}`, `refs/tags/${name.trim()}`])
+    return { tag: parseTagDetails(name.trim(), raw) }
+  } catch (e) {
+    return { tag: null, error: reason(e) }
+  }
+}
+
+/**
+ * Whether a remote has the tag. It ASKS the remote — a tag has no tracking ref
+ * to read — so it can be slow, or fail offline: `null` is "could not tell",
+ * which is not "no".
+ */
+export async function tagOnRemote(
+  run: GitRunner, name: string, remote: string,
+): Promise<{ pushed: boolean | null }> {
+  if (assertRef(name, 'tag') || assertRef(remote, 'remote')) return { pushed: null }
+  try {
+    const out = await run(['ls-remote', '--tags', remote.trim(), `refs/tags/${name.trim()}`])
+    return { pushed: out.trim().length > 0 }
+  } catch {
+    return { pushed: null }
   }
 }
 

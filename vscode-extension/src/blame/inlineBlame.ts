@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 import * as path from 'path'
 import { BlameLine, blameFile, getUserEmail } from './blame'
 import { DEFAULT_LINE_FORMAT, formatAnnotation, formatRelative } from './format'
-import { HEATMAP_BUCKETS, bucketColor, heatmapBucket, heatmapIcon } from './heatmap'
+import { HEATMAP_BUCKETS, bucketColor, heatmapBucket, heatmapIcon, resolveHeatmapEnds } from './heatmap'
 import { getGitDir, getRepoRootForFile } from '../gitInfo'
 
 // End-of-line blame annotations: the current line always (when
@@ -42,6 +42,8 @@ export class InlineBlameController implements vscode.Disposable {
   })
 
   private heatDecorations: vscode.TextEditorDecorationType[] | null = null
+  /** Colour values already reported as unusable, so each is said once. */
+  private readonly rejectedColors = new Set<string>()
 
   private readonly cache = new Map<string, CacheEntry>()
   private readonly emails = new Map<string, Promise<string>>()
@@ -344,8 +346,23 @@ export class InlineBlameController implements vscode.Disposable {
   // ── Heatmap ───────────────────────────────────────────────────
   private heatmap(): vscode.TextEditorDecorationType[] {
     if (!this.heatDecorations) {
+      // Read when the decorations are built: a change to either setting drops
+      // them (see the configuration listener), so the next render rebuilds
+      // them with the new ends.
+      const { ends, rejected } = resolveHeatmapEnds({
+        hotColor: config().get<unknown>('blame.heatmap.hotColor'),
+        coldColor: config().get<unknown>('blame.heatmap.coldColor'),
+      })
+      for (const { setting, value } of rejected) {
+        const key = `${setting}=${value}`
+        if (this.rejectedColors.has(key)) continue
+        this.rejectedColors.add(key)
+        const used = setting === 'hotColor' ? ends.hot : ends.cold
+        void vscode.window.showWarningMessage(
+          `Git Vertex: "${value}" is not a #RRGGBB colour — gitVertex.blame.heatmap.${setting} falls back to ${used}.`)
+      }
       this.heatDecorations = Array.from({ length: HEATMAP_BUCKETS }, (_unused, bucket) => {
-        const color = bucketColor(bucket)
+        const color = bucketColor(bucket, HEATMAP_BUCKETS, ends)
         return vscode.window.createTextEditorDecorationType({
           gutterIconPath: vscode.Uri.parse(heatmapIcon(color)),
           gutterIconSize: 'contain',

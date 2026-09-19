@@ -170,6 +170,9 @@ export const ARG_RULES: Record<string, ArgSpec[]> = {
   'git:get-commit-body': ['rev'],
   'git:get-last-commit-message': ['rev'],
   'git:get-rebase-sequence': ['rev'],
+  'git:resolve-commit': ['rev'],
+  'git:get-tag-details': ['rev'],
+  'git:is-tag-on-remote': ['rev'],
   'git:locate-in-history': ['revs', { refs: 'revs', excludes: 'revs' }],
   'git:compare-branches': ['rev', 'rev'],
   'git:get-blame': ['rev', 'repoFile'],
@@ -178,6 +181,8 @@ export const ARG_RULES: Record<string, ArgSpec[]> = {
   'git:file-diff-at-commit': ['rev', 'repoFile'],
   'git:diff-commit-to-working': ['rev'],
   'git:search-in-diffs': [null],
+  // Pathspecs, not paths: `*.ts` and a bare word are fine, and they go after `--`.
+  'git:search-by-file': [null],
 
   // The working tree
   'git:stage': ['repoFiles'],

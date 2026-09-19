@@ -1,0 +1,68 @@
+/* Under the graph's search field, while it has the focus (SearchHint.tsx). Its
+   parent is the field's own box, which the toolbars make `position: relative`. */
+.shint {
+  position: absolute;
+  top: calc(100% + var(--space-xs));
+  left: 0;
+  /* Over the minimap's block, which sits right under the toolbar at --z-dropdown
+     and comes later in the document. */
+  z-index: calc(var(--z-dropdown) + 1);
+  min-width: 300px;
+  max-width: min(420px, 92vw);
+  padding: var(--space-xs);
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--scrim) var(--alpha-bold), transparent);
+  font-size: var(--text-sm);
+  text-align: left;
+}
+
+/* A field at the right end of its toolbar: the panel hangs from that side instead. */
+.shint--end { left: auto; right: 0; }
+
+.shint-active { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-xs); padding: var(--space-xs); border-bottom: 1px solid var(--border-muted); margin-bottom: var(--space-xs); }
+.shint-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  max-width: 100%;
+  height: 20px;
+  padding: 0 var(--space-2xs) 0 var(--space-sm);
+  font-size: var(--text-tiny);
+  color: var(--text-primary);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.shint-chip-op { font-weight: 600; color: var(--accent); }
+.shint-chip--unread { border-style: dashed; color: var(--text-tertiary); }
+.shint-chip--unread .shint-chip-op { color: var(--attention); }
+.shint-chip-x { width: 16px; height: 16px; padding: 0; font-size: var(--text-base); line-height: 1; color: var(--text-tertiary); background: none; border: 0; border-radius: var(--radius-xs); cursor: pointer; }
+.shint-chip-x:hover { color: var(--text-primary); background: var(--surface-active); }
+.shint-loading { color: var(--text-tertiary); font-size: var(--text-tiny); }
+
+.shint-head, .shint-foot { padding: var(--space-xs) var(--space-sm); font-size: var(--text-tiny); color: var(--text-tertiary); }
+.shint-head { font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.shint-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-md);
+  width: 100%;
+  padding: var(--space-xs) var(--space-sm);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.shint-row:hover { background: var(--surface-hover); }
+.shint-op { flex: none; width: 56px; font-family: 'JetBrains Mono', monospace; font-size: var(--text-tiny); font-weight: 600; color: var(--accent); }
+.shint-label { flex: 1; min-width: 0; color: var(--text-primary-soft); }
+.shint-example { flex: none; font-family: 'JetBrains Mono', monospace; font-size: var(--text-tiny); color: var(--text-tertiary); }

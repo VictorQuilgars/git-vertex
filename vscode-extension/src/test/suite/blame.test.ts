@@ -5,7 +5,9 @@ import * as path from 'path'
 import { execSync } from 'child_process'
 import { BlameLine, blameFile, getUserEmail, parseLinePorcelain } from '../../blame/blame'
 import { DEFAULT_LINE_FORMAT, formatAnnotation, formatRelative, truncate } from '../../blame/format'
-import { bucketColor, heatmapBucket, heatmapIcon } from '../../blame/heatmap'
+import {
+  DEFAULT_COLD_COLOR, DEFAULT_HOT_COLOR, bucketColor, heatmapBucket, heatmapIcon, resolveHeatmapEnds,
+} from '../../blame/heatmap'
 import { lensTitle, summarize } from '../../blame/summary'
 
 // These modules deliberately avoid importing `vscode`, so this file runs both
@@ -276,6 +278,50 @@ suite('blame — heatmap', () => {
     assert.strictEqual(bucketColor(0), '#f66a0a')
     assert.strictEqual(bucketColor(9), '#0a60f6')
     for (let i = 0; i < 10; i++) assert.match(bucketColor(i), /^#[0-9a-f]{6}$/)
+  })
+
+  test('custom ends are what the buckets run between', () => {
+    const ends = { hot: '#FF0000', cold: '#0000ff' }
+    assert.strictEqual(bucketColor(0, 10, ends), '#ff0000')
+    assert.strictEqual(bucketColor(9, 10, ends), '#0000ff')
+    // Three buckets: the middle one is halfway on every channel.
+    assert.strictEqual(bucketColor(1, 3, ends), '#800080')
+    // The defaults are untouched by a caller that passes nothing.
+    assert.strictEqual(bucketColor(0), DEFAULT_HOT_COLOR.toLowerCase())
+  })
+
+  test('an end that is not #RRGGBB draws as the default rather than as NaN', () => {
+    assert.strictEqual(bucketColor(0, 10, { hot: 'orange', cold: '#0000ff' }), DEFAULT_HOT_COLOR.toLowerCase())
+    assert.strictEqual(bucketColor(9, 10, { hot: '#ff0000', cold: '#00f' }), DEFAULT_COLD_COLOR.toLowerCase())
+  })
+
+  test('the settings give the ends, and a bad value falls back and is named', () => {
+    assert.deepStrictEqual(
+      resolveHeatmapEnds({ hotColor: '#112233', coldColor: ' #AABBCC ' }),
+      { ends: { hot: '#112233', cold: '#AABBCC' }, rejected: [] })
+
+    const bad = resolveHeatmapEnds({ hotColor: 'red', coldColor: '#12345' })
+    assert.deepStrictEqual(bad.ends, { hot: DEFAULT_HOT_COLOR, cold: DEFAULT_COLD_COLOR })
+    assert.deepStrictEqual(bad.rejected, [
+      { setting: 'hotColor', value: 'red' },
+      { setting: 'coldColor', value: '#12345' },
+    ])
+
+    // One bad end does not take the good one down with it.
+    const mixed = resolveHeatmapEnds({ hotColor: '#010203', coldColor: 'rgb(0,0,0)' })
+    assert.deepStrictEqual(mixed.ends, { hot: '#010203', cold: DEFAULT_COLD_COLOR })
+    assert.strictEqual(mixed.rejected.length, 1)
+  })
+
+  test('an unset or emptied setting is the default, not a mistake', () => {
+    for (const settings of [{}, { hotColor: '', coldColor: undefined }, { hotColor: null, coldColor: '' }]) {
+      const { ends, rejected } = resolveHeatmapEnds(settings)
+      assert.deepStrictEqual(ends, { hot: DEFAULT_HOT_COLOR, cold: DEFAULT_COLD_COLOR })
+      assert.deepStrictEqual(rejected, [])
+    }
+    // A number in settings.json is a mistake, and is reported as written.
+    assert.deepStrictEqual(resolveHeatmapEnds({ hotColor: 16148490 }).rejected,
+      [{ setting: 'hotColor', value: '16148490' }])
   })
 
   test('the gutter icon is a self-contained svg data uri', () => {

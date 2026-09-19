@@ -1,0 +1,88 @@
+/* The graph's keys, on one sheet (GraphShortcuts.tsx). It sits in the shared
+   dialog overlay; the box is its own because it is a reference to read, not a
+   question to answer: wide, in columns, with nothing to confirm. */
+.cg-keys {
+  display: flex;
+  flex-direction: column;
+  width: 1040px;
+  max-width: 96vw;
+  max-height: 92vh;
+  color: var(--text-primary);
+  background: var(--surface-hover);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 48px color-mix(in srgb, var(--scrim) var(--alpha-heavy), transparent);
+  container-type: inline-size;
+  outline: 0;
+}
+
+.cg-keys-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-xl) var(--space-2xl);
+  border-bottom: 1px solid var(--border-muted);
+  color: var(--text-secondary);
+}
+.cg-keys-title { flex: 1; margin: 0; font-size: var(--text-md); font-weight: 600; color: var(--text-primary); }
+.cg-keys-close {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font-size: var(--text-lg);
+  line-height: 1;
+  color: var(--text-secondary);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.cg-keys-close:hover { color: var(--text-primary); background: var(--surface-active); }
+.cg-keys-close:focus-visible { outline: 1px solid var(--accent); }
+
+/* Three columns while there is room for them, two, then one. */
+.cg-keys-body {
+  padding: var(--space-2xl);
+  overflow-y: auto;
+  columns: 3;
+  column-gap: var(--space-4xl);
+}
+@container (max-width: 880px) { .cg-keys-body { columns: 2; } }
+@container (max-width: 600px) { .cg-keys-body { columns: 1; } }
+
+.cg-keys-group { break-inside: avoid; margin: 0 0 var(--space-2xl); }
+.cg-keys-group-title {
+  margin: 0 0 var(--space-md);
+  font-size: var(--text-tiny);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.cg-keys-list { margin: 0; }
+.cg-keys-row { display: flex; align-items: baseline; gap: var(--space-xl); padding: var(--space-2xs) 0; }
+/* The keys in a column of their own, right-aligned against the labels. */
+.cg-keys-keys { flex: none; width: 125px; margin: 0; text-align: right; white-space: nowrap; }
+.cg-keys-label { flex: 1; min-width: 0; margin: 0; font-size: var(--text-base); color: var(--text-primary-soft); }
+.cg-keys-plus { margin: 0 var(--space-2xs); color: var(--text-tertiary); font-size: var(--text-tiny); }
+.cg-keys kbd {
+  display: inline-block;
+  min-width: 20px;
+  padding: 1px var(--space-sm);
+  font: inherit;
+  font-size: var(--text-sm);
+  line-height: 16px;
+  text-align: center;
+  color: var(--text-primary);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.cg-keys-foot {
+  padding: var(--space-lg) var(--space-2xl);
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  border-top: 1px solid var(--border-muted);
+}

@@ -314,7 +314,7 @@ export interface ProcessedRef {
 export function messageChipSegments(
   pref: ProcessedRef,
   issueForBranch?: (branch: string) => { key: string; provider: string } | null,
-  handlers?: { onCheckout?: (b: string) => void; onMenu?: (e: React.MouseEvent) => void; onOpenPR?: (number: number) => void },
+  handlers?: { onCheckout?: (b: string) => void; onMenu?: (e: React.MouseEvent) => void; onOpenPR?: (number: number) => void; onOpen?: () => void },
   trackingFor?: (branch: string) => { ahead?: number; behind?: number } | null,
   prForBranch?: (branch: string) => { number: number; title?: string } | null,
 ): ChipSegment[] {
@@ -325,6 +325,7 @@ export function messageChipSegments(
     kind: isTag ? 'tag' : 'branch',
     label: pref.display,
     title: pref.tooltip ?? pref.display,
+    onClick: handlers?.onOpen,
     onDoubleClick: pref.branchName && handlers?.onCheckout
       ? () => handlers.onCheckout!(pref.branchName!) : undefined,
     onContextMenu: handlers?.onMenu,
@@ -550,7 +551,7 @@ export function RefExpansionPopup({ anchor, ghost, children }: {
   )
 }
 
-export function RefChip({ pref, laneColor, compact, ghost, onDoubleClick, onDragStartBranch, onDragEndBranch, onContextMenu }: {
+export function RefChip({ pref, laneColor, compact, ghost, open, onOpen, onDoubleClick, onDragStartBranch, onDragEndBranch, onContextMenu }: {
   pref: ProcessedRef
   laneColor?: string
   /** Inherited from the line's tip, not a ref on this commit (#173): dashed, faded. */
@@ -559,6 +560,10 @@ export function RefChip({ pref, laneColor, compact, ghost, onDoubleClick, onDrag
   // chip when the compact layout is on. The expansion popup always shows the
   // full name since it has room to breathe.
   compact?: boolean
+  /** Its card is open in the details panel (#258): the chip reads as pressed. */
+  open?: boolean
+  /** A click: the reference's card. The double-click still switches. */
+  onOpen?: (pref: ProcessedRef) => void
   onDoubleClick?: (name: string) => void
   onDragStartBranch?: (name: string) => void
   onDragEndBranch?: () => void
@@ -569,11 +574,12 @@ export function RefChip({ pref, laneColor, compact, ghost, onDoubleClick, onDrag
     color: laneColor,
     borderColor: laneColor + '99',
     background: laneColor + '22',
-    cursor: pref.cls !== 'rc-tag' ? 'pointer' as const : undefined,
-  } : (pref.cls !== 'rc-tag' ? { cursor: 'pointer' as const } : undefined)
+    cursor: pref.cls !== 'rc-tag' || onOpen ? 'pointer' as const : undefined,
+  } : (pref.cls !== 'rc-tag' || onOpen ? { cursor: 'pointer' as const } : undefined)
   return (
     <span
-      className={`ref-chip ${pref.cls} ${compact ? 'ref-chip--compact' : ''}${ghost ? ' ref-chip--ghost' : ''}`}
+      className={`ref-chip ${pref.cls} ${compact ? 'ref-chip--compact' : ''}${ghost ? ' ref-chip--ghost' : ''}${open ? ' ref-chip--open' : ''}`}
+      aria-pressed={onOpen ? !!open : undefined}
       title={pref.tooltip}
       draggable={isDraggable}
       onDragStart={e => {
@@ -588,7 +594,7 @@ export function RefChip({ pref, laneColor, compact, ghost, onDoubleClick, onDrag
       // onClick first and the detail panel flashed open on the way to the
       // checkout — the browser sends click, click, dblclick, and only the last
       // one was being stopped.
-      onClick={e => e.stopPropagation()}
+      onClick={e => { e.stopPropagation(); onOpen?.(pref) }}
       onDoubleClick={e => {
         e.stopPropagation()
         if (pref.cls !== 'rc-tag' && onDoubleClick && pref.branchName) {

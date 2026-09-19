@@ -44,6 +44,8 @@ open is neither reused nor touched.
 | `11-amend-disarm` | amend ticked shows HEAD's message; a commit made from a terminal unticks it and the ordinary draft is back; ticked again it is armed for the new HEAD |
 | `12-restart` | a draft typed, the app closed and opened again on the same profile, the repository reopened, the draft still there |
 | `13-search-reach` | the extended search on the deep repository, a hit 800 commits back: the page grows to a thousand, the status bar says so, the hit is selected and counted |
+| `14-ref-finder` | `/` on a branch the page holds: the match named, its row lit, nothing selected until Enter; on a tag 900 commits back: the page grows to a thousand and the tag's commit is selected; `?` lists the keys and Escape closes only the sheet |
+| `15-ref-card` | a click on a branch chip: its row selected, its card over the details and only over them, the chip pressed; Escape closes the card and leaves the selection; another selection closes it too |
 
 A journey is `{ name, run({ page, expect, fixture, snapshot, relaunch }) }`. They
 run in order, in one window — `relaunch()` closes the app and opens it again on

@@ -103,11 +103,19 @@ describe('two primary actions, not one', () => {
     expect(onCompareWorking).toHaveBeenCalledWith('abc123def456')
   })
 
-  // A proposal the model makes is never a filled button.
-  test('the AI action is an icon control, not the pane primary', async () => {
+  // Two things the model does with a commit, each offered once and by name:
+  // rewrite its message, explain it. The header's control used to be an
+  // unlabelled icon whose menu offered Explain a second time — the duplicate
+  // was that entry, not the rewrite, which has to stay one click away.
+  test('Rewrite is a named control in the header, never a filled one; Explain is offered once', async () => {
     render()
     await screen.findByText('tailwind.config.ts')
-    const ai = screen.getByTitle('Recompose commit with AI')
-    expect(ai.textContent?.trim()).toBe('')
+    const rewrite = screen.getByRole('button', { name: "Rewrite this commit's message with AI" })
+    expect(rewrite.textContent?.trim()).toBe('Rewrite')
+    expect(rewrite.className).toBe('cd-ai-btn')
+    expect(screen.getAllByText('Explain')).toHaveLength(1)
+    // It acts; it does not open a menu with a second Explain in it.
+    await userEvent.click(rewrite)
+    expect(document.querySelector('.ctx-menu')).toBeNull()
   })
 })

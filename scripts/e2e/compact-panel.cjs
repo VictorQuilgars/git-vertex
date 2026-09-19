@@ -93,7 +93,9 @@ app.whenReady().then(async () => {
     await win.loadFile(path.join(dir, 'index.html')); await settle()
     let g=await assertCompact()
     assert.equal(Math.round(g.right.w),Number(saved))
-    assert.equal(g.splitters[1].value,365)
+    // By label, not by position: the minimap's height handle is a separator too,
+    // and it arrived above these — which silently moved every index by one.
+    assert.equal(g.splitters.find(s=>s.label==='Resize files and commit')?.value,365)
     // Bounds are also reachable without a mouse.
     await evalJS("document.querySelector('.st2 .column-resize-handle').dispatchEvent(new KeyboardEvent('keydown',{key:'End',bubbles:true}))")
     await settle(); await assertCompact()

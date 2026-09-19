@@ -107,8 +107,18 @@ class Page {
   /** Poll an expression until it is truthy. */
   async until(expression, { timeoutMs = 15000, every = 150, what = expression } = {}) {
     const deadline = Date.now() + timeoutMs
+    let polls = 0
     while (Date.now() < deadline) {
       if (await this.eval(expression)) return
+      // A window that is not being painted — occluded on a desktop in use, or
+      // resized by emulation — can sit on a change it has not been told about:
+      // a media query flips when a FRAME is produced, and none is. The failure
+      // screenshot used to show the awaited state, because taking it forced the
+      // frame (#245). So a wait that is dragging asks for one itself: a
+      // one-pixel capture, once a second, thrown away.
+      if (++polls % 7 === 0) {
+        try { await this.send('Page.captureScreenshot', { format: 'png', clip: { x: 0, y: 0, width: 1, height: 1, scale: 1 } }) } catch { /* a window that cannot be painted at all: the wait goes on */ }
+      }
       await sleep(every)
     }
     throw new Error(`timed out waiting for: ${what}`)

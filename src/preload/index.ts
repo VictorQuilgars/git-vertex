@@ -195,6 +195,10 @@ const gitAPI = {
   aiListProviderModels: (provider: string, apiKey: string, baseUrl?: string) => invoke('ai:list-provider-models', provider, apiKey, baseUrl),
   // Reflog
   getReflog: () => invoke('git:get-reflog'),
+  resolveCommit: (ref: string) => invoke('git:resolve-commit', ref),
+  searchByFile: (paths: string[]) => invoke('git:search-by-file', paths),
+  getTagDetails: (name: string) => invoke('git:get-tag-details', name),
+  isTagOnRemote: (name: string) => invoke('git:is-tag-on-remote', name),
   // Contributors
   getContributors: (limit?: number) => invoke('git:get-contributors', limit),
   // File History

@@ -60,30 +60,6 @@
 }
 .cd-hash:hover { background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-soft), transparent); }
 
-/* The AI action — an icon with a menu, not a filled bar. It is a proposal the
-   model makes, and the design board says a proposal is never a filled button:
-   --seed-iris is what the model offers, --seed-aqua is what the human does. */
-.cd-ai-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  margin-left: auto;
-  flex-shrink: 0;
-  background: transparent;
-  border: 1px solid color-mix(in srgb, var(--purple) var(--alpha-muted), transparent);
-  border-radius: var(--radius-md);
-  color: var(--purple-text);
-  cursor: pointer;
-  transition: background var(--dur-fast), border-color var(--dur-fast);
-}
-.cd-ai-btn:hover {
-  background: color-mix(in srgb, var(--purple) var(--alpha-faint), transparent);
-  border-color: color-mix(in srgb, var(--purple) var(--alpha-bold), transparent);
-}
-.cd-ai-btn:disabled { opacity: 0.6; cursor: wait; }
-
 /* AI explanation box (Explain this commit) */
 .cd-ai-explain {
   margin: var(--space-md) var(--space-lg);
@@ -198,6 +174,19 @@
 .cd-amend-warn::before {
   content: '⚠ ';
 }
+/* The model's proposal for the message: outlined in its colour, never filled —
+   it fills the field to be reviewed, it does not commit. */
+.cd-amend-ai {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-xs);
+  flex: none;
+  height: 32px; padding: 0 var(--space-lg);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--purple) var(--alpha-muted), transparent);
+  border-radius: var(--radius-md);
+  color: var(--purple-text); font-size: var(--text-sm); cursor: pointer;
+}
+.cd-amend-ai:hover:not(:disabled) { background: color-mix(in srgb, var(--purple) var(--alpha-faint), transparent); }
+.cd-amend-ai:disabled { opacity: .6; cursor: wait; }
 .cd-amend-confirm, .cd-amend-cancel {
   flex: 1;
   height: 32px;
@@ -1673,7 +1662,45 @@
   padding: var(--space-xs) var(--space-xl) var(--space-sm);
   font-size: var(--text-xs);
 }
-.cd-head-line .rp-ref { max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The refs take what the line has left, and never shrink: a chip is drawn whole
+   or not at all (RefOverflow). Only a chip that is ALONE and still too wide is
+   cut — its name is then in its tooltip. */
+.rp-refs { position: relative; flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: var(--space-sm); }
+.rp-refs > .rp-ref { flex: 0 0 auto; }
+.rp-refs--one > .rp-ref { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* A chip that does not fit is taken off stage, not out of the document: it is
+   still there to be measured when the panel widens. */
+.rp-refs > .rp-ref--off { position: absolute; left: 0; top: 0; visibility: hidden; pointer-events: none; }
+.rp-refs-more {
+  flex: none;
+  height: 18px;
+  padding: 0 var(--space-sm);
+  font: inherit;
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-semibold);
+  color: var(--text-secondary);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+}
+.rp-refs-more:hover, .rp-refs-more--open { color: var(--text-primary); border-color: var(--border-strong); }
+.rp-refs-more:focus-visible { outline: 1px solid var(--accent); }
+.rp-refs-pop {
+  position: absolute;
+  top: calc(100% + var(--space-xs));
+  left: 0;
+  z-index: var(--z-dropdown);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  max-width: min(320px, 100%);
+  padding: var(--space-sm);
+  background: var(--surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--scrim) var(--alpha-bold), transparent);
+}
 .cd-head-cost {
   margin-left: auto;
   display: inline-flex;
@@ -1729,8 +1756,30 @@
   transition: background var(--dur-fast), color var(--dur-fast);
 }
 .cd-compare-btn:hover { background: var(--surface-hover); color: var(--text-primary); }
-/* With the compare button taking margin-left:auto, the AI control sits right after it. */
+/* Rewrite with the model, beside Compare: the same shape, in the model's colour
+   and outlined — a proposal is never a filled button. With no Compare (a host
+   that cannot compare) it takes the right edge itself. */
+.cd-ai-btn {
+  display: inline-flex; align-items: center; gap: var(--space-xs);
+  height: var(--row-nav); padding: 0 var(--space-md);
+  margin-left: auto;
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--purple) var(--alpha-muted), transparent);
+  border-radius: var(--radius-md);
+  color: var(--purple-text);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: background var(--dur-fast), border-color var(--dur-fast);
+}
 .cd-compare-btn + .cd-ai-btn { margin-left: var(--space-xs); }
+.cd-ai-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--purple) var(--alpha-faint), transparent); border-color: color-mix(in srgb, var(--purple) var(--alpha-half), transparent); }
+.cd-ai-btn:disabled { opacity: 0.6; cursor: wait; }
+/* A narrow panel keeps both buttons and drops their words: the names stay in the tooltips. */
+.cd-author-block { container-type: inline-size; }
+@container (max-width: 300px) {
+  .cd-compare-btn span, .cd-ai-btn span { display: none; }
+}
 
 /* ── The commit pane's leftovers (#113, second pass) ─────────────────────── */
 /* Copy the message: the small control in the block's corner. */

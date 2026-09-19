@@ -7,6 +7,7 @@
 // of the sidebar's state; the state itself lives in useSidebar.
 import { useState } from 'react'
 import { Icon } from '../../Icon/Icon'
+import { askForPRGroup } from './PrsSection'
 import { nextSteps } from '../../RightPanel/WorkingChangesEmpty'
 import type { SidebarState } from '../useSidebar'
 import type { BranchInfo } from '../../../types'
@@ -184,17 +185,17 @@ export function OverviewSection({ s }: { s: SidebarState }) {
             : (
               <div className="sb-ov-lp">
                 {launchpad.needsReview > 0 && (
-                  <button className="sb-ov-lp-row sb-ov-lp-row--review" onClick={home?.actions.onShowPRs}>
+                  <button className="sb-ov-lp-row sb-ov-lp-row--review" onClick={() => { askForPRGroup('needs-review'); home?.actions.onShowPRs?.() }}>
                     <Icon name="comment" size={12} />{t('sb.lp.needsReview', launchpad.needsReview)}
                   </button>
                 )}
                 {launchpad.changesRequested > 0 && (
-                  <button className="sb-ov-lp-row sb-ov-lp-row--changes" onClick={home?.actions.onShowPRs}>
+                  <button className="sb-ov-lp-row sb-ov-lp-row--changes" onClick={() => { askForPRGroup('changes-requested'); home?.actions.onShowPRs?.() }}>
                     <Icon name="pencil" size={12} />{t('sb.lp.changesRequested', launchpad.changesRequested)}
                   </button>
                 )}
                 {launchpad.approved > 0 && (
-                  <button className="sb-ov-lp-row sb-ov-lp-row--ready" onClick={home?.actions.onShowPRs}>
+                  <button className="sb-ov-lp-row sb-ov-lp-row--ready" onClick={() => { askForPRGroup('ready'); home?.actions.onShowPRs?.() }}>
                     <Icon name="rocket" size={12} />{t('sb.lp.approved', launchpad.approved)}
                   </button>
                 )}

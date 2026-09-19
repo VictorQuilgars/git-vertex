@@ -176,6 +176,27 @@ in the staging area with an `amend` badge (fetched via `getCommitFiles('HEAD')`)
 - `LANE_WIDTH = 18`; the row heights come from `--row-graph` / `--row-ref` (see Density below) — `ROW_HEIGHT`/`REF_LINE_H` in `graph-parts` are only the no-stylesheet fallbacks
 - `svgW = Math.max(SVG_PAD_L + (maxLane + 1) * LANE_WIDTH + SVG_PAD_R, 62)` — minimum 62px to avoid header overlap
 - Graph layout computed in `src/renderer/src/components/CommitGraph/graph-layout.ts`
+- **Keys**: `↑` `↓` `Home` `End`, the jumps `w` `h` `u` `t`, `/` (the ref finder — a
+  type-ahead, `ref-find.ts` + `RefFinder.tsx`), `?` (`GraphShortcuts.tsx`). A new jump key
+  goes in `JUMPS` **and** on the sheet — `CommitGraph.jump.test.tsx` reads both. A row the
+  page does not hold is asked of the host through `onRevealRef`, which resolves the name
+  with `resolveCommit` (git-core) and grows the page like the extended search.
+- **The search query is parsed** (#255, `utils/searchQuery.ts`, pure): free text plus operators
+  that narrow (AND). `author:` / `after:` / `before:` are matched by the graph against the rows
+  it holds; `file:` is git's (`git-core::commitsTouching`), asked by `useSearchOperators` and
+  handed to the graph as `requiredHashes` — AND-ed, where `searchHashes` is OR-ed. Build an
+  author query with `authorQuery()`, never by hand: a name with a space has to be quoted.
+- **A chip's card** (#258, `components/RefCard/`): a click on a chip selects its row and, 250 ms
+  later, calls `onOpenRef` — the double-click cancels it and switches. The HOST holds which
+  card is open (`useRefCard`, closed when the selection leaves the tip) and mounts `RefCard`
+  inside `.app-right`, which is positioned for it. ⚠️ `compareBranches(a, b)` speaks of **B**:
+  `ahead` is what b has that a lacks — ask it as `(target, branch)`.
+- **Only the rows near the viewport are elements** (#251, `graph-window.ts`): everything
+  works on `displayLayout` — every commit loaded — and `drawnRows` / `windowRows` /
+  `drawnEdges` are what reaches the DOM (the window, the selected row, the row a branch is
+  dragged from, and the edges that cross the window). Never count `.cg-row` to know how
+  much is loaded: `.cg-scroll-content[data-rows]` says it. jsdom has no height, so a test
+  DOM draws the first `UNMEASURED_ROWS + OVERSCAN_ROWS` rows.
 
 ## Icon
 **Two** SVG masters, and that is deliberate:

@@ -11,6 +11,9 @@ import Sidebar from './components/Sidebar/Sidebar'
 import StatusBar from './components/StatusBar/StatusBar'
 import CommitGraph from './components/CommitGraph/CommitGraph'
 import RightPanel from './components/RightPanel/RightPanel'
+import RefCard from './components/RefCard/RefCard'
+import { authorOfQuery, authorQuery } from './utils/searchQuery'
+import { useRefCard } from './components/RefCard/useRefCard'
 import { PromptDialog, ConfirmDialog, ChoiceDialog } from './components/Dialog/Dialog'
 import CommandPalette from './components/CommandPalette/CommandPalette'
 import { Mark } from './components/Mark/Mark'
@@ -75,13 +78,15 @@ export default function App() {
   const searchHook = useAppSearch({ ...chromeHook, ...sessionHook, ...githubHook, ...conflictsHook, ...aiHook, ...tabsHook, ...updatesHook, ...actionsHook })
   const app = { ...chromeHook, ...sessionHook, ...githubHook, ...conflictsHook, ...aiHook, ...tabsHook, ...updatesHook, ...actionsHook, ...searchHook }
   const {
-    dlg, showPrompt, showConfirm, closeDlg, t, showToast, repoPath, repoName, commits, logLimit, logLimitRef, branches, currentBranch, selectedCommit, setSelectedCommit, showAllBranches, setShowAllBranches, soloBranch, setSoloBranch, visibility, remoteNames, toggleHidden, setFamilyHidden, branchMeta, setNotedHashes, loading, recentRepos, setRecentRepos, workspaces, setWorkspaces, stashes, tags, lastFetchTime, setLastFetchTime, pullMode, setPullModeState, handleSetPullMode, tracking, githubRepoUrl, githubOwnerRepo, defaultBranch, conflictFiles, setConflictFiles, conflictKinds, setConflictKinds, conflictMode, wipCount, loadStashes, visibilityRef, soloRef, showAllRef, loadRepoData, loadRepoDataRef, hasSnapshot, filterFirstRun, resolverFileSeenRef, lastAutoFetchError, loadMoreHistory, issueModalBranch, setIssueModalBranch, githubUser, setGithubUser, setGithubConnected, githubPRs, githubPRsRef, githubIssues, githubIssuesRef, githubLogin, issueDetail, setIssueDetail, prModalOpen, setPrModalOpen, prIntent, setPrIntent, githubRefreshing, githubRefreshTick, githubPollTick, setGithubPollTick, loadGithubLists, refreshGithubSection, issueComposerOpen, setIssueComposerOpen, handleSharePatch, prIntentFor, handleStartPR, handleOpenCommitOnRemote, currentBranchPR, handleOpenFileOnRemote, handleCopyFileLink, handleCreateBranchFromIssue, handleOpenBranchOnRemote, rebaseHash, setRebaseHash, rebasePlanProposal, setRebasePlanProposal, conflictResolverFile, setConflictResolverFile, conflictResolverProposal, setConflictResolverProposal, handleRebaseOnto, handleRebaseCurrentOntoCommit, handleConflictFinish, handleConflictAbort, aiSearch, setAiSearch, setAiSearchHashes, aiSearchLoading, commitProposal, setCommitProposal, aiRead, setAiRead, composerOpen, setComposerOpen, sidebarTab, setSidebarTab, memoryToken, rememberedAI, insertChangelogGuarded, tabs, setTabs, activeTabId, tabMenu, setTabMenu, repoMgmtOpen, setRepoMgmtOpen, whatsNew, setWhatsNew, whatsNewActive, setWhatsNewActive, applyRepo, handleOpenRepo, handleSetRepo, openReleaseNotes, handleRemoveRecent, deepLinkHash, setDeepLinkHash, applyDeepLink, openHomeTab, openLaunchpadTab, openThemesTab, openViewTab, openSettingsTab, switchTab, closeTab, closeOtherTabs, activeTab, launchpadActive, themesActive, viewTab, onTabKeyDown, updatePhase, setUpdatePhase, updateVersion, setUpdateVersion, updatePct, setUpdatePct, updateOverlayOpen, setUpdateOverlayOpen, notifications, setNotifications, unreadCount, addUpdateNotification, startUpdateDownload, compareBaseHash, setCompareBaseHash, gitflowOpen, setGitflowOpen, pushModalOpen, setPushModalOpen, cloneOpen, setCloneOpen, initModalOpen, setInitModalOpen, handleCreateRepo, handleUndo, handleRedo, handleFetch, handlePush, handlePushModal, handleStash, handlePop, handleTerminal, handlePull, handleGoTo, handleCheckout, handleCheckoutTag, handleCreateBranch, handleDeleteBranch, handleDeleteBranchBoth, handleMergeBranch, handlePushBranch, handleDeleteRemoteBranch, handleSetUpstream, handleRenameBranch, handleCreateBranchAt, handleCherryPick, handleRevert, handleReset, applyReword, handleRewordCommit, handleDropCommit, handleCherryPickMany, handleDropCommits, handlePushToCommit, handleCreatePatch, handleCopyPatch, handleCreateWorktreeAt, handleCopyBranchLink, handleRestoreFile, handleCopyCommitLink, branchMenuItems, branchStripProps, workingEmptyState, handleBranchDrop, handleMoveCommit, handleCreateTagAtCommit, handleCreateAnnotatedTagAtCommit, handleCreateTag, handleDeleteTag, handlePushTag, handleDeleteRemoteTag, handleCreateStash, handleApplyStash, handlePopStash, handleDropStash, searchQuery, setSearchQuery, searchMatches, setSearchMatches, extendedSearch, setExtendedSearch, extendedSearchLoading, repoSearch, setRepoSearch, paletteOpen, setPaletteOpen, runAiSearch, graphSearchHashes, buildPaletteCommands,
+    dlg, showPrompt, showConfirm, closeDlg, t, showToast, repoPath, repoName, commits, logLimit, logLimitRef, branches, currentBranch, selectedCommit, setSelectedCommit, showAllBranches, setShowAllBranches, soloBranch, setSoloBranch, visibility, remoteNames, toggleHidden, setFamilyHidden, branchMeta, setNotedHashes, loading, recentRepos, setRecentRepos, workspaces, setWorkspaces, stashes, tags, lastFetchTime, setLastFetchTime, pullMode, setPullModeState, handleSetPullMode, tracking, githubRepoUrl, githubOwnerRepo, defaultBranch, conflictFiles, setConflictFiles, conflictKinds, setConflictKinds, conflictMode, wipCount, loadStashes, visibilityRef, soloRef, showAllRef, loadRepoData, loadRepoDataRef, hasSnapshot, filterFirstRun, resolverFileSeenRef, lastAutoFetchError, loadMoreHistory, issueModalBranch, setIssueModalBranch, githubUser, setGithubUser, setGithubConnected, githubPRs, githubPRsRef, githubIssues, githubIssuesRef, githubLogin, issueDetail, setIssueDetail, prModalOpen, setPrModalOpen, prIntent, setPrIntent, githubRefreshing, githubRefreshTick, githubPollTick, setGithubPollTick, loadGithubLists, refreshGithubSection, issueComposerOpen, setIssueComposerOpen, handleSharePatch, prIntentFor, handleStartPR, handleOpenCommitOnRemote, currentBranchPR, handleOpenFileOnRemote, handleCopyFileLink, handleCreateBranchFromIssue, handleOpenBranchOnRemote, rebaseHash, setRebaseHash, rebasePlanProposal, setRebasePlanProposal, conflictResolverFile, setConflictResolverFile, conflictResolverProposal, setConflictResolverProposal, handleRebaseOnto, handleRebaseCurrentOntoCommit, handleConflictFinish, handleConflictAbort, aiSearch, setAiSearch, setAiSearchHashes, aiSearchLoading, commitProposal, setCommitProposal, aiRead, setAiRead, composerOpen, setComposerOpen, sidebarTab, setSidebarTab, memoryToken, rememberedAI, insertChangelogGuarded, tabs, setTabs, activeTabId, tabMenu, setTabMenu, repoMgmtOpen, setRepoMgmtOpen, whatsNew, setWhatsNew, whatsNewActive, setWhatsNewActive, applyRepo, handleOpenRepo, handleSetRepo, openReleaseNotes, handleRemoveRecent, deepLinkHash, setDeepLinkHash, applyDeepLink, openHomeTab, openLaunchpadTab, openThemesTab, openViewTab, openSettingsTab, switchTab, closeTab, closeOtherTabs, activeTab, launchpadActive, themesActive, viewTab, onTabKeyDown, updatePhase, setUpdatePhase, updateVersion, setUpdateVersion, updatePct, setUpdatePct, updateOverlayOpen, setUpdateOverlayOpen, notifications, setNotifications, unreadCount, addUpdateNotification, startUpdateDownload, compareBaseHash, setCompareBaseHash, gitflowOpen, setGitflowOpen, pushModalOpen, setPushModalOpen, cloneOpen, setCloneOpen, initModalOpen, setInitModalOpen, handleCreateRepo, handleUndo, handleRedo, handleFetch, handlePush, handlePushModal, handleStash, handlePop, handleTerminal, handlePull, handleGoTo, handleCheckout, handleCheckoutTag, handleCreateBranch, handleDeleteBranch, handleDeleteBranchBoth, handleMergeBranch, handlePushBranch, handleDeleteRemoteBranch, handleSetUpstream, handleRenameBranch, handleCreateBranchAt, handleCherryPick, handleRevert, handleReset, applyReword, handleRewordCommit, handleDropCommit, handleCherryPickMany, handleDropCommits, handlePushToCommit, handleCreatePatch, handleCopyPatch, handleCreateWorktreeAt, handleCopyBranchLink, handleRestoreFile, handleCopyCommitLink, branchMenuItems, branchStripProps, workingEmptyState, handleBranchDrop, handleMoveCommit, handleCreateTagAtCommit, handleCreateAnnotatedTagAtCommit, handleCreateTag, handleDeleteTag, handlePushTag, handleDeleteRemoteTag, handleCreateStash, handleApplyStash, handlePopStash, handleDropStash, searchQuery, setSearchQuery, searchMatches, setSearchMatches, extendedSearch, setExtendedSearch, extendedSearchLoading, repoSearch, setRepoSearch, paletteOpen, setPaletteOpen, runAiSearch, graphSearchHashes, buildPaletteCommands, revealRef, requiredSearchHashes, searchOpsLoading,
   } = app
 
  logLimitRef.current = logLimit
   // The bell: an update notification is about the app, a journal entry is about
   // the repository on screen (#193). The panel's open state lives with the
   // journal so an error chip can link straight to its own entry.
+  // A branch's or a tag's card, opened by a click on its chip in the graph (#258).
+  const refCard = useRefCard(selectedCommit?.hash ?? null)
   const journal = useJournal()
   const notifsOpen = journal.open
   const setNotifsOpen = journal.setOpen
@@ -523,6 +528,7 @@ export default function App() {
         currentBranch={currentBranch}
         searchQuery={searchQuery}
         searchMatches={searchMatches}
+        searchOpsLoading={searchOpsLoading}
         onSearch={setSearchQuery}
         onUndo={handleUndo}
         onRedo={handleRedo}
@@ -704,8 +710,8 @@ export default function App() {
                 const found = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
                 if (found) setSelectedCommit(found)
               }}
-              onFilterAuthor={(author) => setSearchQuery(author ? `author:${author}` : '')}
-              authorFilter={searchQuery.startsWith('author:') ? searchQuery.slice(7) : null}
+              onFilterAuthor={(author) => setSearchQuery(authorQuery(author))}
+              authorFilter={authorOfQuery(searchQuery)}
               onCompareBranch={(name) => openViewTab({ view: 'compare', a: currentBranch, b: name, axis: 'diverged', label: `${currentBranch} … ${name}` })}
               soloBranch={soloBranch}
               visibility={visibility}
@@ -957,12 +963,22 @@ export default function App() {
                 return b ? { ahead: b.ahead, behind: b.behind } : null
               }}
               commits={commits}
+              branches={branches}
+              tags={tags}
+              // The branch this one will merge into: the default branch, unless
+              // this IS the default branch — `t` goes there, and its row is marked.
+              mergeTargetRef={defaultBranch && currentBranch && currentBranch !== defaultBranch ? defaultBranch : null}
+              onRevealRef={revealRef}
+              onOpenRef={refCard.toggle}
+              openRef={refCard.card}
+              upstreamRef={branches.find(b => b.current)?.upstream ?? null}
               visibility={visibility}
               remoteNames={remoteNames}
               selectedHash={selectedCommit?.hash ?? null}
               onSelectCommit={c => setSelectedCommit(prev => prev?.hash === c.hash ? null : c)}
               searchQuery={aiSearch ? '' : searchQuery}
               searchHashes={graphSearchHashes}
+              requiredHashes={aiSearch ? null : requiredSearchHashes}
               currentBranch={currentBranch}
               onCherryPick={handleCherryPick}
               onRevert={handleRevert}
@@ -1063,6 +1079,50 @@ export default function App() {
                 emptyState={workingEmptyState}
               />
               </ErrorBoundary>
+              {/* Over the details, and only over them: the graph beside it stays in reach. */}
+              {refCard.card && (() => {
+                const card = refCard.card
+                const pr = card.kind === 'head' ? githubPRs?.find(x => x.headRef === card.name) : undefined
+                const intent = card.kind === 'head' ? prIntentFor(card.name) : null
+                return (
+                  <ErrorBoundary>
+                  <RefCard
+                    target={card}
+                    branches={branches}
+                    currentBranch={currentBranch}
+                    defaultBranch={defaultBranch}
+                    tip={commits.find(c => c.hash === card.hash) ?? null}
+                    pr={pr ? { number: pr.number, title: pr.title } : null}
+                    issue={card.kind === 'head' ? branchMeta.issueFor(card.name) : null}
+                    menuItems={card.kind === 'tag' ? undefined : branchMenuItems({
+                      name: card.kind === 'remote' ? `remotes/${card.name}` : card.name,
+                      display: card.kind === 'remote' ? card.name.slice(card.name.indexOf('/') + 1) : card.name,
+                      current: card.kind === 'head' && card.name === currentBranch,
+                      remote: card.kind === 'remote',
+                    })}
+                    onClose={refCard.close}
+                    onSwitch={handleGoTo}
+                    onPull={handlePull}
+                    onPush={handlePush}
+                    onFetch={handleFetch}
+                    onPushBranch={handlePushBranch}
+                    onSetUpstream={handleSetUpstream}
+                    onCompare={(name) => openViewTab({ view: 'compare', a: currentBranch, b: name, axis: 'diverged', label: `${currentBranch} … ${name}` })}
+                    onMerge={handleMergeBranch}
+                    onRebase={handleRebaseOnto}
+                    onOpenOnRemote={githubOwnerRepo ? handleOpenBranchOnRemote : undefined}
+                    onDelete={handleDeleteBranch}
+                    onDeleteRemote={handleDeleteRemoteBranch}
+                    onOpenPR={(n) => { const item = githubPRs?.find(x => x.number === n); if (item) setIssueDetail({ kind: 'pr', item }) }}
+                    onCreatePR={intent ? () => handleStartPR(intent) : undefined}
+                    onPushTag={handlePushTag}
+                    onDeleteTag={handleDeleteTag}
+                    onCheckoutTag={handleCheckoutTag}
+                    onCreateBranchAt={handleCreateBranchAt}
+                  />
+                  </ErrorBoundary>
+                )
+              })()}
             </div>
           </>
         )}

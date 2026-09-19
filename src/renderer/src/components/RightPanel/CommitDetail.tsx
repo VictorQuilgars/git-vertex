@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Icon } from '../Icon/Icon'
+import RefOverflow, { headerRefs } from './RefOverflow'
 import { CommitNode, FileChange } from '../../types'
 import { CenterDiffTarget } from '../CenterFileDiff/CenterFileDiff'
 import { useLang } from '../../i18n/LanguageContext'
@@ -172,7 +173,6 @@ export function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOp
   const { get } = useSettings()
   // Configured reference patterns (Jira, Linear…), for the message below.
   const autolinks = React.useMemo(() => parseAutolinks(get('autolinks', '')), [get])
-  const [aiMenu, setAiMenu] = useState<{ x: number; y: number } | null>(null)
   const [aiBusy, setAiBusy] = useState(false)
   const [aiExplanation, setAiExplanation] = useState<string | null>(null)
   const [explOpen, setExplOpen] = useState(false)
@@ -202,7 +202,7 @@ export function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOp
   useEffect(() => {
     setFiles([]); setBody(''); setSelectedFile(null); setView('files')
     setAmendEditing(false); setAmendMsg(''); setAmendLoading(false)
-    setAiMenu(null); setAiExplanation(null); setCachedExplanation(null); setExplOpen(false)
+    setAiExplanation(null); setCachedExplanation(null); setExplOpen(false)
     setFilesLoading(true)
     // Asked per commit, and only used to decide whether the message block is
     // clickable — a host that does not implement it simply gets no editing.
@@ -241,9 +241,9 @@ export function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOp
         return
       }
       if (canEditMessage) {
-        // Prefill the inline editor and let the user review before confirming —
-        // the same gesture whether this is the tip or a commit ten back. It used
-        // to branch here, sending non-tip commits through a modal prompt.
+        // The proposal goes into the inline editor, to be reviewed before
+        // Confirm — the same gesture whether this is the tip or a commit ten
+        // back, and whether it was asked from the header or from the editor.
         setAmendMsg(r.message)
         setAmendEditing(true)
       } else {
@@ -285,11 +285,6 @@ export function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOp
   // Marked and inked like every other AI row in the app — this menu hangs off
   // the AI button, so it was never ambiguous, but a row that reaches a model
   // reads the same wherever it is.
-  const aiMenuItems: MenuItemDef[] = [
-    { label: t('panel.aiRecompose'), action: runAiRecompose, icon: 'ai', tone: 'ai' },
-    { label: cachedExplanation ? t('panel.aiExplainAgain') : t('panel.aiExplain'), action: () => runAiExplain(!!cachedExplanation), icon: 'ai', tone: 'ai' },
-  ]
-
   // Parse co-authors from body (name + email)
   const coAuthors = body
     ? [...body.matchAll(/Co-Authored-By:\s*(.+?)\s*<([^>]+)>/gi)].map(m => ({ name: m[1].trim(), email: m[2].trim() }))
@@ -307,16 +302,7 @@ export function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOp
   const visibleCdFiles = cdq ? files.filter(f => f.path.toLowerCase().includes(cdq)) : files
   const totalAdd = files.reduce((n, f) => n + (f.additions ?? 0), 0)
   const totalDel = files.reduce((n, f) => n + (f.deletions ?? 0), 0)
-  const headRefs = commit.refs
-    .filter(r => !/^(origin\/HEAD|remotes\/[^/]+\/HEAD)$/.test(r))
-    .map(r => {
-      const isHead = r.includes('HEAD'), isTag = r.startsWith('tag:')
-      const isRemote = r.includes('origin/') || r.includes('remotes/')
-      return {
-        text: r.replace('tag: ', '').replace('HEAD -> ', '★ '),
-        cls: isHead ? 'rp-ref-head' : isTag ? 'rp-ref-tag' : isRemote ? 'rp-ref-remote' : 'rp-ref-local',
-      }
-    })
+  const headRefs = headerRefs(commit.refs)
 
   return (
     <div className="rp-content">
@@ -406,6 +392,14 @@ export function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOp
                 {t('panel.rewordWarn', rewordPlan.rewrites)}
               </span>
             )}
+            {/* The model's proposal, where the message is rewritten: it fills the
+                field to be reviewed, and nothing is committed until Confirm.
+                Outlined in the model's colour, never filled. */}
+            <button className="cd-amend-ai" disabled={aiBusy || amendLoading}
+              title={t('panel.aiRecomposeTitle')} onClick={runAiRecompose}>
+              <Icon name="ai" size={12} />
+              <span>{aiBusy ? '…' : t('panel.aiRecompose')}</span>
+            </button>
             <button
               className="cd-amend-confirm"
               disabled={amendLoading || !amendMsg.trim()}
@@ -472,22 +466,19 @@ export function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOp
                 <span>{t('panel.compareBtn')}</span>
               </button>
             )}
-            {/* The AI action stays, as a secondary control. A proposal the model
-                makes is never a filled button — see the design board. */}
-            <button
-              className="cd-ai-btn"
-              title="Recompose commit with AI"
-              disabled={aiBusy}
-              onClick={e => {
-                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-                setAiMenu({ x: rect.right, y: rect.bottom + 4 })
-              }}
-            >
-              <Icon name="ai" size={14} />
+            {/* Rewrite the message with the model — the other thing a reader does
+                with a commit, so it is a button here, in one click and by name.
+                It used to be an unlabelled icon opening a menu whose second entry
+                was the Explain button below, a second time: THAT was the
+                duplicate, not this. A proposal, so outlined in the model's
+                colour and never filled; nothing is committed before Confirm. */}
+            <button className="cd-ai-btn" disabled={aiBusy}
+              title={t(canEditMessage ? 'panel.aiRecomposeTitle' : 'panel.aiRecomposeCopyTitle')}
+              aria-label={t('panel.aiRecomposeLong')}
+              onClick={runAiRecompose}>
+              <Icon name="ai" size={13} />
+              <span>{aiBusy ? '…' : t('panel.aiRewrite')}</span>
             </button>
-            {aiMenu && (
-              <ContextMenu x={aiMenu.x} y={aiMenu.y} items={aiMenuItems} onClose={() => setAiMenu(null)} />
-            )}
           </div>
 
           {/* One line for what used to take four: the hash, where it lives, the
@@ -502,7 +493,8 @@ export function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOp
                 <Icon name="chevronLeft" size={11} />
               </button>
             )}
-            {headRefs.map((r, i) => <span key={i} className={`rp-ref ${r.cls}`}>{r.text}</span>)}
+            {/* Whole names or none: what does not fit waits behind a "+N" (RefOverflow). */}
+            <RefOverflow refs={headRefs} />
             {files.length > 0 && (
               <span className="cd-head-cost" title={`${files.length} file${files.length !== 1 ? 's' : ''}`}>
                 {totalAdd > 0 && <span className="rp-add">+{totalAdd}</span>}

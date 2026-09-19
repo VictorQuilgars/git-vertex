@@ -16,6 +16,33 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🚀 Pull requests, by what they need
+- The pull requests view gains a second reading, **By what they need**: *Needs Your Review*, *Changes Requested*, *Ready to Merge*, *Blocked*, *Waiting for Review*, *Draft* — each with its count, every request in exactly one group. **Pin** one to the top, **snooze** one until a day or its next update. The overview's **Waiting on you** lines open it on their group.
+
+### 🧭 The search field takes operators
+- Beside **author:**, the graph's search now takes **file:** (a path, a folder, a pattern — or a bare word found anywhere in a path), **after:** and **before:** (a day, or a span such as **2w**, **3m**, **1y**). They combine with each other and with the words: \`author:ana file:src/main after:1m cache\`. Under the field, while it has the focus, the operators in force are **chips you can remove one by one**, and the ones there are, a click away.
+
+### 🪪 A branch chip opens its card
+- **Click a branch or a tag** in the graph: its card opens **over the details panel**. A branch says where it stands against its **upstream** and against the branch it **merges into** — with the verdict that matters, *would it conflict* — carries its issue and its pull request, and offers what fits: publish, pull, push, merge, rebase, compare, switch. A tag says what it points at, who tagged it and what they wrote, and whether the remote has it. **The double-click still switches.**
+
+### 🔎 Find a branch from the graph, with /
+- **/** opens a small field at the top right of the graph, and **the graph answers as you type**: it goes to the best match and lights its row. **↓ ↑** walk the others, **Enter** takes it. Branches, tags and worktrees — **on the page or not**: a tip three pages down is reached by growing the page, the way a search hit is.
+
+### 🎯 t is the merge target
+- **t** jumps to the tip of the branch this one will merge into, and the rows a branch is read against are **marked at the graph's left edge**: HEAD, its upstream, the merge target. The minimap marks the target's day too.
+- **?** lists the graph's keys on one sheet.
+
+### ⚡ The graph draws what is on screen
+- The graph holds every commit it has loaded and **draws only the rows near the viewport**. After five *Load more* — 3,000 commits — that is **38 row elements instead of 3,000**: a frame of scrolling takes **16.7 ms instead of 66.6**, and a click on a row shows in **30 ms instead of 171**. Keys, jumps, selection and search still work on every commit loaded.
+
+### 🌡️ The heatmap's colours are yours
+- The blame heatmap runs between **two colours from the settings** — \`gitVertex.blame.heatmap.hotColor\` and \`coldColor\`, as \`#RRGGBB\` — instead of an orange and a blue no theme could reach. An open annotation repaints as you change them.
+
+### 📏 A short panel has no minimap
+- Below 340 px of height the strip of activity **steps aside**: in a 194 px panel it took a quarter of the height and left the list of files one row tall.
+`,
   '1.35.0': `## What's new in 1.35.0
 
 ### 🎨 Make your own theme

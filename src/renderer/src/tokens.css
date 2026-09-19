@@ -133,6 +133,10 @@
   --info-text: color-mix(in oklab, var(--seed-accent) 70%, var(--seed-text));
   --agent-accent: color-mix(in oklab, var(--seed-accent) 62%, var(--seed-agent));
   --ref-head: color-mix(in oklab, var(--seed-warning) 74%, var(--seed-text));
+  /* The two other rows a branch is read against: where its upstream stands,
+     and the branch it will merge into — the purple a merged request wears. */
+  --ref-upstream: var(--seed-success);
+  --ref-target: color-mix(in oklab, var(--seed-agent) 66%, var(--seed-conflict));
   --pr-merged: color-mix(in oklab, var(--seed-agent) 66%, var(--seed-conflict));
   --install-bg: var(--seed-warning);
   --install-bg-hover: color-mix(in oklab, var(--seed-warning) 82%, var(--seed-text));

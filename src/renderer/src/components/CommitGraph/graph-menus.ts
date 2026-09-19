@@ -25,13 +25,16 @@ export interface GraphMenuContext {
   setMultiSel: React.Dispatch<React.SetStateAction<Set<string>>>
   setCtx: React.Dispatch<React.SetStateAction<CtxState | null>>
   localBranchAt: (hash: string, exclude: string) => string | null
+  /** `/` and `?`, for a hand that is on the mouse. */
+  openFinder: () => void
+  openShortcuts: () => void
 }
 
 export function useGraphMenus(props: CommitGraphProps, ctx: GraphMenuContext) {
   const {
     currentBranch, onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt, onCheckoutBranch, onInteractiveRebase, onCheckoutCommit, onRewordCommit, onCompareWorking, onSelectForCompare, onCompareWithSelected, compareBaseHash, onDropCommit, onMoveCommit, onBranchDrop, onCherryPickMany, onDropCommits, onMergeBranch, onRebaseCurrentOnto, onRenameBranch, onDeleteBranch, onPushBranch, onSetUpstream, prIntentFor, onCreatePR, branchMenuItems, onCopyCommitLink, onCreateAnnotatedTag, onDeleteRemoteBranch, onPushTag, onDeleteTag, onDeleteRemoteTag, onRebaseCurrentOntoCommit, onPushToCommit, onCreatePatch, onCopyPatch, onSharePatch, onCreateWorktreeAt, onOpenCommitOnRemote, nativeContextMenu = false, onNativeMenuTarget,
   } = props
-  const { t, set, showAvatars, showAuthor, showDate, showSha, showStats, showTimeline, showMinimap, compactColumns, displayLayout, multiSel, setMultiSel, setCtx, localBranchAt } = ctx
+  const { t, set, showAvatars, showAuthor, showDate, showSha, showStats, showTimeline, showMinimap, compactColumns, displayLayout, multiSel, setMultiSel, setCtx, localBranchAt, openFinder, openShortcuts } = ctx
 
   // The "start a Pull Request" row, pointing whichever way prIntentFor decided
   // — from this branch, or into it, depending on where you are standing.
@@ -297,6 +300,9 @@ export function useGraphMenus(props: CommitGraphProps, ctx: GraphMenuContext) {
       onPushTag, onDeleteTag, onDeleteRemoteTag])
   // Right-click on the header bar — choose which columns show.
   const buildHeaderMenuItems = useCallback((): MenuItemDef[] => [
+    { label: t('graph.find.menu'), action: openFinder },
+    { label: t('graph.keys.menu'), action: openShortcuts },
+    { separator: true },
     { label: t('graph.col.avatars'), checked: showAvatars, action: () => set('graphShowAvatars', showAvatars ? 'false' : 'true') },
     { label: t('graph.col.author'), checked: showAuthor, action: () => set('graphShowAuthor', showAuthor ? 'false' : 'true') },
     { label: t('graph.col.date'), checked: showDate, action: () => set('graphShowDate', showDate ? 'false' : 'true') },
@@ -315,7 +321,7 @@ export function useGraphMenus(props: CommitGraphProps, ctx: GraphMenuContext) {
       set('graphShowStats', 'true')
       set('graphCompactColumns', 'false')
     } },
-  ], [showAvatars, showAuthor, showDate, showSha, showStats, showTimeline, showMinimap, compactColumns, set])
+  ], [showAvatars, showAuthor, showDate, showSha, showStats, showTimeline, showMinimap, compactColumns, set, t, openFinder, openShortcuts])
 
   return { buildMenuItems, batchMenuItems, buildDropItems, buildBranchMenu, buildHeaderMenuItems, handleRowContextMenu }
 }
