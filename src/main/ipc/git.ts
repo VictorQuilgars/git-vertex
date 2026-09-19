@@ -396,6 +396,28 @@ export function registerGitHandlers(): void {
     return state.gitService.deleteRemoteBranch(branch)
   })
 
+  // #280 — the three acts a branch needs that did not exist: bring it forward
+  // without standing on it, list what an upstream can be, tidy the fixups.
+  handle('git:pull-branch', async (_event, branch: string) => {
+    if (!state.gitService) return { success: false, error: 'No repo open' }
+    return state.gitService.pullBranch(branch)
+  })
+
+  handle('git:list-remote-branches', async () => {
+    if (!state.gitService) return { branches: [] }
+    return state.gitService.listRemoteBranches()
+  })
+
+  handle('git:squash-fixups', async (_event, base: string) => {
+    if (!state.gitService) return { success: false, error: 'No repo open' }
+    return state.gitService.squashFixups(base)
+  })
+
+  handle('git:list-fixups', async (_event, base: string) => {
+    if (!state.gitService) return { commits: [] }
+    return state.gitService.listFixups(base)
+  })
+
   handle('git:set-upstream', async (_event, branch: string, upstream?: string) => {
     if (!state.gitService) return { success: false, error: 'No repo open' }
     return state.gitService.setUpstream(branch, upstream)

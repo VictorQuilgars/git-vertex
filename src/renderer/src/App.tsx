@@ -718,6 +718,22 @@ export default function App() {
               onFilterAuthor={(author) => setSearchQuery(authorQuery(author))}
               authorFilter={authorOfQuery(searchQuery)}
               onReveal={ref => { void revealRef(ref) }}
+              onRebaseOntoUpstream={upstream => { void handleRebaseOnto(upstream) }}
+              onCompareUpstream={(name, upstream) => openViewTab({ view: 'compare', a: upstream, b: name, axis: 'diverged', label: `${upstream} … ${name}` })}
+              tipActions={{
+                onCreateBranchAt: handleCreateBranchAt,
+                onCreateTag: handleCreateTagAtCommit,
+                onCreateWorktreeAt: handleCreateWorktreeAt,
+                onReset: handleReset,
+                onCompareWorking: hash => openViewTab({ view: 'compare', a: hash, b: null, axis: 'endpoints', label: `${hash.slice(0, 7)} … working tree` }),
+                onSelectForCompare: setCompareBaseHash,
+                onCompareWithSelected: hash => compareBaseHash && openViewTab({ view: 'compare', a: compareBaseHash, b: hash, axis: 'endpoints', label: `${compareBaseHash.slice(0, 7)} … ${hash.slice(0, 7)}` }),
+                onCopyFullHash: async ref => {
+                  const { hash } = await window.gitAPI.resolveCommit(ref)
+                  if (hash) void navigator.clipboard.writeText(hash)
+                },
+                compareBaseHash,
+              }}
               onCompareBranch={(name) => openViewTab({ view: 'compare', a: currentBranch, b: name, axis: 'diverged', label: `${currentBranch} … ${name}` })}
               soloBranch={soloBranch}
               visibility={visibility}

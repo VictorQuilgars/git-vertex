@@ -6,6 +6,7 @@ import { branchRowActions } from './rowActions'
 import { useRowClick } from './rowClick'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { buildBranchMenu } from '../ContextMenu/branchMenu'
+import { branchTipExtras, type BranchTip, type BranchTipActions } from '../ContextMenu/branchTipMenu'
 import type { PRIntent } from '../ContextMenu/prIntent'
 import { issueRefLabel, type IssueRef as LinkedIssueRef } from '../../utils/issueRef'
 import { useLang } from '../../i18n/LanguageContext'
@@ -64,9 +65,19 @@ export interface BranchItemProps {
   onPublish?: () => void
   /** Fetch this remote branch's own remote (#274). */
   onFetch?: () => void
+  // ── What a branch needs, and what its tip can do (#280, #281, #282) ──
+  onPullBranch?: () => void
+  onChangeUpstream?: () => void
+  onRebaseOntoUpstream?: () => void
+  onSquashFixups?: () => void
+  onHideRemote?: () => void
+  onCompareUpstream?: () => void
+  /** Its tip commit, so the row can offer what the tip's graph row offers. */
+  tip?: BranchTip
+  tipActions?: BranchTipActions
 }
 
-export function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, hidden, favorite, issue, onPull, onToggleSolo, onToggleHide, onToggleFavorite, onOpenOnRemote, onAssociateIssue, onExplain, onChangelog, onReveal, onPublish, onFetch, pr, onCreatePR, publishedAs, onCopyLink, onDeleteBoth, ahead = 0, behind = 0, gone = false, showRemotePrefix = false, displayAs }: BranchItemProps) {
+export function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, hidden, favorite, issue, onPull, onToggleSolo, onToggleHide, onToggleFavorite, onOpenOnRemote, onAssociateIssue, onExplain, onChangelog, onReveal, onPublish, onFetch, onPullBranch, onChangeUpstream, onRebaseOntoUpstream, onSquashFixups, onHideRemote, onCompareUpstream, tip, tipActions, pr, onCreatePR, publishedAs, onCopyLink, onDeleteBoth, ahead = 0, behind = 0, gone = false, showRemotePrefix = false, displayAs }: BranchItemProps) {
   const [hover, setHover] = useState(false)
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const { t } = useLang()
@@ -94,8 +105,12 @@ export function BranchItem({ name, current, remote, currentBranch, onCheckout, o
       onCopyName: () => navigator.clipboard.writeText(fullDisplay),
       onCopyLink,
       onRename, onDelete, onDeleteRemote, onDeleteBoth,
+      onPullBranch, onChangeUpstream, onRebaseOntoUpstream, onSquashFixups,
+      onHideRemote, onCompareUpstream,
     },
-    t
+    t,
+    // The tip's own actions, in the slots the graph fills from its row (#281).
+    tip && tipActions ? branchTipExtras(tip, current, tipActions, t) : {}
   )
 
   // One click takes the graph to the tip, the double-click still switches —

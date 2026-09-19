@@ -1453,6 +1453,22 @@ function VertexApp() {
             onFilterAuthor={(author) => setSearchQuery(authorQuery(author))}
             authorFilter={authorOfQuery(searchQuery)}
             onReveal={(ref: string) => { void revealCommit(ref) }}
+            onRebaseOntoUpstream={(upstream: string) => { void handleRebaseCurrentOnto(upstream) }}
+            onCompareUpstream={(name: string, upstream: string) => { void window.gitAPI.openCompare(upstream, name) }}
+            tipActions={{
+              onCreateBranchAt: handleCreateBranchAt,
+              onCreateTag: handleCreateTag,
+              onCreateWorktreeAt: handleCreateWorktreeAt,
+              onReset: handleReset,
+              onCompareWorking: (hash: string) => { void window.gitAPI.openCompareWorkingTab(hash) },
+              onSelectForCompare: setCompareBaseHash,
+              onCompareWithSelected: (hash: string) => { if (compareBaseHash) void window.gitAPI.openCompare(compareBaseHash, hash) },
+              onCopyFullHash: async (ref: string) => {
+                const { hash } = await window.gitAPI.resolveCommit(ref)
+                if (hash) void navigator.clipboard.writeText(hash)
+              },
+              compareBaseHash,
+            }}
             home={emptyState}
             mergeTarget={mergeTarget}
             launchpad={launchpad}

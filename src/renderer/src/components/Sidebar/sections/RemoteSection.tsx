@@ -4,10 +4,11 @@ import { buildBranchTree } from '../branchTree'
 import { Section } from '../Section'
 import { BranchTree } from '../tree'
 import { BranchItem } from '../BranchItem'
+import { remoteOf } from '../../ContextMenu/branchMenu'
 import type { SidebarState } from '../useSidebar'
 
 export function RemoteSection({ s }: { s: SidebarState }) {
-  const { currentBranch, onReveal, onDeleteRemoteBranch, onExplainBranch, onBranchChangelog, onGoTo, soloBranch, onToggleSolo, onToggleHide, isFavorite, onToggleFavorite, onOpenBranchOnRemote, prIntentFor, onCreatePR, onCopyBranchLink, single, branchHidden, familyMenu, toggleFolder, openFolders, showAll, remoteBranches, layoutFor, layoutToggle, handleFetchRemote } = s
+  const { currentBranch, onReveal, onMergeBranch, onRebaseOnto, onCompareBranch, onToggleHideRemote, tipActions, onDeleteRemoteBranch, onExplainBranch, onBranchChangelog, onGoTo, soloBranch, onToggleSolo, onToggleHide, isFavorite, onToggleFavorite, onOpenBranchOnRemote, prIntentFor, onCreatePR, onCopyBranchLink, single, branchHidden, familyMenu, toggleFolder, openFolders, showAll, remoteBranches, layoutFor, layoutToggle, handleFetchRemote } = s
   const names = remoteBranches.map(b => b.name.replace(/^remotes\//, ''))
   const asTree = layoutFor('remote', names) === 'tree'
   return (
@@ -33,6 +34,15 @@ export function RemoteSection({ s }: { s: SidebarState }) {
                     onReveal={onReveal && (() => onReveal(b.name))}
                     onFetch={() => handleFetchRemote(b.name.replace(/^remotes\//, '').split('/')[0])}
                     onDeleteRemote={() => onDeleteRemoteBranch(b.name)}
+                    // A remote-only branch could be neither merged nor rebased
+                    // onto, and had no Compare at all (#282). git takes
+                    // `remotes/origin/x` as a ref like any other.
+                    onMerge={() => onMergeBranch(b.name)}
+                    onRebaseOnto={() => onRebaseOnto(b.name)}
+                    onCompare={() => onCompareBranch(b.name)}
+                    onHideRemote={onToggleHideRemote && (() => onToggleHideRemote(remoteOf(b.name)))}
+                    tip={{ ref: b.name, hash: b.commit, subject: b.label }}
+                    tipActions={tipActions}
                     soloed={soloBranch === b.name}
                     hidden={branchHidden(b)}
                     onToggleSolo={() => onToggleSolo(b.name)}

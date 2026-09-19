@@ -1490,6 +1490,30 @@ export class GitService {
     }
   }
 
+  /**
+   * Bring a branch up to its upstream without switching to it (#280). The
+   * behaviour — and each of the three refusals — is git-core's, shared with
+   * the panel.
+   */
+  async pullBranch(branch: string): Promise<core.FastForwardResult> {
+    return core.fastForwardBranch(this.run, branch)
+  }
+
+  /** Every remote-tracking branch — what *Change upstream…* picks from (#280). */
+  async listRemoteBranches(): Promise<{ branches: string[] }> {
+    return { branches: await core.remoteBranchNames(this.run) }
+  }
+
+  /** Fold the `fixup!` / `squash!` commits over a base into their targets (#280). */
+  async squashFixups(base: string): Promise<core.SquashFixupsResult> {
+    return core.squashFixups(this.run, base)
+  }
+
+  /** What squashing would fold, so a surface can say so before running it. */
+  async listFixups(base: string): Promise<{ commits: { hash: string; subject: string }[] }> {
+    return { commits: await core.fixupCommits(this.run, base) }
+  }
+
   // Set the upstream of a local branch. Defaults to <remote>/<branch> using the
   // repo's default remote, so repos whose remote isn't named "origin" — or that
   // have several — still work. An explicit `upstream` overrides all.

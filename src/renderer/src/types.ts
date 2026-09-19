@@ -168,6 +168,12 @@ declare global {
     savePatchFile: (content: string, suggestedName: string) => Promise<{ success: boolean; canceled?: boolean; path?: string; error?: string }>
     deleteRemoteBranch: (branch: string) => Promise<R>
     setUpstream: (branch: string, upstream?: string) => Promise<R>
+    /** Fast-forward a branch from its upstream without switching to it (#280). */
+    pullBranch: (branch: string) => Promise<R & { upToDate?: boolean; moved?: number; upstream?: string }>
+    /** Every remote-tracking branch — what *Change upstream…* picks from. */
+    listRemoteBranches: () => Promise<{ branches: string[] }>
+    squashFixups: (base: string) => Promise<R & { squashed?: number }>
+    listFixups: (base: string) => Promise<{ commits: { hash: string; subject: string }[] }>
     moveBranchTo: (branch: string, hash: string) => Promise<R>
     rebaseBranchOnto: (branch: string, hash: string) => Promise<R>
     mergeCommitInto: (branch: string, hash: string) => Promise<R>

@@ -8,7 +8,7 @@ import { BranchItem } from '../BranchItem'
 import type { SidebarState } from '../useSidebar'
 
 export function LocalSection({ s }: { s: SidebarState }) {
-  const { currentBranch, branches, onReveal, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch, onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream, onExplainBranch, onBranchChangelog, onGoTo, onCompareBranch, soloBranch, onToggleSolo, onToggleHide, onPull, isFavorite, issueFor, onToggleFavorite, onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR, onCopyBranchLink, onDeleteBranchBoth, t, localBranches, branchHidden, toggleFolder, openFolders, showAll, localMenu, layoutFor, layoutToggle } = s
+  const { currentBranch, branches, onReveal, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch, onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream, onExplainBranch, onBranchChangelog, onGoTo, onCompareBranch, soloBranch, onToggleSolo, onToggleHide, onPull, isFavorite, issueFor, onToggleFavorite, onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR, onCopyBranchLink, onDeleteBranchBoth, onRebaseOntoUpstream, onCompareUpstream, tipActions, mergeTarget, handlePullBranchRow, handleChangeUpstreamRow, handleSquashFixupsRow, t, localBranches, branchHidden, toggleFolder, openFolders, showAll, localMenu, layoutFor, layoutToggle } = s
   const names = localBranches.map(b => b.name)
   const asTree = layoutFor('local', names) === 'tree'
   return (
@@ -38,6 +38,21 @@ export function LocalSection({ s }: { s: SidebarState }) {
                 onSetUpstream={() => onSetUpstream(b.name)}
                 onPull={b.current ? onPull : undefined}
                 onReveal={onReveal && (() => onReveal(b.name))}
+                // Bringing a branch forward needs an upstream to bring it
+                // forward from (#280); the rest of these need a tip.
+                onPullBranch={!b.current && b.upstream ? () => handlePullBranchRow(b.name) : undefined}
+                onChangeUpstream={() => handleChangeUpstreamRow(b.name)}
+                onRebaseOntoUpstream={b.current && b.upstream && onRebaseOntoUpstream
+                  ? () => onRebaseOntoUpstream(b.upstream!) : undefined}
+                // Measured from the upstream, or from the branch this one
+                // will merge into — what it is rebased onto is the fork point
+                // with it, so nothing moves but the fixups.
+                onSquashFixups={b.current && (b.upstream || mergeTarget?.name)
+                  ? () => handleSquashFixupsRow(b.upstream ?? mergeTarget!.name) : undefined}
+                onCompareUpstream={b.upstream && onCompareUpstream
+                  ? () => onCompareUpstream(b.name, b.upstream!) : undefined}
+                tip={{ ref: b.name, hash: b.commit, subject: b.label }}
+                tipActions={tipActions}
                 soloed={soloBranch === b.name}
                 hidden={branchHidden(b)}
                 onToggleSolo={() => onToggleSolo(b.name)}

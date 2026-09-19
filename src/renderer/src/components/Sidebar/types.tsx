@@ -188,6 +188,28 @@ export interface SidebarProps {
    * reacting by doing nothing.
    */
   onReveal?: (ref: string) => void
+  // ── #280: what a branch needs, without standing on it ──
+  /**
+   * Rebase the checked-out branch onto the branch it tracks.
+   *
+   * The other three acts of #280 — the fast-forward, the upstream picker, the
+   * autosquash — are not props: they are `window.gitAPI` calls with a prompt
+   * and a toast around them, and they live in `useSidebar` beside the stash
+   * rename and the remote prune, so both products get them from one place.
+   * This one is a prop because a rebase can conflict, and what happens then is
+   * the host's business — the desktop has a resolver, the panel has its own.
+   */
+  onRebaseOntoUpstream?: (upstream: string) => void
+  /** Fold the checked-out branch's `fixup!` / `squash!` commits in. */
+  onSquashFixups?: (base: string) => void
+  /** A branch against the branch it tracks (#281). */
+  onCompareUpstream?: (name: string, upstream: string) => void
+  /**
+   * What the tip commit's own actions do (#281) — the same handlers the graph
+   * row uses, so a branch row's *Create tag from here* is the graph's entry,
+   * not a second implementation of it. Omitted ⇒ the rows are not offered.
+   */
+  tipActions?: import('../ContextMenu/branchTipMenu').BranchTipActions
   onCompareBranch: (branchName: string) => void
   soloBranch: string | null
   /**

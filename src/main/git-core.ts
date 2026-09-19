@@ -817,3 +817,157 @@ export async function contributors(
     return { contributors: [] }
   }
 }
+
+// ── Keeping a branch up to date, without standing on it ─────────
+//
+// The panel could only pull the branch it was standing on, and only ever set
+// an upstream of `<default remote>/<same name>`: bringing a second branch
+// forward meant switching to it, pulling, and switching back (#280). These
+// are the operations that answer "what does this branch need", and they are
+// here because both products offer them from the same shared rows.
+
+/** What `git rev-list --left-right --count a...b` says, read as a pair. */
+export function parseAheadBehind(raw: string): { ahead: number; behind: number } {
+  const [ahead, behind] = raw.trim().split(/\s+/).map(Number)
+  return { ahead: Number.isFinite(ahead) ? ahead : 0, behind: Number.isFinite(behind) ? behind : 0 }
+}
+
+/** The branch a local branch tracks, or null when it tracks nothing. */
+export async function upstreamOf(run: GitRunner, branch: string): Promise<string | null> {
+  const bad = assertRef(branch, 'branch')
+  if (bad) return null
+  try {
+    const out = (await run(['rev-parse', '--abbrev-ref', '--symbolic-full-name', `${branch}@{upstream}`])).trim()
+    return out || null
+  } catch { return null }
+}
+
+/**
+ * How far a branch is from its upstream — ahead is what the branch has that
+ * the upstream lacks, which is the way round every other count in this app
+ * reads.
+ */
+export async function aheadBehindUpstream(
+  run: GitRunner, branch: string, upstream: string,
+): Promise<{ ahead: number; behind: number }> {
+  try {
+    return parseAheadBehind(await run(['rev-list', '--left-right', '--count', `${branch}...${upstream}`]))
+  } catch { return { ahead: 0, behind: 0 } }
+}
+
+export interface FastForwardResult {
+  success: boolean
+  /** Nothing to do — it was already level with its upstream. */
+  upToDate?: boolean
+  /** How many commits it moved. */
+  moved?: number
+  upstream?: string
+  error?: string
+}
+
+/**
+ * Bring a branch up to its upstream without switching to it — and refuse,
+ * with the reason, when that cannot be done as a fast-forward.
+ *
+ * Three refusals, each its own sentence, because they call for different
+ * things: no upstream at all (publish it, or pick one), diverged (rebase or
+ * merge — a decision, not a button), and already level (nothing to do, which
+ * is a success and says so rather than reporting an error).
+ *
+ * The move itself is `git fetch . <upstream>:<branch>`, which updates a ref
+ * git is not standing on and refuses on its own if the update would not be a
+ * fast-forward — belt and braces with the check above. The branch the caller
+ * IS standing on cannot be moved that way, so it is merged `--ff-only`
+ * instead, which touches the working tree and therefore stays git's decision
+ * to refuse when the tree is dirty.
+ */
+export async function fastForwardBranch(run: GitRunner, branch: string): Promise<FastForwardResult> {
+  const bad = assertRef(branch, 'branch')
+  if (bad) return { success: false, error: bad }
+  const upstream = await upstreamOf(run, branch)
+  if (!upstream) return { success: false, error: `${branch} tracks no branch` }
+  const { ahead, behind } = await aheadBehindUpstream(run, branch, upstream)
+  if (behind === 0 && ahead === 0) return { success: true, upToDate: true, upstream, moved: 0 }
+  if (ahead > 0) {
+    return {
+      success: false, upstream,
+      error: behind > 0
+        ? `${branch} has diverged from ${upstream} (${ahead} ahead, ${behind} behind) — rebase or merge it`
+        : `${branch} is ${ahead} ahead of ${upstream}, with nothing to pull`,
+    }
+  }
+  let current = ''
+  try { current = (await run(['symbolic-ref', '--quiet', '--short', 'HEAD'])).trim() } catch { /* detached */ }
+  try {
+    if (current === branch) await run(['merge', '--ff-only', upstream])
+    else await run(['fetch', '.', `${upstream}:${branch}`])
+    return { success: true, moved: behind, upstream }
+  } catch (e) {
+    return { success: false, upstream, error: reason(e) }
+  }
+}
+
+/** Every remote-tracking branch, as `origin/main` — what an upstream is picked from. */
+export async function remoteBranchNames(run: GitRunner): Promise<string[]> {
+  try {
+    const raw = await run(['for-each-ref', '--format=%(refname:short)', 'refs/remotes'])
+    // `origin/HEAD` is a symbolic ref to the remote's default branch, not a
+    // branch anybody tracks: offering it as an upstream sets a moving target.
+    return raw.split('\n').map(s => s.trim()).filter(s => s && !/\/HEAD$/.test(s))
+  } catch { return [] }
+}
+
+/** The `fixup!` / `squash!` commits over a base, newest first — what squashing would fold. */
+export async function fixupCommits(run: GitRunner, base: string): Promise<{ hash: string; subject: string }[]> {
+  const bad = assertRef(base, 'base')
+  if (bad) return []
+  try {
+    const raw = await run(['log', '--format=%H%x1f%s', `${base}..HEAD`])
+    return raw.split('\n').map(line => line.trim()).filter(Boolean).map(line => {
+      const [hash, subject] = line.split('\x1f')
+      return { hash, subject: subject ?? '' }
+    }).filter(c => /^(fixup|squash)!/.test(c.subject))
+  } catch { return [] }
+}
+
+export interface SquashFixupsResult {
+  success: boolean
+  /** How many fixup/squash commits were folded in. */
+  squashed?: number
+  error?: string
+}
+
+/**
+ * Fold every `fixup!` / `squash!` commit into the commit it names.
+ *
+ * `against` is the branch the work is measured from — its upstream, or the
+ * branch it will merge into — and what is rebased onto is the **fork point**
+ * with it, never the branch itself: `rebase -i --autosquash origin/main`
+ * would tidy the fixups AND drag the branch onto whatever origin/main has
+ * grown since, which is a second, unasked-for operation with its own
+ * conflicts. The merge base leaves every commit where it is and only folds.
+ *
+ * It refuses when there are no fixups, and that matters: a rebase rewrites
+ * every hash it walks over, so "tidy nothing" would still cost the branch its
+ * identity, break anybody who had fetched it, and leave the user wondering
+ * what the button did.
+ *
+ * `sequence.editor=:` is what makes an interactive rebase non-interactive —
+ * passed as `-c` rather than through the environment, because the one thing a
+ * host gives this file is a runner that takes arguments.
+ */
+export async function squashFixups(run: GitRunner, against: string): Promise<SquashFixupsResult> {
+  const bad = assertRef(against, 'base')
+  if (bad) return { success: false, error: bad }
+  let base = ''
+  try { base = (await run(['merge-base', 'HEAD', against])).trim() } catch { /* unrelated, or no such ref */ }
+  if (!/^[0-9a-f]{7,40}$/.test(base)) return { success: false, error: `Nothing in common with ${against}` }
+  const fixups = await fixupCommits(run, base)
+  if (!fixups.length) return { success: false, error: `No fixup! or squash! commits since ${against}` }
+  try {
+    await run(['-c', 'sequence.editor=:', 'rebase', '-i', '--autosquash', '--autostash', base])
+    return { success: true, squashed: fixups.length }
+  } catch (e) {
+    return { success: false, error: reason(e) }
+  }
+}

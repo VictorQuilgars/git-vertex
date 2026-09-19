@@ -1848,6 +1848,29 @@ exit 0
     } catch (e: any) { return { success: false, error: e.message } }
   }
 
+  /**
+   * Bring a branch up to its upstream without switching to it (#280) — the
+   * same three refusals the desktop gives, because it is the same function.
+   */
+  async pullBranch(branch: string): Promise<core.FastForwardResult> {
+    return core.fastForwardBranch(this.run, branch)
+  }
+
+  /** Every remote-tracking branch — what *Change upstream…* picks from (#280). */
+  async listRemoteBranches(): Promise<{ branches: string[] }> {
+    return { branches: await core.remoteBranchNames(this.run) }
+  }
+
+  /** Fold the `fixup!` / `squash!` commits over a base into their targets (#280). */
+  async squashFixups(base: string): Promise<core.SquashFixupsResult> {
+    return core.squashFixups(this.run, base)
+  }
+
+  /** What squashing would fold, so a surface can say so before running it. */
+  async listFixups(base: string): Promise<{ commits: { hash: string; subject: string }[] }> {
+    return { commits: await core.fixupCommits(this.run, base) }
+  }
+
   async setUpstream(branch: string, upstream?: string): Promise<{ success: boolean; error?: string }> {
     try {
       let target = upstream
