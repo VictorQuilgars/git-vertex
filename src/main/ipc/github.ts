@@ -10,6 +10,7 @@ import { openRepoAt } from '../repo-session'
 import { state } from '../app-state'
 import { readSettings, writeSettings } from '../settings-store'
 import { ghApi, detectGithubRepo, avatarCache, githubIdenticonUrl, loadAuthedUserEmails, conditionalGet, prBlockedSupplement, searchCache } from '../github-client'
+import { branchPRsPath, toBranchPRs } from '../github-branch-prs'
 
 
 
@@ -309,6 +310,23 @@ export function registerGithubHandlers(): void {
             { blocked: pr.mergeable_state === 'blocked', baseRef: pr.base?.ref ?? '' })),
         },
         }),
+      )
+    } catch (e: any) { return { error: e.message } }
+  })
+
+  // Every request a branch has carried, whatever its state — for the branch's
+  // card (see github-branch-prs.ts). Conditional like the lists: the card asks
+  // each time it opens, and an unchanged answer costs no rate limit.
+  handle('github:branch-prs', async (_e, owner: string, repo: string, branch: string) => {
+    const api = await ghApi()
+    const token = api.token
+    if (!token) return { error: 'not_authenticated' }
+    try {
+      return await conditionalGet(
+        `branch-prs:${api.base}:${owner}/${repo}:${branch}`,
+        `${api.base}${branchPRsPath(owner, repo, branch)}`,
+        token,
+        (data: any[]) => ({ prs: toBranchPRs(data, branch) }),
       )
     } catch (e: any) { return { error: e.message } }
   })

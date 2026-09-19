@@ -10,6 +10,8 @@
 // host's token from being sent to another — see src/main/github-host.ts, which
 // resolves them on the desktop side for the same reason.
 
+import { branchPRsPath, toBranchPRs } from '../../src/main/github-branch-prs'
+
 /** Where a GitHub answers, and what may be sent there. */
 export interface GithubApi {
   base: string
@@ -368,6 +370,20 @@ export async function githubCloseIssue(
     if (!res.ok) return failure(res)
     clearSearchCache()
     return { success: true }
+  } catch (e: any) { return { error: e.message } }
+}
+
+// Every request a branch has carried, whatever its state — the desktop's
+// github:branch-prs, over the same shared reading (src/main/github-branch-prs.ts).
+export async function githubBranchPRs(api: GithubApi, owner: string, repo: string, branch: string): Promise<any> {
+  if (!api.token) return { error: 'not_authenticated' }
+  try {
+    return await conditionalGet(
+      `branch-prs:${api.base}:${owner}/${repo}:${branch}`,
+      `${api.base}${branchPRsPath(owner, repo, branch)}`,
+      api.token,
+      (data: any[]) => ({ prs: toBranchPRs(data, branch) }),
+    )
   } catch (e: any) { return { error: e.message } }
 }
 

@@ -95,6 +95,11 @@
   border-radius: var(--radius-sm);
 }
 button.refcard-pill:not(:disabled) { cursor: pointer; }
+/* The request's state, in the words and colours of its own sheet. */
+.refcard-pill-state { color: var(--text-secondary); }
+.refcard-pill--open .refcard-pill-state { color: var(--success-emphasis); }
+.refcard-pill--merged .refcard-pill-state { color: var(--pr-merged); }
+.refcard-pill--closed .refcard-pill-state { color: var(--text-tertiary); }
 button.refcard-pill:not(:disabled):hover { border-color: var(--accent); color: var(--text-primary); }
 
 /* ── Hub: sections a fixed gap apart. ── */
@@ -218,5 +223,9 @@ button.refcard-pill:not(:disabled):hover { border-color: var(--accent); color: v
 .refcard-step { display: flex; align-items: center; gap: var(--space-md); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm); font-size: var(--text-sm); }
 .refcard-step:hover { background: var(--surface-hover); }
 .refcard-step-icon { flex: none; color: var(--text-tertiary); }
-.refcard-step-label { flex: 1; min-width: 0; overflow: hidden; color: var(--text-primary-soft); white-space: nowrap; text-overflow: ellipsis; }
+/* A step says what its button does, so it is never cut: in a narrow panel it
+   takes a second line — a long branch name breaks where it must — and the
+   button keeps its size beside it. */
+.refcard-step-label { flex: 1; min-width: 0; color: var(--text-primary-soft); overflow-wrap: anywhere; line-height: 1.35; }
+.refcard-step .refcard-btn { flex: none; }
 .refcard-step--fact .refcard-step-label { color: var(--text-secondary); }

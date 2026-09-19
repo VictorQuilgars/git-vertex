@@ -2,7 +2,7 @@ import * as assert from 'assert'
 import {
   githubListPRs, githubListIssues, githubGetIssue,
   githubSearchIssues, githubCloseIssue, githubListRepos, githubCreateGist, clearSearchCache,
-  bypassVerdict,
+  bypassVerdict, githubBranchPRs,
 } from '../../githubApi'
 
 // The first GitHub logic here with real coverage. githubApi.ts imports nothing
@@ -290,6 +290,31 @@ suite('githubApi — closing, listing, sharing', () => {
       assert.ok(f.calls.every((u: string) => u.startsWith('https://github.acme.com/api/v3/')),
         `every call goes to the instance, got ${JSON.stringify(f.calls)}`)
       assert.ok(f.calls.some((u: string) => u.includes('/repos/team/app/pulls')))
+    } finally { f.restore() }
+  })
+})
+
+// A branch's card asks for every request the branch carried (the desktop's
+// github:branch-prs): the same question, read by the same shared module.
+suite('githubApi — the requests a branch carried', () => {
+  test('any state, the branch name intact in the query, merged read from merged_at', async () => {
+    const f = stubFetch([{ body: [
+      { number: 248, title: 'Release', state: 'closed', merged_at: '2026-09-18T12:00:00Z', html_url: 'u',
+        head: { ref: 'release/app+ext-1.37.0', sha: 'abc' }, base: { ref: 'main' }, user: { login: 'v' } },
+    ] }])
+    try {
+      const r: any = await githubBranchPRs(API, 'o', 'r', 'release/app+ext-1.37.0')
+      assert.ok(f.calls[0].includes('state=all'), f.calls[0])
+      assert.ok(f.calls[0].includes('head=o%3Arelease%2Fapp%2Bext-1.37.0'), f.calls[0])
+      assert.deepStrictEqual(r.prs.map((p: any) => [p.number, p.state, p.headSha]), [[248, 'merged', 'abc']])
+    } finally { f.restore() }
+  })
+
+  test('no token is not_authenticated, and nothing is asked', async () => {
+    const f = stubFetch([{ body: [] }])
+    try {
+      assert.deepStrictEqual(await githubBranchPRs(ANON, 'o', 'r', 'x'), { error: 'not_authenticated' })
+      assert.strictEqual(f.calls.length, 0)
     } finally { f.restore() }
   })
 })

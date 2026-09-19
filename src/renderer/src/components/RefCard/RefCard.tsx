@@ -13,10 +13,11 @@
 // not drawn. The facts that need git are read here, once per reference.
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon, type IconName } from '../Icon/Icon'
-import ContextMenu, { type MenuItemDef } from '../ContextMenu/ContextMenu'
+import ContextMenu, { type MenuAction, type MenuItemDef } from '../ContextMenu/ContextMenu'
 import { useLang } from '../../i18n/LanguageContext'
 import { agoLabel } from '../Sidebar/sections/OverviewSection'
 import type { BranchInfo, CommitNode } from '../../types'
+import { currentBranchPR, type BranchPRState } from '../../../../main/github-branch-prs'
 import {
   branchOf, mergeTargetOf, mergeVerdict, splitRemoteRef, upstreamFacts,
   type MergeFacts, type RefTarget,
@@ -43,7 +44,8 @@ export interface RefCardActions {
   onDeleteRemote?: (ref: string) => void
   /** A local branch and the upstream it tracks (`origin/x`), with one confirmation. */
   onDeleteBoth?: (name: string, upstream: string) => void
-  onOpenPR?: (number: number) => void
+  /** Opens the request in the app's own sheet — any state, not only the open ones the host lists. */
+  onOpenPR?: (number: number, pr?: { title?: string; url?: string }) => void
   onCreatePR?: (name: string) => void
   onPushTag?: (name: string) => void
   onDeleteTag?: (name: string) => void
@@ -58,7 +60,10 @@ export interface RefCardProps extends RefCardActions {
   defaultBranch: string | null
   /** The commit the chip sits on, when the page holds it. */
   tip?: CommitNode | null
-  pr?: { number: number; title?: string } | null
+  /** The open request the host already knows of — shown at once, before the card has asked. */
+  pr?: { number: number; title?: string; state?: BranchPRState } | null
+  /** Where to ask for the requests the branch carried, any state. Absent: only `pr` is known. */
+  githubRepo?: { owner: string; repo: string } | null
   issue?: { key: string; provider: string } | null
   /** The chip's own menu, behind the kebab — the same one, not a second copy. */
   menuItems?: MenuItemDef[]
@@ -66,6 +71,9 @@ export interface RefCardProps extends RefCardActions {
 }
 
 type Tag = { name: string; commit: string; annotated: boolean; message?: string; tagger?: string; taggerEmail?: string; date?: number }
+
+/** The request a card speaks of: the host's open one at first, then GitHub's answer. */
+type CardPR = { number: number; title?: string; url?: string; state: BranchPRState; headSha?: string }
 
 /** One "next step": what it is, and the one button that does it. */
 function Step({ icon, label, button, onClick, title }: {
@@ -81,7 +89,7 @@ function Step({ icon, label, button, onClick, title }: {
 }
 
 export default function RefCard(props: RefCardProps) {
-  const { target, branches, currentBranch, defaultBranch, tip, pr, issue, menuItems, onClose } = props
+  const { target, branches, currentBranch, defaultBranch, tip, issue, menuItems, onClose, githubRepo } = props
   const { t } = useLang()
   const locale = t('graph.dateLocale')
   const isTag = target.kind === 'tag', isRemote = target.kind === 'remote'
@@ -157,6 +165,28 @@ export default function RefCard(props: RefCardProps) {
     return () => { stale = true }
   }, [target.kind, target.name, isCurrent])
 
+  // ── The pull request it carried: open, or merged, or closed — whatever GitHub has ──
+  const [askedPR, setAskedPR] = useState<CardPR | null | undefined>(undefined)
+  const prBranch = target.kind === 'head' ? target.name : isRemote ? splitRemoteRef(target.name).branch : null
+  useEffect(() => {
+    setAskedPR(undefined)
+    if (!prBranch || !githubRepo) return
+    let stale = false
+    window.gitAPI.githubBranchPRs?.(githubRepo.owner, githubRepo.repo, prBranch)
+      .then(r => { if (!stale && Array.isArray(r?.prs)) setAskedPR(currentBranchPR(r.prs)) })
+      .catch(() => {})
+    return () => { stale = true }
+  }, [prBranch, githubRepo?.owner, githubRepo?.repo])
+  // GitHub's answer when it has come; until then, what the host knew.
+  const pr: CardPR | null = askedPR !== undefined ? askedPR
+    : props.pr ? { number: props.pr.number, title: props.pr.title, state: props.pr.state ?? 'open' } : null
+  const prOpen = pr?.state === 'open' || pr?.state === 'draft'
+  // Squashed or rebased on GitHub, a branch's commits are nowhere in main — git
+  // calls it unmerged. The request knows better: merged, from this very tip.
+  const sameCommit = (a?: string, b?: string) => !!a && !!b && (a.startsWith(b) || b.startsWith(a))
+  const mergedByPR = pr?.state === 'merged' && sameCommit(pr.headSha, target.hash) ? pr : null
+  const prStateLabel = (state: BranchPRState) => t(`refcard.pr.${state}` as any)
+
   // ── A tag: what it is, then — slower, it asks the remote — whether it is pushed ──
   const [tag, setTag] = useState<Tag | null>(null)
   const [onRemote, setOnRemote] = useState<{ pushed: boolean | null; remote: string | null } | 'asking'>('asking')
@@ -172,32 +202,43 @@ export default function RefCard(props: RefCardProps) {
   }, [isTag, target.name, target.hash])
 
   const up = useMemo(() => branch && !isRemote && !isTag ? upstreamFacts(branch) : null, [branch, isRemote, isTag])
-  const verdict = merge ? mergeVerdict(merge) : null
+  // git's verdict — unless the request says the branch went in by a squash or a rebase.
+  const verdict = merge ? (mergedByPR ? 'merged' : mergeVerdict(merge)) : null
   const n = (count: number) => count.toLocaleString('en-US')
+  // Merged into `main` here, and `origin/main` has not got it: a merge nobody pushed.
+  // A merged request is on the remote by definition, whatever git can trace.
+  const localOnlyMerge = !mergedByPR && onTargetUpstream === false && !!targetUpstream
 
-  // Delete, from here: the branch alone — or, when it tracks a branch the
-  // remote still has, both ends as one decision, so the remote's card is not a
-  // second trip. What the remote end costs is on the choice itself: the pull
-  // request it closes, a merge that exists only on this machine.
+  // Delete, from either end of a branch: this end alone, the other alone, or
+  // both as one decision — so neither card sends you to the other. What the
+  // remote end costs is on each choice that touches it: the open request it
+  // closes, a merge that exists only on this machine.
   const liveUpstream = target.kind === 'head' && up?.name && up.state !== 'missing' && up.state !== 'unpublished' ? up.name : null
-  const deleteChoices: MenuItemDef[] | null = target.kind === 'head' && !isCurrent && liveUpstream && props.onDelete && props.onDeleteBoth
-    ? (() => {
-        const cost = [
-          pr ? t('refcard.del.closesPR', pr.number) : null,
-          onTargetUpstream === false && targetUpstream ? t('refcard.del.notOnRemote', targetUpstream) : null,
-        ].filter(Boolean).join(' · ')
-        return [
-          { label: t('refcard.del.local', target.name), action: () => props.onDelete!(target.name) },
-          {
-            label: cost ? t('refcard.del.bothCost', target.name, liveUpstream, cost) : t('refcard.del.both', target.name, liveUpstream),
-            action: () => props.onDeleteBoth!(target.name, liveUpstream),
-            danger: true,
-          },
-        ]
-      })()
-    : null
+  const remoteCost = [
+    prOpen && pr ? t('refcard.del.closesPR', pr.number) : null,
+    localOnlyMerge ? t('refcard.del.notOnRemote', targetUpstream!) : null,
+  ].filter(Boolean).join(' · ')
+  const costly = (label: string) => remoteCost ? t('refcard.del.withCost', label, remoteCost) : label
+  const choices: MenuAction[] = []
+  if (target.kind === 'head' && !isCurrent && liveUpstream) {
+    if (props.onDelete) choices.push({ label: t('refcard.del.local', target.name), action: () => props.onDelete!(target.name) })
+    if (props.onDeleteRemote) choices.push({ label: costly(t('refcard.del.remote', liveUpstream)), action: () => props.onDeleteRemote!(`remotes/${liveUpstream}`), danger: true })
+    if (props.onDelete && props.onDeleteBoth) choices.push({ label: costly(t('refcard.del.both', target.name, liveUpstream)), action: () => props.onDeleteBoth!(target.name, liveUpstream), danger: true })
+  }
+  // The local branch that tracks a remote one — never the one checked out, which git will not delete.
+  const tracker = isRemote ? branches.find(b => !b.remote && !b.gone && b.upstream === target.name && b.name !== currentBranch) : undefined
+  if (isRemote && props.onDeleteRemote) {
+    choices.push({ label: costly(t('refcard.del.remote', target.name)), action: () => props.onDeleteRemote!(`remotes/${target.name}`), danger: true })
+    if (tracker && props.onDeleteBoth) choices.push({ label: costly(t('refcard.del.both', tracker.name, target.name)), action: () => props.onDeleteBoth!(tracker.name, target.name), danger: true })
+  }
+  const deleteChoices = choices.length > 1 ? choices : null
   const requestDelete = (e: React.MouseEvent<HTMLElement>) => {
-    if (!deleteChoices) { props.onDelete?.(target.name); return }
+    if (!deleteChoices) {
+      // One way to delete from here: it is the button's own action, no menu in between.
+      if (choices[0]?.action) choices[0].action()
+      else props.onDelete?.(target.name)
+      return
+    }
     if (deleteMenu) { setDeleteMenu(null); return }
     const anchor = e.currentTarget
     const r = anchor.getBoundingClientRect()
@@ -218,26 +259,30 @@ export default function RefCard(props: RefCardProps) {
     if (up.state === 'unpublished') btn('publish', t('refcard.publish'), push)
     else if (up.state === 'missing') {
       btn('delete', t('refcard.deleteLocal'), props.onDelete && !isCurrent ? () => props.onDelete!(target.name) : undefined)
-      btn('publish', t('refcard.publish'), push)
+      // Gone because its request was merged: publishing it would bring back a finished branch.
+      if (!mergedByPR) btn('publish', t('refcard.publish'), push)
     } else {
       if (up.behind > 0) btn('pull', t('refcard.pull'), isCurrent ? props.onPull : undefined)
       if (up.ahead > 0) btn('push', t(up.behind > 0 ? 'refcard.forcePush' : 'refcard.push'), up.behind > 0 ? undefined : push)
-      btn('fetch', t('refcard.fetch'), props.onFetch)
+      // Merged, a branch has nothing left to learn from its remote: what is left is deleting it.
+      if (verdict !== 'merged') btn('fetch', t('refcard.fetch'), props.onFetch)
     }
     return out
   }
-  const upstreamStatus = !up ? '' : up.state === 'missing' ? t('refcard.up.missing')
+  const upstreamStatus = !up ? '' : up.state === 'missing' ? (mergedByPR ? t('refcard.up.deletedAfterMerge', mergedByPR.number) : t('refcard.up.missing'))
     : up.state === 'diverged' ? t('refcard.up.diverged')
     : up.state === 'behind' ? t('refcard.up.toPull', up.behind)
     : up.state === 'ahead' ? t('refcard.up.toPush', up.ahead)
     : up.state === 'level' ? t('refcard.up.level') : ''
 
   const mergeStatus = !merge || !verdict ? ''
-    : verdict === 'merged' ? (onTargetUpstream === false && targetUpstream ? t('refcard.merge.notOnRemote', targetUpstream) : t('refcard.merge.safeToDelete'))
+    : verdict === 'merged' ? (mergedByPR ? t('refcard.merge.byPR', mergedByPR.number)
+      : localOnlyMerge ? t('refcard.merge.notOnRemote', targetUpstream!) : t('refcard.merge.safeToDelete'))
     : verdict === 'in-sync' ? (merge.ahead > 0 ? t('refcard.merge.basedWith', merge.target, merge.ahead) : t('refcard.merge.based', merge.target))
     : t('refcard.merge.behind', merge.target, merge.behind)
   const verdictChip = !merge || !verdict || verdict === 'in-sync' ? null
-    : verdict === 'merged' ? { icon: 'check' as IconName, text: t('refcard.merge.merged'), title: t('refcard.merge.mergedTip', merge.target) }
+    : verdict === 'merged' ? { icon: 'check' as IconName, text: t('refcard.merge.merged'),
+        title: mergedByPR ? t('refcard.merge.byPRTip', mergedByPR.number, merge.target) : t('refcard.merge.mergedTip', merge.target) }
     : verdict === 'clean' ? { icon: 'check' as IconName, text: t('refcard.merge.noConflicts'), title: t('refcard.merge.cleanTip', merge.target) }
     : verdict === 'conflicts' ? { icon: 'conflict' as IconName, text: t('refcard.merge.conflicts', merge.conflicts ?? 0), title: t('refcard.merge.conflictsTip', merge.target, merge.conflicts ?? 0) }
     : { icon: 'info' as IconName, text: t('refcard.merge.unknown'), title: t('refcard.merge.unknownTip') }
@@ -283,10 +328,11 @@ export default function RefCard(props: RefCardProps) {
               <span className="refcard-strip-right">
                 {worktree && <span className="refcard-pill" title={t('refcard.inWorktree', worktree)}><Icon name="worktree" size={12} />{worktree}</span>}
                 {pr && (
-                  <button type="button" className="refcard-pill refcard-pill--pr" disabled={!props.onOpenPR}
-                    title={pr.title ? `PR #${pr.number} — ${pr.title}` : `PR #${pr.number}`}
-                    onClick={() => props.onOpenPR?.(pr.number)}>
+                  <button type="button" className={`refcard-pill refcard-pill--pr refcard-pill--${pr.state}`} disabled={!props.onOpenPR}
+                    title={t('refcard.prTip', pr.number, prStateLabel(pr.state), pr.title ?? '')}
+                    onClick={() => props.onOpenPR?.(pr.number, { title: pr.title, url: pr.url })}>
                     <Icon name="pullRequest" size={12} />#{pr.number}
+                    <span className="refcard-pill-state">{prStateLabel(pr.state)}</span>
                   </button>
                 )}
               </span>
@@ -418,9 +464,11 @@ export default function RefCard(props: RefCardProps) {
                 )}
                 {worktree && <div className="refcard-step refcard-step--fact"><Icon name="worktree" size={14} className="refcard-step-icon" /><span className="refcard-step-label">{t('refcard.inWorktree', worktree)}</span></div>}
                 {!isTag && pr && props.onOpenPR && (
-                  <Step icon="pullRequest" label={t('refcard.step.pr', pr.number, pr.title ?? '')} button={t('refcard.view')} onClick={() => props.onOpenPR!(pr.number)} />
+                  <Step icon="pullRequest" label={t('refcard.step.prState', pr.number, prStateLabel(pr.state), pr.title ?? '')} button={t('refcard.view')}
+                    onClick={() => props.onOpenPR!(pr.number, { title: pr.title, url: pr.url })} />
                 )}
-                {target.kind === 'head' && !pr && up && up.state !== 'unpublished' && props.onCreatePR && mergeInto && (
+                {/* A new request when none is open and the last one did not take this very tip. */}
+                {target.kind === 'head' && !prOpen && !mergedByPR && up && up.state !== 'unpublished' && props.onCreatePR && mergeInto && (
                   <Step icon="pullRequest" label={t('refcard.step.createPR')} button={t('refcard.createPR')} onClick={() => props.onCreatePR!(target.name)} />
                 )}
                 {!isCurrent && props.onCompare && (
@@ -448,9 +496,9 @@ export default function RefCard(props: RefCardProps) {
                 {target.kind === 'head' && !isCurrent && target.name !== defaultBranch && props.onDelete && verdict !== 'merged' && (
                   <Step icon="trash" label={t('refcard.step.delete', target.name)} button={t('refcard.delete')} onClick={requestDelete} />
                 )}
-                {/* `origin/x` alone read as a branch called `origin/x` on the default remote. */}
+                {/* `remotes/` in front: `origin/x` alone reads as a branch called `origin/x` on the default remote. */}
                 {isRemote && props.onDeleteRemote && (
-                  <Step icon="trash" label={t('refcard.step.deleteRemote', target.name)} button={t('refcard.delete')} onClick={() => props.onDeleteRemote!(`remotes/${target.name}`)} />
+                  <Step icon="trash" label={t('refcard.step.deleteRemote', target.name)} button={t('refcard.delete')} onClick={requestDelete} />
                 )}
               </>)
               return rows.length > 0 && (

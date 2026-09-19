@@ -1586,7 +1586,8 @@ function VertexApp() {
                     currentBranch={currentBranch}
                     defaultBranch={defaultBranch}
                     tip={commits.find(c => c.hash === card.hash) ?? null}
-                    pr={pr ? { number: pr.number, title: pr.title } : null}
+                    pr={pr ? { number: pr.number, title: pr.title, state: pr.draft ? 'draft' : 'open' } : null}
+                    githubRepo={githubRepo}
                     issue={card.kind === 'head' ? branchMeta.issueFor(card.name) : null}
                     onClose={refCard.close}
                     onSwitch={handleGoTo}
@@ -1602,7 +1603,8 @@ function VertexApp() {
                     onDelete={handleDeleteBranch}
                     onDeleteRemote={handleDeleteRemoteBranch}
                     onDeleteBoth={handleDeleteBranchBoth}
-                    onOpenPR={(n) => { const item = githubPRs?.find(x => x.number === n); if (item) setIssueDetail({ kind: 'pr', item }) }}
+                    // A merged or closed request is not in the open list: the sheet loads it by its number.
+                    onOpenPR={(n, info) => setIssueDetail({ kind: 'pr', item: githubPRs?.find(x => x.number === n) ?? { number: n, title: info?.title ?? '', url: info?.url ?? '' } })}
                     onCreatePR={intent ? () => handleStartPR(intent) : undefined}
                     onPushTag={handlePushTag}
                     onDeleteTag={handleDeleteTag}
