@@ -971,3 +971,156 @@ export async function squashFixups(run: GitRunner, against: string): Promise<Squ
     return { success: false, error: reason(e) }
   }
 }
+
+// ── The worktrees, and where each one stands ────────────────────
+//
+// The list was parsed identically in both services, word for word, and both
+// threw away everything but the path, the branch, the head and whether it was
+// the main one: `locked` was read and never used, and nothing said whether a
+// worktree was dirty or how far its branch had drifted (#285). The parse is
+// here now, and the facts it could not know — the ones that need a second
+// command per worktree — are asked for beside it.
+
+export interface WorktreeRow {
+  path: string
+  /** The branch it holds, or `(detached)`. */
+  branch: string
+  /** Its HEAD, short. */
+  head: string
+  isMain: boolean
+  locked: boolean
+  /** Why it is locked, when git was given a reason. */
+  lockReason?: string
+  /** Its directory is gone — git will drop it on the next prune. */
+  prunable?: boolean
+}
+
+/**
+ * `git worktree list --porcelain`.
+ *
+ * The first entry is the main working tree: git prints them in that order and
+ * says nothing else about it, so position is the only thing to read it from.
+ */
+export function parseWorktrees(raw: string): WorktreeRow[] {
+  const out: WorktreeRow[] = []
+  let cur: WorktreeRow | null = null
+  const push = () => { if (cur) out.push(cur) }
+  for (const line of raw.split('\n')) {
+    if (line.startsWith('worktree ')) {
+      push()
+      cur = { path: line.slice(9).trim(), branch: '', head: '', isMain: false, locked: false }
+    } else if (!cur) {
+      continue
+    } else if (line.startsWith('HEAD ')) {
+      cur.head = line.slice(5).trim().slice(0, 7)
+    } else if (line.startsWith('branch ')) {
+      cur.branch = line.slice(7).trim().replace('refs/heads/', '')
+    } else if (line.trim() === 'detached') {
+      cur.branch = '(detached)'
+    } else if (line.startsWith('locked')) {
+      cur.locked = true
+      // `locked` alone, or `locked <reason>` — the reason is what a row can say.
+      const reason = line.slice(6).trim()
+      if (reason) cur.lockReason = reason
+    } else if (line.trim() === 'prunable' || line.startsWith('prunable ')) {
+      cur.prunable = true
+    }
+  }
+  push()
+  if (out.length) out[0].isMain = true
+  return out
+}
+
+/** A worktree with what only a second command can say about it. */
+export interface WorktreeState extends WorktreeRow {
+  /** It has changes — staged, unstaged or untracked. */
+  dirty?: boolean
+  /** Where its branch stands against its upstream. */
+  ahead?: number
+  behind?: number
+}
+
+/**
+ * The worktrees, each with the facts its row shows (#285).
+ *
+ * `git status` and `rev-list` are run **inside** each worktree — `-C <path>`
+ * — because a worktree's changes are its own and the repository this service
+ * points at cannot see them. That is two commands per worktree, so `facts`
+ * exists: the list alone is one command, and a caller that only needs names
+ * does not pay for the rest.
+ */
+export async function worktrees(
+  run: GitRunner, opts: { facts?: boolean } = {},
+): Promise<{ worktrees: WorktreeState[] }> {
+  let rows: WorktreeRow[] = []
+  try { rows = parseWorktrees(await run(['worktree', 'list', '--porcelain'])) } catch { return { worktrees: [] } }
+  if (!opts.facts) return { worktrees: rows }
+  const out: WorktreeState[] = []
+  for (const row of rows) {
+    const state: WorktreeState = { ...row }
+    // A worktree whose directory is gone answers nothing, and asking twice
+    // for every refresh is two failures per row.
+    if (!row.prunable) {
+      try {
+        state.dirty = (await run(['-C', row.path, 'status', '--porcelain'])).trim().length > 0
+      } catch { /* unreadable — say nothing rather than "clean" */ }
+      if (row.branch && row.branch !== '(detached)') {
+        try {
+          const counts = parseAheadBehind(
+            await run(['-C', row.path, 'rev-list', '--left-right', '--count', `${row.branch}...${row.branch}@{upstream}`]))
+          state.ahead = counts.ahead
+          state.behind = counts.behind
+        } catch { /* tracks nothing: no counts, which is not zero */ }
+      }
+    }
+    out.push(state)
+  }
+  return { worktrees: out }
+}
+
+/** Which worktree holds a branch, if any — what *Open its worktree* resolves. */
+export function worktreeOfBranch(rows: readonly WorktreeRow[], branch: string): WorktreeRow | null {
+  const name = branch.replace(/^refs\/heads\//, '')
+  return rows.find(w => w.branch === name) ?? null
+}
+
+export interface CopyChangesResult {
+  success: boolean
+  /** The work is in the stash list and was NOT applied — it is not lost. */
+  leftInStash?: boolean
+  error?: string
+}
+
+/**
+ * Carry what is uncommitted in one worktree into another (#285).
+ *
+ * git's own tool for this is the stash, and the stash is the repository's,
+ * not a worktree's: taken in `from`, it can be applied in `to`. What matters
+ * is what happens when the apply fails — a conflict, a file in the way — and
+ * the answer is that **the stash is kept**. Dropping the only copy of
+ * somebody's uncommitted work because the second half of a two-step operation
+ * went wrong is not a risk to take on their behalf, so the refusal says the
+ * work is waiting in the stash rather than pretending nothing happened.
+ *
+ * `apply`, never `pop`, for the same reason.
+ */
+export async function copyChangesToWorktree(
+  run: GitRunner, from: string, to: string, label: string,
+): Promise<CopyChangesResult> {
+  if (from === to) return { success: false, error: 'That is the same worktree' }
+  try {
+    const status = (await run(['-C', from, 'status', '--porcelain'])).trim()
+    if (!status) return { success: false, error: 'Nothing to copy — that worktree is clean' }
+  } catch (e) { return { success: false, error: reason(e) } }
+  try {
+    // --include-untracked: a new file is part of the work being carried over,
+    // and leaving it behind would copy half of it.
+    await run(['-C', from, 'stash', 'push', '--include-untracked', '-m', label])
+  } catch (e) { return { success: false, error: reason(e) } }
+  try {
+    await run(['-C', to, 'stash', 'apply', 'stash@{0}'])
+    return { success: true, leftInStash: true }
+  } catch (e) {
+    return { success: false, leftInStash: true, error: reason(e) }
+  }
+}

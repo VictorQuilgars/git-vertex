@@ -28,6 +28,14 @@ export interface BranchMenuTarget {
   // pushed — the label promises a push only when that is true.
   pr?: { head: string; headLabel: string; baseLabel: string | null; needsPush: boolean }
   /**
+   * The worktree this branch is checked out in, when it is one this window is
+   * not showing (#285). git refuses to switch to a branch another worktree
+   * holds, so the row that offered *Switch* offered a refusal: it opens that
+   * worktree instead, and creating a second one for the same branch is what
+   * the row below it is for.
+   */
+  checkedOutIn?: { path: string; name: string }
+  /**
    * How the remote names this branch (`origin/main`), or absent when it has
    * never been pushed. Decides whether the remote half of the delete group and
    * the branch link are offered at all.
@@ -66,6 +74,10 @@ export interface BranchMenuActions {
   onHideRemote?: () => void
   /** What this branch is against the branch it tracks (#281). */
   onCompareUpstream?: () => void
+  /** Open the worktree that holds it, where *Switch* would be refused (#285). */
+  onOpenItsWorktree?: () => void
+  /** Make a worktree for this branch, named after it (#285). */
+  onCreateWorktreeFor?: () => void
   onPush?: () => void
   onMerge?: () => void
   onRebaseOnto?: () => void
@@ -149,7 +161,16 @@ export function buildBranchMenu(
 
   // ── Navigate ──
   const navigate: MenuItemDef[] = []
-  if (!current && actions.onCheckout) navigate.push({ label: t('sb.branch.checkout'), action: actions.onCheckout })
+  if (!current && target.checkedOutIn && actions.onOpenItsWorktree) {
+    navigate.push({ label: t('sb.wt.openIts', target.checkedOutIn.name), action: actions.onOpenItsWorktree })
+  } else if (!current && actions.onCheckout) {
+    navigate.push({ label: t('sb.branch.checkout'), action: actions.onCheckout })
+  }
+  // A second worktree for this branch, named after it, without being asked
+  // for a name — the one thing the Worktrees `+` could not do (#285).
+  if (actions.onCreateWorktreeFor) {
+    navigate.push({ label: t('sb.wt.createFor', target.display), action: actions.onCreateWorktreeFor })
+  }
   sections.push(navigate)
 
   // ── Sync — only meaningful on the branch you are actually on ──

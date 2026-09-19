@@ -718,6 +718,10 @@ export default function App() {
               onFilterAuthor={(author) => setSearchQuery(authorQuery(author))}
               authorFilter={authorOfQuery(searchQuery)}
               onReveal={ref => { void revealRef(ref) }}
+              onCompareStash={(ref, against) => openViewTab(against === 'working'
+                ? { view: 'compare', a: ref, b: null, axis: 'endpoints', label: `${ref} … working tree` }
+                : { view: 'compare', a: 'HEAD', b: ref, axis: 'endpoints', label: `HEAD … ${ref}` })}
+              onSelectStashForCompare={setCompareBaseHash}
               onRebaseOntoUpstream={upstream => { void handleRebaseOnto(upstream) }}
               onCompareUpstream={(name, upstream) => openViewTab({ view: 'compare', a: upstream, b: name, axis: 'diverged', label: `${upstream} … ${name}` })}
               tipActions={{

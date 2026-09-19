@@ -1197,3 +1197,22 @@
 }
 .sb-row-action:hover { color: var(--accent); background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); }
 .sb-row-action--danger:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) var(--alpha-subtle), transparent); }
+
+/* ── Where a worktree stands (#285) ────────────────────────────
+   Four facts a row could not say before: which one this window is showing,
+   whether git may prune it, whether its folder is still there, and whether it
+   has work in it. Small marks rather than words — the row already carries a
+   name, a branch and a path, and a fifth phrase would push the path out. */
+.sb-wt-flag {
+  font-size: var(--text-tiny);
+  flex-shrink: 0;
+  margin-left: var(--space-2xs);
+  color: var(--text-tertiary);
+}
+.sb-wt-flag--active {
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.sb-wt-flag--dirty { color: var(--attention); }
+.sb-wt-flag--gone { color: var(--danger); }

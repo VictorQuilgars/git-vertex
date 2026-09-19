@@ -9,7 +9,7 @@ import { useLang } from '../../i18n/LanguageContext'
 import { type StashEntry, type TagEntry, type ReflogEntry, type RemoteEntry, type SubmoduleEntry, type WorktreeEntry, type AgentEntry } from './types'
 
 // ── Stash item ────────────────────────────────────────────────────
-export function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, onExplain, onReveal, hidden }: {
+export function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, onExplain, onReveal, onCompareHead, onCompareWorking, onSelectForCompare, onCopySha, onCopyPatch, hidden }: {
   stash: StashEntry
   onApply: () => void
   onPop: () => void
@@ -22,6 +22,15 @@ export function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, 
    */
   onReveal?: () => void
   onRename?: () => void
+  // ── A stash as a commit, which is what it is (#287) ──
+  /** What this stash is against HEAD, and against the tree as it stands. */
+  onCompareHead?: () => void
+  onCompareWorking?: () => void
+  /** Hold it as one end of a comparison, the way a graph row is held. */
+  onSelectForCompare?: () => void
+  /** Its sha — for EVERY stash, not only the one with a graph row. */
+  onCopySha?: () => void
+  onCopyPatch?: () => void
   /** Reads it aloud — what work is parked here (#70 P1). */
   onExplain?: () => void
   /**
@@ -38,11 +47,26 @@ export function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, 
   // Without a reveal the row is what it was: one click, the preview.
   const click = useRowClick(onReveal, onReveal ? onPreview : undefined)
 
+  // Every comparison and every copy names the stash by its OWN ref, so an
+  // older stash is reached exactly like the newest — only `stash@{0}` ever had
+  // a graph row, and that is what made the rest unreachable (#287).
+  const compares: MenuItemDef[] = [
+    ...(onCompareHead ? [{ label: t('sb.stash.compareHead'), action: onCompareHead }] : []),
+    ...(onCompareWorking ? [{ label: t('sb.stash.compareWorking'), action: onCompareWorking }] : []),
+    ...(onSelectForCompare ? [{ label: t('graph.menu.selectForCompare'), action: onSelectForCompare }] : []),
+  ]
+  const copies: MenuItemDef[] = [
+    ...(onCopySha ? [{ label: t('graph.menu.copyFullHash'), action: onCopySha }] : []),
+    { label: t('graph.menu.copyMessage'), action: () => navigator.clipboard.writeText(label) },
+    ...(onCopyPatch ? [{ label: t('graph.menu.copyPatch'), action: onCopyPatch }] : []),
+  ]
   const menuItems: MenuItemDef[] = [
     ...(onPreview ? [{ label: t('sb.stash.preview'), action: onPreview }] : []),
     { label: t('sb.stash.applyKeep'), action: onApply },
     { label: t('sb.stash.applyPop'), action: onPop },
     ...(onRename ? [{ label: t('sb.stash.rename'), action: onRename }] : []),
+    ...(compares.length ? [{ separator: true } as MenuItemDef, { label: t('sb.branch.compareMenu'), submenu: compares } as MenuItemDef] : []),
+    { label: t('sb.branch.copyMenu'), submenu: copies },
     ...(onExplain ? [{ separator: true } as MenuItemDef, { label: t('sb.stash.explain'), action: onExplain, icon: 'ai', tone: 'ai' } as MenuItemDef] : []),
     { separator: true },
     { label: t('sb.delete'), action: onDrop, danger: true },
@@ -262,7 +286,7 @@ export function SubmoduleItem({
 }
 
 // ── Worktree item ─────────────────────────────────────────────────
-export function WorktreeItem({ wt, agents = [], active = false, onOpen, onRemove, onReveal }: {
+export function WorktreeItem({ wt, agents = [], active = false, onOpen, onRemove, onReveal, onOpenTerminal, onRevealInFileManager, onToggleLock, onCopyChanges }: {
   wt: WorktreeEntry
   // Running AI agents whose cwd is inside this worktree
   agents?: AgentEntry[]
@@ -276,14 +300,31 @@ export function WorktreeItem({ wt, agents = [], active = false, onOpen, onRemove
    * changes this graph cannot show.
    */
   onReveal?: () => void
+  // ── What a worktree is, beside a path (#285) ──
+  onOpenTerminal?: () => void
+  onRevealInFileManager?: () => void
+  onToggleLock?: () => void
+  /** Move what is uncommitted here into another worktree. */
+  onCopyChanges?: () => void
 }) {
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const { t } = useLang()
   const name = wt.path.split('/').pop() || wt.path
   const click = useRowClick(onReveal, onReveal ? onOpen : undefined)
   const menuItems: MenuItemDef[] = [
-    { label: t('sb.wt.open'), action: onOpen },
+    // The one on screen is already open; everything else still applies to it.
+    ...(active ? [] : [{ label: t('sb.wt.open'), action: onOpen }]),
+    ...(onRevealInFileManager ? [{ label: t('sb.wt.reveal'), action: onRevealInFileManager }] : []),
+    ...(onOpenTerminal ? [{ label: t('sb.wt.terminal'), action: onOpenTerminal }] : []),
     { label: t('sb.wt.copyPath'), action: () => navigator.clipboard.writeText(wt.path) },
+    ...(onCopyChanges ? [{ label: t('sb.wt.copyChanges'), action: onCopyChanges }] : []),
+    // A lock is what stops git pruning or moving a worktree on a drive that
+    // comes and goes — it was read from the list and never shown (#285).
+    ...(onToggleLock ? [{
+      label: wt.locked ? t('sb.wt.unlock') : t('sb.wt.lock'),
+      action: onToggleLock,
+      checked: !!wt.locked,
+    }] : []),
     ...(!wt.isMain ? [
       { separator: true as const },
       { label: t('sb.wt.remove'), action: onRemove, danger: true },
@@ -308,6 +349,18 @@ export function WorktreeItem({ wt, agents = [], active = false, onOpen, onRemove
         <div className="sb-sub-info">
           <span className="sb-sub-path">
             {name} <code style={{ opacity: 0.6 }}>{wt.branch}</code>
+            {/* Where this worktree stands, in the marks the rest of the panel
+                already uses for the same facts (#285). */}
+            {active && <span className="sb-wt-flag sb-wt-flag--active" title={t('sb.wt.activeFlag')}>{t('sb.wt.activeBadge')}</span>}
+            {wt.locked && <span className="sb-wt-flag" title={wt.lockReason ? t('sb.wt.lockedWhy', wt.lockReason) : t('sb.wt.lockedFlag')}>🔒</span>}
+            {wt.prunable && <span className="sb-wt-flag sb-wt-flag--gone" title={t('sb.wt.prunableFlag')}>✂</span>}
+            {wt.dirty && <span className="sb-wt-flag sb-wt-flag--dirty" title={t('sb.wt.dirtyFlag')}>●</span>}
+            {(wt.ahead || wt.behind) ? (
+              <span className="sb-track" title={t('sb.branch.trackTitle', wt.ahead ?? 0, wt.behind ?? 0)}>
+                {!!wt.ahead && <span className="sb-track-ahead">↑{wt.ahead}</span>}
+                {!!wt.behind && <span className="sb-track-behind">↓{wt.behind}</span>}
+              </span>
+            ) : null}
             {agentSummary.map(([agentName, count]) => (
               <span key={agentName} className="sb-agent-badge">
                 <span className="sb-agent-dot" />

@@ -78,7 +78,15 @@ export interface RemoteEntry { name: string; fetchUrl: string; pushUrl: string }
 
 export interface SubmoduleEntry { path: string; url: string; status: 'ok' | 'dirty' | 'uninitialized' }
 
-export interface WorktreeEntry { path: string; branch: string; head: string; isMain: boolean; locked: boolean }
+export interface WorktreeEntry {
+  path: string; branch: string; head: string; isMain: boolean; locked: boolean
+  /** Why it is locked, when git was given a reason (#285). */
+  lockReason?: string
+  /** Its directory is gone — git will drop it on the next prune. */
+  prunable?: boolean
+  /** Where it stands: its own changes, and its branch against its upstream. */
+  dirty?: boolean; ahead?: number; behind?: number
+}
 
 export interface AgentEntry { pid: number; name: string; cwd: string }
 
@@ -119,6 +127,15 @@ export interface SidebarProps {
   onPreviewStash?: (index: number, message: string) => void
   /** Reads the stash aloud (#70 P1). Absent ⇒ no row, the menu's rule. */
   onExplainStash?: (index: number, message: string) => void
+  /**
+   * A stash as one end of a comparison (#287) — given its own ref, so an
+   * older stash is reached exactly like the newest. The host opens whatever
+   * it opens comparisons in, and names it: `stash@{2}` is what a title can
+   * say, where the stash's own message is a sentence.
+   */
+  onCompareStash?: (ref: string, against: 'HEAD' | 'working') => void
+  /** Hold a stash as the base of a later comparison, like a graph row. */
+  onSelectStashForCompare?: (ref: string) => void
   /** The same, for a branch — and the changelog of what it carries (#70 P1). */
   onExplainBranch?: (name: string) => void
   onBranchChangelog?: (name: string) => void

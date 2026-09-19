@@ -2217,29 +2217,28 @@ exit 0
 
   // ── Worktrees (ported from desktop GitService) ────────────────
 
-  async listWorktrees(): Promise<{ worktrees: { path: string; branch: string; head: string; isMain: boolean; locked: boolean }[] }> {
+  async listWorktrees(opts: { facts?: boolean } = {}): Promise<{ worktrees: core.WorktreeState[] }> {
+    return core.worktrees(this.run, opts)
+  }
+
+  /** Carry what is uncommitted in one worktree into another (#285). */
+  async copyWorktreeChanges(from: string, to: string, label: string): Promise<core.CopyChangesResult> {
+    return core.copyChangesToWorktree(this.run, from, to, label)
+  }
+
+  /** Lock a worktree so git will not prune or move it, with an optional reason (#285). */
+  async lockWorktree(path: string, reason?: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const result = await this.git.raw(['worktree', 'list', '--porcelain'])
-      const worktrees: { path: string; branch: string; head: string; isMain: boolean; locked: boolean }[] = []
-      let cur: { path: string; branch: string; head: string; locked: boolean } | null = null
-      for (const line of result.split('\n')) {
-        if (line.startsWith('worktree ')) {
-          if (cur) worktrees.push({ ...cur, isMain: false })
-          cur = { path: line.slice(9).trim(), branch: '', head: '', locked: false }
-        } else if (cur && line.startsWith('HEAD ')) {
-          cur.head = line.slice(5).trim().slice(0, 7)
-        } else if (cur && line.startsWith('branch ')) {
-          cur.branch = line.slice(7).trim().replace('refs/heads/', '')
-        } else if (cur && line.trim() === 'detached') {
-          cur.branch = '(detached)'
-        } else if (cur && line.startsWith('locked')) {
-          cur.locked = true
-        }
-      }
-      if (cur) worktrees.push({ ...cur, isMain: false })
-      if (worktrees.length > 0) worktrees[0].isMain = true
-      return { worktrees }
-    } catch { return { worktrees: [] } }
+      await this.git.raw(reason ? ['worktree', 'lock', '--reason', reason, path] : ['worktree', 'lock', path])
+      return { success: true }
+    } catch (e: any) { return { success: false, error: e.message ?? String(e) } }
+  }
+
+  async unlockWorktree(path: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.raw(['worktree', 'unlock', path])
+      return { success: true }
+    } catch (e: any) { return { success: false, error: e.message ?? String(e) } }
   }
 
   async addWorktree(p: string, ref: string, newBranch?: string): Promise<{ success: boolean; error?: string }> {

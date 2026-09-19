@@ -398,6 +398,22 @@ export function registerGitHandlers(): void {
 
   // #280 — the three acts a branch needs that did not exist: bring it forward
   // without standing on it, list what an upstream can be, tidy the fixups.
+  // #285 — a worktree's lock is read from the list and can now be set.
+  handle('git:lock-worktree', async (_event, path: string, reason?: string) => {
+    if (!state.gitService) return { success: false, error: 'No repo open' }
+    return state.gitService.lockWorktree(path, reason)
+  })
+
+  handle('git:copy-worktree-changes', async (_event, from: string, to: string, label: string) => {
+    if (!state.gitService) return { success: false, error: 'No repo open' }
+    return state.gitService.copyWorktreeChanges(from, to, label)
+  })
+
+  handle('git:unlock-worktree', async (_event, path: string) => {
+    if (!state.gitService) return { success: false, error: 'No repo open' }
+    return state.gitService.unlockWorktree(path)
+  })
+
   handle('git:pull-branch', async (_event, branch: string) => {
     if (!state.gitService) return { success: false, error: 'No repo open' }
     return state.gitService.pullBranch(branch)
@@ -797,9 +813,9 @@ export function registerGitHandlers(): void {
   })
 
   // ── IPC: Worktrees ─────────────────────────────────────────
-  handle('git:list-worktrees', async () => {
+  handle('git:list-worktrees', async (_event, opts?: { facts?: boolean }) => {
     if (!state.gitService) return { worktrees: [] }
-    return state.gitService.listWorktrees()
+    return state.gitService.listWorktrees(opts)
   })
 
   handle('git:add-worktree', async (_event, path: string, ref: string, newBranch?: string) => {

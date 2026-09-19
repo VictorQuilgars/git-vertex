@@ -4,7 +4,7 @@ import { WorktreeItem } from '../rows'
 import type { SidebarState } from '../useSidebar'
 
 export function WorktreesSection({ s }: { s: SidebarState }) {
-  const { onSetRepo, onReveal, onViewWip, repoPath, single, t, agentsFor, handleAddWorktree, handleRemoveWorktree, filteredWorktrees } = s
+  const { onSetRepo, onReveal, onViewWip, repoPath, single, t, agentsFor, handleAddWorktree, handleRemoveWorktree, filteredWorktrees, handleWorktreeTerminal, handleWorktreeReveal, handleToggleWorktreeLock, handleCopyChangesTo } = s
   return (
     <Section id="worktrees" title="WORKTREES" icon="worktree" count={filteredWorktrees.length} defaultOpen={single}
             onAdd={handleAddWorktree} addLabel={t('sb.addWorktree')}>
@@ -20,6 +20,11 @@ export function WorktreesSection({ s }: { s: SidebarState }) {
                       agents={agentsFor(wt.path)}
                       onOpen={() => onSetRepo(wt.path)}
                       onRemove={() => handleRemoveWorktree(wt.path)}
+                      onOpenTerminal={() => handleWorktreeTerminal(wt.path)}
+                      onRevealInFileManager={() => handleWorktreeReveal(wt.path)}
+                      onToggleLock={() => handleToggleWorktreeLock(wt)}
+                      // Only from a worktree that has something to carry.
+                      onCopyChanges={wt.dirty ? () => handleCopyChangesTo(wt) : undefined}
                       // The one on screen goes to the working changes — its own;
                       // any other goes to its HEAD, because this graph cannot
                       // show a tree it is not open on (#275).

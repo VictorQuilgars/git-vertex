@@ -8,7 +8,7 @@ import { BranchItem } from '../BranchItem'
 import type { SidebarState } from '../useSidebar'
 
 export function LocalSection({ s }: { s: SidebarState }) {
-  const { currentBranch, branches, onReveal, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch, onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream, onExplainBranch, onBranchChangelog, onGoTo, onCompareBranch, soloBranch, onToggleSolo, onToggleHide, onPull, isFavorite, issueFor, onToggleFavorite, onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR, onCopyBranchLink, onDeleteBranchBoth, onRebaseOntoUpstream, onCompareUpstream, tipActions, mergeTarget, handlePullBranchRow, handleChangeUpstreamRow, handleSquashFixupsRow, t, localBranches, branchHidden, toggleFolder, openFolders, showAll, localMenu, layoutFor, layoutToggle } = s
+  const { currentBranch, branches, onReveal, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch, onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream, onExplainBranch, onBranchChangelog, onGoTo, onCompareBranch, soloBranch, onToggleSolo, onToggleHide, onPull, isFavorite, issueFor, onToggleFavorite, onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR, onCopyBranchLink, onDeleteBranchBoth, onRebaseOntoUpstream, onCompareUpstream, tipActions, mergeTarget, handlePullBranchRow, handleChangeUpstreamRow, handleSquashFixupsRow, worktreeOf, handleCreateWorktreeFor, onSetRepo, t, localBranches, branchHidden, toggleFolder, openFolders, showAll, localMenu, layoutFor, layoutToggle } = s
   const names = localBranches.map(b => b.name)
   const asTree = layoutFor('local', names) === 'tree'
   return (
@@ -53,6 +53,12 @@ export function LocalSection({ s }: { s: SidebarState }) {
                   ? () => onCompareUpstream(b.name, b.upstream!) : undefined}
                 tip={{ ref: b.name, hash: b.commit, subject: b.label }}
                 tipActions={tipActions}
+                checkedOutIn={worktreeOf(b.name)}
+                onOpenItsWorktree={(() => {
+                  const held = worktreeOf(b.name)
+                  return held ? () => onSetRepo(held.path) : undefined
+                })()}
+                onCreateWorktreeFor={() => handleCreateWorktreeFor(b.name)}
                 soloed={soloBranch === b.name}
                 hidden={branchHidden(b)}
                 onToggleSolo={() => onToggleSolo(b.name)}

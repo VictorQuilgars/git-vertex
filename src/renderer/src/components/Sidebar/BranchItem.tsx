@@ -75,9 +75,13 @@ export interface BranchItemProps {
   /** Its tip commit, so the row can offer what the tip's graph row offers. */
   tip?: BranchTip
   tipActions?: BranchTipActions
+  /** The worktree holding it, when that is not the one on screen (#285). */
+  checkedOutIn?: { path: string; name: string }
+  onOpenItsWorktree?: () => void
+  onCreateWorktreeFor?: () => void
 }
 
-export function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, hidden, favorite, issue, onPull, onToggleSolo, onToggleHide, onToggleFavorite, onOpenOnRemote, onAssociateIssue, onExplain, onChangelog, onReveal, onPublish, onFetch, onPullBranch, onChangeUpstream, onRebaseOntoUpstream, onSquashFixups, onHideRemote, onCompareUpstream, tip, tipActions, pr, onCreatePR, publishedAs, onCopyLink, onDeleteBoth, ahead = 0, behind = 0, gone = false, showRemotePrefix = false, displayAs }: BranchItemProps) {
+export function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, hidden, favorite, issue, onPull, onToggleSolo, onToggleHide, onToggleFavorite, onOpenOnRemote, onAssociateIssue, onExplain, onChangelog, onReveal, onPublish, onFetch, onPullBranch, onChangeUpstream, onRebaseOntoUpstream, onSquashFixups, onHideRemote, onCompareUpstream, tip, tipActions, checkedOutIn, onOpenItsWorktree, onCreateWorktreeFor, pr, onCreatePR, publishedAs, onCopyLink, onDeleteBoth, ahead = 0, behind = 0, gone = false, showRemotePrefix = false, displayAs }: BranchItemProps) {
   const [hover, setHover] = useState(false)
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const { t } = useLang()
@@ -91,7 +95,7 @@ export function BranchItem({ name, current, remote, currentBranch, onCheckout, o
   // Same builder the toolbars use — right-click here and the ⋮ button up there
   // now offer the identical menu (v1.21.0).
   const menuItems: MenuItemDef[] = buildBranchMenu(
-    { name, display: fullDisplay, current, remote: !!remote, pr: pr ?? undefined, publishedAs },
+    { name, display: fullDisplay, current, remote: !!remote, pr: pr ?? undefined, publishedAs, checkedOutIn },
     { currentBranch, soloed, hidden, favorite, issue },
     {
       onCheckout: current ? undefined : onCheckout,
@@ -106,7 +110,7 @@ export function BranchItem({ name, current, remote, currentBranch, onCheckout, o
       onCopyLink,
       onRename, onDelete, onDeleteRemote, onDeleteBoth,
       onPullBranch, onChangeUpstream, onRebaseOntoUpstream, onSquashFixups,
-      onHideRemote, onCompareUpstream,
+      onHideRemote, onCompareUpstream, onOpenItsWorktree, onCreateWorktreeFor,
     },
     t,
     // The tip's own actions, in the slots the graph fills from its row (#281).
@@ -152,7 +156,12 @@ export function BranchItem({ name, current, remote, currentBranch, onCheckout, o
             behind the kebab beside them. */}
         <RowActionBar actions={actions} t={t} label={fullDisplay}
           handlers={{
-            switch: current ? undefined : () => { click.cancel(); onCheckout() },
+            // git refuses to switch to a branch another worktree holds, so
+            // that row opens the worktree instead (#285).
+            switch: current ? undefined : () => {
+              click.cancel()
+              if (checkedOutIn && onOpenItsWorktree) onOpenItsWorktree(); else onCheckout()
+            },
             pull: onPull, push: onPush, publish: onPublish, fetch: onFetch,
           }} />
         {/* Hover affordance for the whole menu rather than the lone delete

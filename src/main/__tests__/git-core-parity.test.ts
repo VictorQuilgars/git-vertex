@@ -61,6 +61,8 @@ const SHARED: Record<string, string> = {
   listRemoteBranches: 'remoteBranchNames',
   squashFixups: 'squashFixups',
   listFixups: 'fixupCommits',
+  listWorktrees: 'worktrees',
+  copyWorktreeChanges: 'copyChangesToWorktree',
 }
 
 describe('the shared git core is what both products run', () => {

@@ -1453,6 +1453,11 @@ function VertexApp() {
             onFilterAuthor={(author) => setSearchQuery(authorQuery(author))}
             authorFilter={authorOfQuery(searchQuery)}
             onReveal={(ref: string) => { void revealCommit(ref) }}
+            onCompareStash={(ref: string, against: 'HEAD' | 'working') => {
+              if (against === 'working') void window.gitAPI.openCompareWorkingTab(ref)
+              else void window.gitAPI.openCompare('HEAD', ref, 'endpoints')
+            }}
+            onSelectStashForCompare={setCompareBaseHash}
             onRebaseOntoUpstream={(upstream: string) => { void handleRebaseCurrentOnto(upstream) }}
             onCompareUpstream={(name: string, upstream: string) => { void window.gitAPI.openCompare(upstream, name) }}
             tipActions={{

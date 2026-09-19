@@ -258,6 +258,11 @@ export const ARG_RULES: Record<string, ArgSpec[]> = {
   'git:sync-submodule': ['repoFile'],
   'git:add-worktree': ['absPath', 'rev', 'refName'],
   'git:remove-worktree': ['absPath', null],
+  'git:lock-worktree': ['absPath', null],
+  'git:unlock-worktree': ['absPath'],
+  'git:copy-worktree-changes': ['absPath', 'absPath', null],
+  'app:open-terminal': ['absPath'],
+  'app:reveal-in-file-manager': ['absPath'],
   'git:gitflow-start': [null, 'refName'],
   'git:gitflow-finish': [null, 'rev', 'refName'],
 
