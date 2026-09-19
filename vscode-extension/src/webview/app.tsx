@@ -853,6 +853,17 @@ function VertexApp() {
       runOp(t('ext.app.remoteBranchDeleted'), () => window.gitAPI.deleteRemoteBranch(ref))
     }
   }, [runOp])
+  // Both ends of a branch, one confirmation — the local one first, so a remote
+  // that refuses (a protected branch) leaves the pair visibly half-done rather
+  // than the local work silently gone with nothing to show for it.
+  const handleDeleteBranchBoth = useCallback(async (name: string, upstream: string) => {
+    if (!(await window.gitAPI.uiConfirm(t('prompt.deleteBoth', name, upstream)))) return
+    runOp(t('toast.branchesDeleted', name, upstream), async () => {
+      const local = await window.gitAPI.deleteBranch(name)
+      if (!local.success) return local
+      return window.gitAPI.deleteRemoteBranch(`remotes/${upstream}`)
+    })
+  }, [runOp])
   const handlePushTag = useCallback((name: string) =>
     runOp(t('ext.app.tagPushed', name), () => window.gitAPI.pushTag(name)), [runOp])
   const handleDeleteTag = useCallback(async (name: string) => {
@@ -1575,7 +1586,8 @@ function VertexApp() {
                     currentBranch={currentBranch}
                     defaultBranch={defaultBranch}
                     tip={commits.find(c => c.hash === card.hash) ?? null}
-                    pr={pr ? { number: pr.number, title: pr.title } : null}
+                    pr={pr ? { number: pr.number, title: pr.title, state: pr.draft ? 'draft' : 'open' } : null}
+                    githubRepo={githubRepo}
                     issue={card.kind === 'head' ? branchMeta.issueFor(card.name) : null}
                     onClose={refCard.close}
                     onSwitch={handleGoTo}
@@ -1590,7 +1602,9 @@ function VertexApp() {
                     onOpenOnRemote={githubRepo ? handleOpenBranchOnRemote : undefined}
                     onDelete={handleDeleteBranch}
                     onDeleteRemote={handleDeleteRemoteBranch}
-                    onOpenPR={(n) => { const item = githubPRs?.find(x => x.number === n); if (item) setIssueDetail({ kind: 'pr', item }) }}
+                    onDeleteBoth={handleDeleteBranchBoth}
+                    // A merged or closed request is not in the open list: the sheet loads it by its number.
+                    onOpenPR={(n, info) => setIssueDetail({ kind: 'pr', item: githubPRs?.find(x => x.number === n) ?? { number: n, title: info?.title ?? '', url: info?.url ?? '' } })}
                     onCreatePR={intent ? () => handleStartPR(intent) : undefined}
                     onPushTag={handlePushTag}
                     onDeleteTag={handleDeleteTag}

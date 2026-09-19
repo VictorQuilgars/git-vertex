@@ -1092,7 +1092,8 @@ export default function App() {
                     currentBranch={currentBranch}
                     defaultBranch={defaultBranch}
                     tip={commits.find(c => c.hash === card.hash) ?? null}
-                    pr={pr ? { number: pr.number, title: pr.title } : null}
+                    pr={pr ? { number: pr.number, title: pr.title, state: pr.draft ? 'draft' : 'open' } : null}
+                    githubRepo={githubOwnerRepo}
                     issue={card.kind === 'head' ? branchMeta.issueFor(card.name) : null}
                     menuItems={card.kind === 'tag' ? undefined : branchMenuItems({
                       name: card.kind === 'remote' ? `remotes/${card.name}` : card.name,
@@ -1113,7 +1114,9 @@ export default function App() {
                     onOpenOnRemote={githubOwnerRepo ? handleOpenBranchOnRemote : undefined}
                     onDelete={handleDeleteBranch}
                     onDeleteRemote={handleDeleteRemoteBranch}
-                    onOpenPR={(n) => { const item = githubPRs?.find(x => x.number === n); if (item) setIssueDetail({ kind: 'pr', item }) }}
+                    onDeleteBoth={handleDeleteBranchBoth}
+                    // A merged or closed request is not in the open list: the sheet loads it by its number.
+                    onOpenPR={(n, info) => setIssueDetail({ kind: 'pr', item: githubPRs?.find(x => x.number === n) ?? { number: n, title: info?.title ?? '', url: info?.url ?? '' } })}
                     onCreatePR={intent ? () => handleStartPR(intent) : undefined}
                     onPushTag={handlePushTag}
                     onDeleteTag={handleDeleteTag}

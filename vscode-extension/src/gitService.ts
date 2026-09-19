@@ -1660,6 +1660,11 @@ exit 0
     } catch (e: any) { return { success: false, error: e.message } }
   }
 
+  // Undo a resolution before it is committed: the file conflicted again (#269).
+  async restoreConflict(filepath: string): Promise<{ success: boolean; error?: string }> {
+    return core.restoreConflict(this.run, filepath)
+  }
+
   // `messages`, when given, feed the user-chosen final text to any squash
   // group(s) that finalize during this --continue (a single continue can run
   // through several queued steps before the next conflict or the end), in

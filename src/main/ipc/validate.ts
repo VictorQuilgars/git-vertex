@@ -199,6 +199,7 @@ export const ARG_RULES: Record<string, ArgSpec[]> = {
   'git:restore-file': ['rev', 'repoFiles'],
   'git:mark-resolved': ['repoFile'],
   'git:resolve-conflict': ['repoFile', null],
+  'git:restore-conflict': ['repoFile'],
   // A list of objects: the rule is applied to each element's fields.
   'git:interactive-rebase': [{ hash: 'rev' }, null],
 

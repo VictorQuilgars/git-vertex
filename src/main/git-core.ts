@@ -531,6 +531,54 @@ export async function tagOnRemote(
   }
 }
 
+/** The pseudo-refs git keeps while an operation is stopped on its conflicts. */
+const OPERATION_HEADS = ['MERGE_HEAD', 'REBASE_HEAD', 'CHERRY_PICK_HEAD', 'REVERT_HEAD']
+
+async function operationInProgress(run: GitRunner): Promise<boolean> {
+  for (const head of OPERATION_HEADS) {
+    try {
+      if ((await run(['rev-parse', '--verify', '--quiet', head])).trim()) return true
+    } catch { /* --quiet: absent is a silent failure */ }
+  }
+  return false
+}
+
+/**
+ * Put a resolved path back in conflict: the markers in the working tree, the
+ * path unmerged in the index — as git left it when the operation stopped. It is
+ * the undo of a resolution nobody has committed yet (#269), the model's first:
+ * `git add` records what it replaced (the index's resolve-undo), and
+ * `checkout --merge` rebuilds the three stages from that record.
+ *
+ * Every check before it is there because `checkout --merge` is not careful on
+ * its own: on a path that was never in conflict it SUCCEEDS, silently, by
+ * checking the path out of the index — an edit on disk is gone. And the record
+ * outlives the commit, so after one it would put a finished merge's file back
+ * in conflict. Hence: a record for this path, no edit since the resolution,
+ * and an operation still stopped.
+ */
+export async function restoreConflict(
+  run: GitRunner, filepath: string,
+): Promise<{ success: boolean; error?: string }> {
+  const bad = assertRef(filepath, 'file path')
+  if (bad) return { success: false, error: bad }
+  try {
+    if (!(await run(['ls-files', '--resolve-undo', '--', filepath])).trim()) {
+      return { success: false, error: `${filepath} was not resolved from a conflict — there is nothing to restore` }
+    }
+    if ((await run(['diff', '--name-only', '--', filepath])).trim()) {
+      return { success: false, error: `${filepath} has changed since it was resolved — stage or discard that change first` }
+    }
+    if (!(await operationInProgress(run))) {
+      return { success: false, error: 'No merge, rebase, cherry-pick or revert is in progress' }
+    }
+    await run(['checkout', '--merge', '--', filepath])
+    return { success: true }
+  } catch (e: any) {
+    return { success: false, error: String(e?.message ?? e).trim() }
+  }
+}
+
 /** The patch of one path in the working tree, staged or not. */
 export async function workingFileDiff(
   run: GitRunner, filepath: string, staged: boolean, context?: number,

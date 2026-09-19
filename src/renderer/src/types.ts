@@ -261,6 +261,7 @@ declare global {
     markResolved: (filepath: string) => Promise<R>
     resolveConflict: (filepath: string, content: string) => Promise<R>
     resolveConflictSide: (filepath: string, side: 'ours' | 'theirs') => Promise<R>
+    restoreConflict: (filepath: string) => Promise<R>
     continueRebase: (messages?: string[]) => Promise<R>
     continueMerge: (message?: string) => Promise<R>
     abortRebase: () => Promise<R>
@@ -494,6 +495,8 @@ declare global {
     /** An issue drafted from a sentence — title and body from one call. */
     aiGenerateIssue: (described: string) => Promise<Unnarrowed>
     githubGetPR: (owner: string, repo: string, number: number) => Promise<Unnarrowed>
+    /** Every request a branch has carried, newest first — see src/main/github-branch-prs.ts. */
+    githubBranchPRs: (owner: string, repo: string, branch: string) => Promise<{ prs?: import('../../main/github-branch-prs').BranchPR[]; error?: string }>
     githubGetChecks: (owner: string, repo: string, ref: string) => Promise<Unnarrowed>
     githubMergePR: (owner: string, repo: string, number: number, method?: string) => Promise<Unnarrowed>
     githubListRepos: () => Promise<Unnarrowed>

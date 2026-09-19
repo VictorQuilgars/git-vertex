@@ -609,6 +609,11 @@ export function registerGitHandlers(): void {
     return state.gitService.resolveConflictWithSide(filepath, side)
   })
 
+  handle('git:restore-conflict', async (_event, filepath: string) => {
+    if (!state.gitService) return { success: false, error: 'No repo open' }
+    return state.gitService.restoreConflict(filepath)
+  })
+
   handle('git:continue-rebase', async (_event, messages?: string[]) => {
     if (!state.gitService) return { success: false, error: 'No repo open' }
     return state.gitService.continueRebase(messages)
