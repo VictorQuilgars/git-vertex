@@ -40,7 +40,17 @@ export interface BatchDeps {
   stopped: () => boolean
   onStart?: (file: string) => void
   onDone?: (outcome: BatchOutcome) => void
+  /** Between two tries of a write that found the index locked. */
+  retryDelayMs?: number
 }
+
+/**
+ * git's own lock on the index: taken by `git add`, and by the `git status` the
+ * panel runs to refresh after every file. The first run on a real repository
+ * lost a file to it — two answers landing together, one write losing the race.
+ */
+const INDEX_LOCKED = /index\.lock/
+const WRITE_TRIES = 4
 
 /** The error the providers answer with when no key is configured. */
 export const NO_API_KEY = 'NO_API_KEY'
@@ -57,6 +67,11 @@ export const BATCH_CONCURRENCY = 2
  * missing key does, since every other file would fail the same way. A stop is
  * honoured between files, and before writing: a proposal that arrives after it
  * is dropped rather than written.
+ *
+ * The model is asked about several files at once; the repository is written
+ * one file at a time — two `git add` at once is one of them failing on the
+ * index's lock — and a write that still finds it locked (the panel's own
+ * refresh) is tried again rather than reported.
  */
 export async function resolveBatch(
   files: string[], deps: BatchDeps, concurrency = BATCH_CONCURRENCY,
@@ -66,6 +81,20 @@ export async function resolveBatch(
   let next = 0
   const halted = () => missingKey || deps.stopped()
   const settle = (outcome: BatchOutcome) => { outcomes.set(outcome.file, outcome); deps.onDone?.(outcome) }
+
+  let writing: Promise<unknown> = Promise.resolve()
+  const write = (file: string, content: string) => {
+    const attempt = async () => {
+      for (let tryNo = 1; ; tryNo++) {
+        const r = await deps.write(file, content)
+        if (r.success !== false || !INDEX_LOCKED.test(r.error ?? '') || tryNo >= WRITE_TRIES) return r
+        await new Promise(res => setTimeout(res, deps.retryDelayMs ?? 250))
+      }
+    }
+    const turn = writing.then(attempt, attempt)
+    writing = turn.catch(() => {})
+    return turn
+  }
 
   const worker = async () => {
     while (next < files.length && !halted()) {
@@ -82,7 +111,7 @@ export async function resolveBatch(
         } else if (deps.stopped()) {
           outcome = { file, status: 'not-run' }
         } else {
-          const written = await deps.write(file, proposal.resolution)
+          const written = await write(file, proposal.resolution)
           outcome = written.success === false
             ? { file, status: 'failed', error: written.error || 'The file could not be written' }
             : { file, status: 'resolved', explanation: proposal.explanation ?? '' }

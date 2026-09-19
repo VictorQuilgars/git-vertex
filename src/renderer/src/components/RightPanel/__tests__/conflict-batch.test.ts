@@ -81,6 +81,46 @@ describe('resolveBatch', () => {
     expect(d.written).toEqual({ a: 'merged a' })
   })
 
+  // What the first run on a real repository hit: two answers landing together,
+  // two `git add`, one of them failing on the index's lock.
+  test('the model is asked in parallel, the repository written one file at a time', async () => {
+    let writing = 0
+    let most = 0
+    await resolveBatch(['a', 'b', 'c', 'd'], deps({
+      write: async () => {
+        most = Math.max(most, ++writing)
+        await new Promise(r => setTimeout(r, 5))
+        writing--
+        return { success: true }
+      },
+    }), 2)
+    expect(most).toBe(1)
+  })
+
+  test('a write that finds the index locked is tried again — and reported only if it stays locked', async () => {
+    const locked = { success: false, error: "fatal: Unable to create '/repo/.git/index.lock': File exists." }
+    const tries: Record<string, number> = {}
+    const { outcomes } = await resolveBatch(['busy', 'stuck'], deps({
+      write: async file => {
+        tries[file] = (tries[file] ?? 0) + 1
+        if (file === 'busy' && tries[file] < 3) return locked
+        if (file === 'stuck') return locked
+        return { success: true }
+      },
+      retryDelayMs: 1,
+    }))
+    expect(outcomes[0]).toMatchObject({ file: 'busy', status: 'resolved' })
+    expect(tries.busy).toBe(3)
+    expect(outcomes[1]).toMatchObject({ file: 'stuck', status: 'failed', error: expect.stringContaining('index.lock') })
+    expect(tries.stuck).toBe(4)
+  })
+
+  test('any other write failure is not retried', async () => {
+    let tries = 0
+    await resolveBatch(['a'], deps({ write: async () => { tries++; return { success: false, error: 'EACCES' } }, retryDelayMs: 1 }))
+    expect(tries).toBe(1)
+  })
+
   test('never more requests in flight than asked', async () => {
     let inFlight = 0
     let peak = 0
