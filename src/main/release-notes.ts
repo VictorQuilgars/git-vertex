@@ -26,6 +26,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### ⚡ The graph draws what is on screen
 - The graph holds every commit it has loaded and **draws only the rows near the viewport**. After five *Load more* — 3,000 commits — that is **38 row elements instead of 3,000**: a frame of scrolling takes **16.7 ms instead of 66.6**, and a click on a row shows in **30 ms instead of 171**. Keys, jumps, selection and search still work on every commit loaded.
 
+### 🗑️ A branch and its upstream, deleted from its card
+- **Delete Branch** on a branch's card offers the branch alone, or the branch **and its upstream** — one confirmation instead of a second card. It says first what the remote end costs: an open pull request it closes, or a merge that is only on this machine.
+
 ### 📝 git's message goes with its operation
 - During a merge, a rebase, a cherry-pick or a revert, the commit form starts from **the message git wrote**. Finished or aborted **from a terminal**, the operation never passed through the form, and that text stayed as a draft nobody typed — which kept the form open on a clean tree, in place of **Next steps**. It now goes when the operation does, unless you edited it. A draft left over from before this fix has to be cleared by hand once.
 `,

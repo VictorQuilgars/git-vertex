@@ -194,6 +194,8 @@ button.refcard-pill:not(:disabled):hover { border-color: var(--accent); color: v
   cursor: pointer;
   white-space: nowrap;
 }
+/* A button that opens a choice (Delete Branch ▾) carries its caret inside. */
+.refcard-btn[aria-haspopup] { display: inline-flex; align-items: center; gap: var(--space-xs); }
 .refcard-btn:hover { background: var(--surface-active); border-color: var(--border-strong); }
 .refcard-btn:focus-visible { outline: 1px solid var(--accent); }
 

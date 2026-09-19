@@ -90,6 +90,46 @@ describe('a local branch', () => {
     expect(steps()).not.toContain('Delete spike')
   })
 
+  describe('deleting a branch that is on the remote too', () => {
+    const tracked = [...branches, { name: 'fix/draft', current: false, remote: false, commit: 'ddddddd', label: 'the fix', upstream: 'origin/fix/draft' }]
+    // Merged into main here; origin/main has it or not, as asked.
+    const compare = (onRemote: boolean) => jest.fn(async (a: string) => a === 'origin/main'
+      ? { ahead: onRemote ? [] : [{}], behind: [] }
+      : { ahead: [], behind: [{}] })
+
+    test('one button, two choices: the branch, or the branch and its upstream', async () => {
+      const p = draw({ kind: 'head', name: 'fix/draft', hash: H('d') }, { compareBranches: compare(true) },
+        { branches: tracked, onDeleteBoth: jest.fn() })
+      await waitFor(() => expect(screen.getByText('Safe to delete')).toBeTruthy())
+      fireEvent.click(screen.getByRole('button', { name: 'Delete Branch' }))
+      expect(p.onDelete).not.toHaveBeenCalled()
+      fireEvent.click(await screen.findByText('Delete fix/draft and origin/fix/draft'))
+      expect(p.onDeleteBoth).toHaveBeenCalledWith('fix/draft', 'origin/fix/draft')
+
+      fireEvent.click(screen.getByRole('button', { name: 'Delete Branch' }))
+      fireEvent.click(await screen.findByText('Delete fix/draft'))
+      expect(p.onDelete).toHaveBeenCalledWith('fix/draft')
+    })
+
+    test('merged only here, with its pull request open: said, before the remote end is chosen', async () => {
+      const p = draw({ kind: 'head', name: 'fix/draft', hash: H('d') }, { compareBranches: compare(false) },
+        { branches: tracked, onDeleteBoth: jest.fn(), pr: { number: 266, title: 'The fix' } })
+      await waitFor(() => expect(screen.getByText('Not on origin/main yet')).toBeTruthy())
+      expect(screen.queryByText('Safe to delete')).toBeNull()
+      fireEvent.click(screen.getByRole('button', { name: 'Delete Branch' }))
+      fireEvent.click(await screen.findByText('Delete fix/draft and origin/fix/draft — closes PR #266 · not on origin/main yet'))
+      expect(p.onDeleteBoth).toHaveBeenCalledWith('fix/draft', 'origin/fix/draft')
+    })
+
+    test('an upstream the remote no longer has is no choice: deleting is the branch alone', async () => {
+      const gone = [...branches, { name: 'fix/draft', current: false, remote: false, commit: 'ddddddd', label: 'the fix', upstream: 'origin/fix/draft', gone: true }]
+      const p = draw({ kind: 'head', name: 'fix/draft', hash: H('d') }, {}, { branches: gone, onDeleteBoth: jest.fn() })
+      fireEvent.click(screen.getByText('Delete Local Branch'))
+      expect(p.onDelete).toHaveBeenCalledWith('fix/draft')
+      expect(p.onDeleteBoth).not.toHaveBeenCalled()
+    })
+  })
+
   test('the default branch merges into nothing, so it has no such card — and is not deleted from here', () => {
     draw({ kind: 'head', name: 'main', hash: H('m') })
     expect(screen.queryByText('Merges into')).toBeNull()
@@ -114,6 +154,9 @@ describe('a remote-only branch', () => {
     expect(steps()).toEqual(['Switch to origin/only-there', 'Compare with feature/login', 'Delete origin/only-there from its remote'])
     fireEvent.click(screen.getByTitle('Open Branch on Remote'))
     expect(p.onOpenOnRemote).toHaveBeenCalledWith('only-there')
+    // `origin/only-there` alone is read as a branch of that name on the default remote.
+    fireEvent.click(screen.getByText('Delete…'))
+    expect(p.onDeleteRemote).toHaveBeenCalledWith('remotes/origin/only-there')
   })
 })
 

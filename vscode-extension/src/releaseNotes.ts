@@ -46,6 +46,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 📏 A short panel has no minimap
 - Below 340 px of height the strip of activity **steps aside**: in a 194 px panel it took a quarter of the height and left the list of files one row tall.
 
+### 🗑️ A branch and its upstream, deleted from its card
+- **Delete Branch** on a branch's card offers the branch alone, or the branch **and its upstream** — one confirmation instead of a second card. It says first what the remote end costs: an open pull request it closes, or a merge that is only on this machine.
+
 ### 📝 git's message goes with its operation
 - During a merge, a rebase, a cherry-pick or a revert, the commit form starts from **the message git wrote**. Finished or aborted **from a terminal**, the operation never passed through the form, and that text stayed as a draft nobody typed — which kept the form open on a clean tree, in place of **Next steps**. It now goes when the operation does, unless you edited it. A draft left over from before this fix has to be cleared by hand once.
 `,

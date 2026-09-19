@@ -39,7 +39,10 @@ export interface RefCardActions {
   onRebase?: (name: string) => void
   onOpenOnRemote?: (name: string) => void
   onDelete?: (name: string) => void
+  /** Called with `remotes/<remote>/<branch>` — the one spelling deleteRemoteBranch reads unambiguously. */
   onDeleteRemote?: (ref: string) => void
+  /** A local branch and the upstream it tracks (`origin/x`), with one confirmation. */
+  onDeleteBoth?: (name: string, upstream: string) => void
   onOpenPR?: (number: number) => void
   onCreatePR?: (name: string) => void
   onPushTag?: (name: string) => void
@@ -66,7 +69,7 @@ type Tag = { name: string; commit: string; annotated: boolean; message?: string;
 
 /** One "next step": what it is, and the one button that does it. */
 function Step({ icon, label, button, onClick, title }: {
-  icon: IconName; label: React.ReactNode; button: string; onClick: () => void; title?: string
+  icon: IconName; label: React.ReactNode; button: string; onClick: (e: React.MouseEvent<HTMLButtonElement>) => void; title?: string
 }) {
   return (
     <div className="refcard-step">
@@ -87,24 +90,33 @@ export default function RefCard(props: RefCardProps) {
   const mergeInto = mergeTargetOf(target, defaultBranch)
   const kebabRef = useRef<HTMLButtonElement>(null)
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
+  // Delete, when there is a choice to make: this branch, or it and its upstream.
+  const [deleteMenu, setDeleteMenu] = useState<{ x: number; y: number; anchor: HTMLElement } | null>(null)
+  // What the target tracks: `main` merged on this machine is not `origin/main` merged.
+  const targetUpstream = mergeInto ? branches.find(b => !b.remote && b.name === mergeInto)?.upstream ?? null : null
 
   // Escape closes the card — unless something of its own is open on top of it.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || menu) return
+      if (e.key !== 'Escape' || menu || deleteMenu) return
       if (document.querySelector('.ctx-menu, [role="menu"], .dlg-overlay')) return
       e.preventDefault(); e.stopImmediatePropagation()
       onClose()
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [onClose, menu])
+  }, [onClose, menu, deleteMenu])
 
   // ── Against the branch it merges into: how far, and would it conflict ──
   const [merge, setMerge] = useState<MergeFacts | null>(null)
   const [mergeLoading, setMergeLoading] = useState(false)
+  // Merged into the target — and is it in the target's upstream too? A merge
+  // made here and not pushed says "merged" of a branch whose pull request is
+  // still open, and deleting its remote side would close that request.
+  const [onTargetUpstream, setOnTargetUpstream] = useState<boolean | null>(null)
   useEffect(() => {
     setMerge(null)
+    setOnTargetUpstream(null)
     if (!mergeInto) return
     let stale = false
     setMergeLoading(true)
@@ -122,11 +134,15 @@ export default function RefCard(props: RefCardProps) {
           const c = await window.gitAPI.predictConflicts(target.name, mergeInto)
           if (!stale && !c?.error) setMerge({ target: mergeInto, ahead, behind, conflicts: (c?.files ?? []).length })
         }
+        if (ahead === 0 && behind > 0 && targetUpstream) {
+          const u = await window.gitAPI.compareBranches(targetUpstream, target.name)
+          if (!stale && Array.isArray(u?.ahead)) setOnTargetUpstream(u.ahead.length === 0)
+        }
       } catch { /* no distance to show: the card says nothing about it */ }
       finally { if (!stale) setMergeLoading(false) }
     })()
     return () => { stale = true }
-  }, [target.name, target.hash, mergeInto])
+  }, [target.name, target.hash, mergeInto, targetUpstream])
 
   // ── Checked out somewhere else? ──
   const [worktree, setWorktree] = useState<string | null>(null)
@@ -159,6 +175,35 @@ export default function RefCard(props: RefCardProps) {
   const verdict = merge ? mergeVerdict(merge) : null
   const n = (count: number) => count.toLocaleString('en-US')
 
+  // Delete, from here: the branch alone — or, when it tracks a branch the
+  // remote still has, both ends as one decision, so the remote's card is not a
+  // second trip. What the remote end costs is on the choice itself: the pull
+  // request it closes, a merge that exists only on this machine.
+  const liveUpstream = target.kind === 'head' && up?.name && up.state !== 'missing' && up.state !== 'unpublished' ? up.name : null
+  const deleteChoices: MenuItemDef[] | null = target.kind === 'head' && !isCurrent && liveUpstream && props.onDelete && props.onDeleteBoth
+    ? (() => {
+        const cost = [
+          pr ? t('refcard.del.closesPR', pr.number) : null,
+          onTargetUpstream === false && targetUpstream ? t('refcard.del.notOnRemote', targetUpstream) : null,
+        ].filter(Boolean).join(' · ')
+        return [
+          { label: t('refcard.del.local', target.name), action: () => props.onDelete!(target.name) },
+          {
+            label: cost ? t('refcard.del.bothCost', target.name, liveUpstream, cost) : t('refcard.del.both', target.name, liveUpstream),
+            action: () => props.onDeleteBoth!(target.name, liveUpstream),
+            danger: true,
+          },
+        ]
+      })()
+    : null
+  const requestDelete = (e: React.MouseEvent<HTMLElement>) => {
+    if (!deleteChoices) { props.onDelete?.(target.name); return }
+    if (deleteMenu) { setDeleteMenu(null); return }
+    const anchor = e.currentTarget
+    const r = anchor.getBoundingClientRect()
+    setDeleteMenu({ x: r.left, y: r.bottom + 2, anchor })
+  }
+
   const kindIcon: IconName = isTag ? 'tag' : isRemote ? 'cloud' : 'branch'
   const kindLabel = t(isTag ? 'refcard.kind.tag' : isRemote ? 'refcard.kind.remote' : 'refcard.kind.branch')
 
@@ -187,7 +232,8 @@ export default function RefCard(props: RefCardProps) {
     : up.state === 'ahead' ? t('refcard.up.toPush', up.ahead)
     : up.state === 'level' ? t('refcard.up.level') : ''
 
-  const mergeStatus = !merge || !verdict ? '' : verdict === 'merged' ? t('refcard.merge.safeToDelete')
+  const mergeStatus = !merge || !verdict ? ''
+    : verdict === 'merged' ? (onTargetUpstream === false && targetUpstream ? t('refcard.merge.notOnRemote', targetUpstream) : t('refcard.merge.safeToDelete'))
     : verdict === 'in-sync' ? (merge.ahead > 0 ? t('refcard.merge.basedWith', merge.target, merge.ahead) : t('refcard.merge.based', merge.target))
     : t('refcard.merge.behind', merge.target, merge.behind)
   const verdictChip = !merge || !verdict || verdict === 'in-sync' ? null
@@ -307,7 +353,10 @@ export default function RefCard(props: RefCardProps) {
                         <span className="refcard-status">{mergeStatus}</span>
                         <span className="refcard-actions">
                           {verdict === 'merged' && props.onDelete && !isCurrent && (
-                            <button type="button" className="refcard-btn" onClick={() => props.onDelete!(target.name)}>{t('refcard.deleteBranch')}</button>
+                            <button type="button" className="refcard-btn" aria-haspopup={deleteChoices ? 'menu' : undefined}
+                              aria-expanded={deleteChoices ? !!deleteMenu : undefined} onClick={requestDelete}>
+                              {t('refcard.deleteBranch')}{deleteChoices && <Icon name="caretDown" size={10} />}
+                            </button>
                           )}
                           {/* Merge first, on purpose: it is the one that rewrites nothing. */}
                           {(verdict === 'clean' || verdict === 'unknown' || verdict === 'conflicts') && isCurrent && <>
@@ -397,10 +446,11 @@ export default function RefCard(props: RefCardProps) {
                 )}
                 {/* Never the default branch from here: one click is too close for the branch everything merges into. */}
                 {target.kind === 'head' && !isCurrent && target.name !== defaultBranch && props.onDelete && verdict !== 'merged' && (
-                  <Step icon="trash" label={t('refcard.step.delete', target.name)} button={t('refcard.delete')} onClick={() => props.onDelete!(target.name)} />
+                  <Step icon="trash" label={t('refcard.step.delete', target.name)} button={t('refcard.delete')} onClick={requestDelete} />
                 )}
+                {/* `origin/x` alone read as a branch called `origin/x` on the default remote. */}
                 {isRemote && props.onDeleteRemote && (
-                  <Step icon="trash" label={t('refcard.step.deleteRemote', target.name)} button={t('refcard.delete')} onClick={() => props.onDeleteRemote!(target.name)} />
+                  <Step icon="trash" label={t('refcard.step.deleteRemote', target.name)} button={t('refcard.delete')} onClick={() => props.onDeleteRemote!(`remotes/${target.name}`)} />
                 )}
               </>)
               return rows.length > 0 && (
@@ -415,6 +465,9 @@ export default function RefCard(props: RefCardProps) {
       </section>
       {menu && menuItems && (
         <ContextMenu x={menu.x} y={menu.y} items={menuItems} anchor={kebabRef.current} onClose={() => setMenu(null)} />
+      )}
+      {deleteMenu && deleteChoices && (
+        <ContextMenu x={deleteMenu.x} y={deleteMenu.y} items={deleteChoices} anchor={deleteMenu.anchor} onClose={() => setDeleteMenu(null)} />
       )}
     </div>
   )

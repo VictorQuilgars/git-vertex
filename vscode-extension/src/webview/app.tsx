@@ -853,6 +853,17 @@ function VertexApp() {
       runOp(t('ext.app.remoteBranchDeleted'), () => window.gitAPI.deleteRemoteBranch(ref))
     }
   }, [runOp])
+  // Both ends of a branch, one confirmation — the local one first, so a remote
+  // that refuses (a protected branch) leaves the pair visibly half-done rather
+  // than the local work silently gone with nothing to show for it.
+  const handleDeleteBranchBoth = useCallback(async (name: string, upstream: string) => {
+    if (!(await window.gitAPI.uiConfirm(t('prompt.deleteBoth', name, upstream)))) return
+    runOp(t('toast.branchesDeleted', name, upstream), async () => {
+      const local = await window.gitAPI.deleteBranch(name)
+      if (!local.success) return local
+      return window.gitAPI.deleteRemoteBranch(`remotes/${upstream}`)
+    })
+  }, [runOp])
   const handlePushTag = useCallback((name: string) =>
     runOp(t('ext.app.tagPushed', name), () => window.gitAPI.pushTag(name)), [runOp])
   const handleDeleteTag = useCallback(async (name: string) => {
@@ -1590,6 +1601,7 @@ function VertexApp() {
                     onOpenOnRemote={githubRepo ? handleOpenBranchOnRemote : undefined}
                     onDelete={handleDeleteBranch}
                     onDeleteRemote={handleDeleteRemoteBranch}
+                    onDeleteBoth={handleDeleteBranchBoth}
                     onOpenPR={(n) => { const item = githubPRs?.find(x => x.number === n); if (item) setIssueDetail({ kind: 'pr', item }) }}
                     onCreatePR={intent ? () => handleStartPR(intent) : undefined}
                     onPushTag={handlePushTag}

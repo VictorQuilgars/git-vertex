@@ -1113,6 +1113,7 @@ export default function App() {
                     onOpenOnRemote={githubOwnerRepo ? handleOpenBranchOnRemote : undefined}
                     onDelete={handleDeleteBranch}
                     onDeleteRemote={handleDeleteRemoteBranch}
+                    onDeleteBoth={handleDeleteBranchBoth}
                     onOpenPR={(n) => { const item = githubPRs?.find(x => x.number === n); if (item) setIssueDetail({ kind: 'pr', item }) }}
                     onCreatePR={intent ? () => handleStartPR(intent) : undefined}
                     onPushTag={handlePushTag}
