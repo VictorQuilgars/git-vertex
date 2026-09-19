@@ -301,11 +301,34 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranc
     return () => { offRepo(); offWorking() }
   }, [load])
 
+  // Mid-merge, rebase, cherry-pick or revert, git has already written the
+  // message and the form starts from it — marked as git's, so that it can go
+  // with the operation it was written for.
   useEffect(() => {
     if (isConflict) {
-      window.gitAPI.getMergeMessage().then(r => { if (r.message) setMessage(prev => prev || r.message) })
+      window.gitAPI.getMergeMessage().then(r => {
+        if (!r.message) return
+        updateDraft(prev => {
+          const field = prev.amend ? 'amendMessage' : 'message'
+          return prev[field] ? prev : { ...prev, [field]: r.message, prefilled: r.message }
+        })
+      })
     }
-  }, [isConflict])
+  }, [isConflict, updateDraft])
+
+  // Once no operation is in progress, git's message goes — if it is still
+  // git's. An operation finished or aborted from a terminal never passes
+  // through this form, nothing clears the draft, and a message nobody typed
+  // held the form open on a clean tree, in place of the next steps, for as
+  // long as the draft lasted. Edited, it is the user's, and stays.
+  const prefilled = draft.prefilled
+  useEffect(() => {
+    if (isConflict || prefilled === undefined) return
+    updateDraft(({ prefilled: git, ...prev }) => {
+      const field = prev.amend ? 'amendMessage' : 'message'
+      return prev[field] === git ? { ...prev, [field]: '' } : prev
+    })
+  }, [isConflict, prefilled, updateDraft])
 
   // Agent-proposed commit (MCP propose_commit): preload the message into the
   // form. The proposed files are only *listed* in the banner below — staging
