@@ -4,7 +4,7 @@
 // Narrow (a side-bar column): the same row folds — the secondary actions go
 // behind a "⋯" menu, the sync buttons keep their icon and count, and the
 // search field takes a row of its own.
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react'
 import { Icon } from '../../../src/renderer/src/components/Icon/Icon'
 import SearchHint, { useSearchHint } from '../../../src/renderer/src/components/SearchHint/SearchHint'
 import { useLang } from '../../../src/renderer/src/i18n/LanguageContext'
@@ -141,8 +141,53 @@ function relTime(d: Date | null, lang: string, t: Translate): string {
   return lang === 'fr' ? `il y a ${Math.floor(s / 86400)} j` : `${Math.floor(s / 86400)}d ago`
 }
 
+/**
+ * How much of the one-row toolbar the width holds: all of it, the sync buttons
+ * without their words, or the folded layout — the narrow panel's two rows.
+ *
+ * Decided on what the row MEASURED it needs at each step, not on a fixed width:
+ * the row grows whenever an action joins it, and a threshold written for last
+ * month's row let this one run off the panel's edge — the search field cut,
+ * the details switch beyond reach, between 640 and 1,050 px. Each step's need
+ * is remembered, so a step taken cannot undo itself: its own row fits, and the
+ * width the previous one needed has not changed.
+ */
+type Fit = 'full' | 'compact' | 'folded'
+function useToolbarFit(root: React.RefObject<HTMLDivElement>, disabled: boolean): Fit {
+  const need = useRef<Partial<Record<Fit, number>>>({})
+  const [room, setRoom] = useState(0)
+  const [fit, setFit] = useState<Fit>('full')
+  useEffect(() => {
+    const el = root.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(() => setRoom(el.clientWidth))
+    ro.observe(el)
+    return () => ro.disconnect()
+    // The row and the folded layout are two elements: observe the one drawn.
+  }, [root, disabled, fit])
+  useLayoutEffect(() => {
+    const el = root.current
+    if (disabled || !el) return
+    if (fit !== 'folded') {
+      // What the row takes without its spring, and with the search field at
+      // rest: a focused field grows, and typing must not fold the row.
+      const spring = el.querySelector<HTMLElement>(':scope > .gvt-spring')
+      const search = el.querySelector<HTMLElement>(':scope > .gvt-search')
+      need.current[fit] = el.scrollWidth - (spring?.offsetWidth ?? 0) - Math.max(0, (search?.offsetWidth ?? 0) - 150)
+    }
+    const fits = (step: Fit) => (need.current[step] ?? 0) <= room
+    const next: Fit = room <= 0 || fits('full') ? 'full' : fits('compact') ? 'compact' : 'folded'
+    if (next !== fit) setFit(next)
+  })
+  return disabled ? 'folded' : fit
+}
+
 export default function CompactToolbar(p: Props) {
   const { t, lang } = useLang()
+  const rootRef = useRef<HTMLDivElement>(null)
+  const fit = useToolbarFit(rootRef, !!p.narrow)
+  // The panel's narrow layout, or a row that does not fit the width it has.
+  const narrow = !!p.narrow || fit === 'folded'
   const [branchOpen, setBranchOpen] = useState(false)
   const [repoOpen, setRepoOpen] = useState(false)
   const repoRef = useRef<HTMLDivElement>(null)
@@ -229,7 +274,7 @@ export default function CompactToolbar(p: Props) {
           pre-aqua greens — it kept them right through the palette migration
           because a copy is not a reference. The narrow row has no room for it:
           the view's own title carries the name there. */}
-      {!p.narrow && <Mark className="gvt-logo" size={16} />}
+      {!narrow && <Mark className="gvt-logo" size={16} />}
       {p.onToggleSidebar && (
         <IconBtn title={t('gvt.toggleSidebar')} onClick={p.onToggleSidebar} active={p.sidebarOpen}>
           <Icon name="panel" size={14} />
@@ -260,7 +305,7 @@ export default function CompactToolbar(p: Props) {
           )}
         </div>
       ) : (
-        p.repoName && !p.narrow && <span className="gvt-repo">{p.repoName}</span>
+        p.repoName && !narrow && <span className="gvt-repo">{p.repoName}</span>
       )}
 
       {/* Branch selector */}
@@ -333,13 +378,23 @@ export default function CompactToolbar(p: Props) {
     </div>
   )
 
-  if (p.narrow) {
+  // Hide/Show graph — the compact working layout's (a short panel with the
+  // working changes selected). In the row, and in the folded layout too: a
+  // wide panel folds when its row does not fit, and keeps the switch.
+  const graphToggle = p.onToggleGraph && (
+    <button className="gvt-tbtn" onClick={p.onToggleGraph} aria-pressed={p.graphHidden}>
+      {t(p.graphHidden ? 'panel.compact.showGraph' : 'panel.compact.hideGraph')}
+    </button>
+  )
+
+  if (narrow) {
     const searchShown = p.searchRow !== 'toggle' || searchOpen
     return (
-      <div className="gvt gvt--narrow">
+      <div className="gvt gvt--narrow" ref={rootRef}>
         <div className="gvt-row">
           {identity}
           <span className="gvt-spring" />
+          {graphToggle}
           {sync}
           {!searchShown && p.detailsToggle}
           {p.searchRow === 'toggle' && (
@@ -364,14 +419,11 @@ export default function CompactToolbar(p: Props) {
   }
 
   return (
-    <div className="gvt">
+    <div className={`gvt${fit === 'compact' ? ' gvt--compact' : ''}`} ref={rootRef}>
       {identity}
 
       <span className="gvt-spring" />
-      {p.onToggleGraph && <button className="gvt-tbtn" onClick={p.onToggleGraph}
-        aria-pressed={p.graphHidden}>
-        {t(p.graphHidden ? 'panel.compact.showGraph' : 'panel.compact.hideGraph')}
-      </button>}
+      {graphToggle}
 
       {sync}
 

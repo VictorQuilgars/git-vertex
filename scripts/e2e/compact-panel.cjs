@@ -114,6 +114,24 @@ app.whenReady().then(async () => {
     await settle(); g=await assertCompact(); assert.equal(g.graph.w,0)
     await evalJS("[...document.querySelectorAll('button')].find(b=>b.textContent==='Show graph').click()")
     await settle(); await assertCompact()
+    // The minimap's block goes with the graph, and the body grows by its height:
+    // at 360 px it started the compact layout under 300 and ended it over 300,
+    // which brought the graph back, which started it again — every frame. The
+    // hidden graph has to stay hidden.
+    win.setContentSize(956,360); await settle()
+    await evalJS("[...document.querySelectorAll('button')].find(b=>b.textContent==='Hide graph').click()")
+    const hiddenFor = []
+    for (let i = 0; i < 5; i++) { await new Promise(r => setTimeout(r, 120)); hiddenFor.push(await evalJS("document.querySelector('.app-center').style.display")) }
+    assert.deepEqual(hiddenFor, Array(5).fill('none'), `Hide graph did not hold: ${hiddenFor}`)
+    await evalJS("[...document.querySelectorAll('button')].find(b=>b.textContent==='Show graph').click()")
+    await settle()
+    // Between a narrow column and a wide panel, the toolbar's row stays inside
+    // the panel: it drops the sync words, then folds, when it has to.
+    for (const w of [1100, 1000, 956, 860, 760, 700]) {
+      win.setContentSize(w, 360); await settle()
+      assert(await evalJS("(()=>{const g=document.querySelector('.gvt');return g.scrollWidth<=g.clientWidth+1})()"), `the toolbar runs off the panel at ${w}px`)
+    }
+    win.setContentSize(1100,254); await settle(); await assertCompact()
     await evalJS("[...document.querySelectorAll('button')].find(b=>b.textContent==='Options').click()")
     await settle()
     assert(await evalJS("document.body.innerText.includes('Signed-off-by')"),'compact options unavailable')
@@ -175,7 +193,7 @@ app.whenReady().then(async () => {
     await assertCompact()
     fs.writeFileSync(path.join(dir,'compact.png'), (await win.webContents.capturePage()).toPNG())
     assert.equal(errors.length,0,errors.join('\n'))
-    console.log('PASS compact panel: layout, pointer and keyboard resizing, persistence, narrow/tall fallback, graph toggle, options, side-bar column')
+    console.log('PASS compact panel: layout, pointer and keyboard resizing, persistence, narrow/tall fallback, graph toggle that holds, a toolbar that fits, options, side-bar column')
     console.log('Screenshots: '+['compact','sidebar','sidebar-overlay','sidebar-short'].map(n=>path.join(dir,n+'.png')).join(' '))
   } catch (error) {
     console.error(error)

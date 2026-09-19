@@ -96,6 +96,25 @@ export function resolvePanelLayout(
   return { narrow, railWidth, details, side: details === 'right' ? 'right' : 'bottom' }
 }
 
+/**
+ * Below this body height, with the working changes selected, the staging pane
+ * lays out in a row beside the graph — and a switch hides the graph.
+ */
+export const COMPACT_WORKING_BELOW = 300
+/**
+ * What hiding the graph gives the body back: the minimap's block goes with the
+ * graph — at most its tallest strip, 200, and the gap above it. The compact
+ * layout holds across that much while the graph is hidden. Decided on the
+ * body's height alone, it took itself back: the graph hidden, the strip went,
+ * the body grew past 300 and the compact layout ended — the graph returned
+ * with its strip, the body shrank, the graph hid again, every frame.
+ */
+export const GRAPH_HIDDEN_HOLD = 216
+
+export function compactWorkingHolds(bodyHeight: number, graphHidden: boolean): boolean {
+  return bodyHeight > 0 && bodyHeight < COMPACT_WORKING_BELOW + (graphHidden ? GRAPH_HIDDEN_HOLD : 0)
+}
+
 /** The details' height in the row layout, kept where both panes stay usable. */
 export function clampDetailsHeight(wanted: number, bodyHeight: number): number {
   const max = Math.max(DETAILS_MIN, bodyHeight - DETAILS_MIN)

@@ -171,7 +171,7 @@
   user-select: none;
 }
 .gvt-logo { flex-shrink: 0; }
-.gvt-repo { color: var(--text-primary-soft); font-size: 12px; font-weight: 600; margin-left: 4px; }
+.gvt-repo { color: var(--text-primary-soft); font-size: 12px; font-weight: 600; margin-left: 4px; white-space: nowrap; flex-shrink: 0; }
 
 /* The repository, as a picker when the workspace has several: the branch
    chip's shape in the neutral colours, since a repository is where you are,
@@ -305,12 +305,14 @@
 }
 
 /* ── Responsive ───────────────────────────────────────────────────
-   Between wide and narrow, the sync buttons keep their icon and count and
-   drop the word: the row still holds every action, only shorter. */
-@media (max-width: 760px) {
-  .gvt-tbtn-label { display: none; }
-  .gvt-tbtn { padding: 0 6px; }
-}
+   When the row needs it (CompactToolbar's useToolbarFit), the sync buttons
+   keep their icon and count and drop the word: the row still holds every
+   action, only shorter. Past that, it folds into the narrow layout, which
+   never has the words. */
+.gvt--compact .gvt-tbtn-label,
+.gvt--narrow .gvt-tbtn-label { display: none; }
+.gvt--compact .gvt-tbtn,
+.gvt--narrow .gvt-tbtn { padding: 0 6px; }
 
 /* Narrow (see panelLayout.ts): two rows. The first holds the sidebar
    toggle, the branch, the sync actions and a "⋯" for the rest; the second

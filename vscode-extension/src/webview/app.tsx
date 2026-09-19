@@ -14,7 +14,7 @@ import { ToastProvider, useToast } from '../../../src/renderer/src/components/To
 import CompactToolbar from './CompactToolbar'
 import EmptyRepo from './EmptyRepo'
 import WelcomeTab from './WelcomeTab'
-import { resolvePanelLayout, clampDetailsHeight, overlayWidth, autoDetailsSide, DETAILS_MIN, LIST_BELOW, type DetailsLocation, type DetailsSide } from './panelLayout'
+import { resolvePanelLayout, clampDetailsHeight, overlayWidth, autoDetailsSide, compactWorkingHolds, DETAILS_MIN, LIST_BELOW, type DetailsLocation, type DetailsSide } from './panelLayout'
 import DetailsToggle from './DetailsToggle'
 import { planReach } from '../../../src/renderer/src/app/search-reach'
 import { LOG_PAGE } from '../../../src/renderer/src/app/shared'
@@ -1249,7 +1249,7 @@ function VertexApp() {
     detailsSubject()
   }
   const compactWorking = showRight && selectedCommit?.hash === '__WIP__' && !conflictMode
-    && bodySize.h > 0 && bodySize.h < 300
+    && compactWorkingHolds(bodySize.h, graphHidden)
   const availableWidth = Math.max(0, bodyW - layout.railWidth - (activeView && !overlaySide ? sideW + 3 : 0))
   const compactColumns = compactWorking && availableWidth >= 692
   const focusWorking = compactWorking && graphHidden

@@ -1,6 +1,7 @@
 import {
-  resolvePanelLayout, clampDetailsHeight, overlayWidth, autoDetailsSide,
+  resolvePanelLayout, clampDetailsHeight, overlayWidth, autoDetailsSide, compactWorkingHolds,
   NARROW_BELOW, SPLIT_ROWS_FROM, RAIL_WIDTH, RAIL_WIDTH_NARROW, DETAILS_MIN, BOTTOM_FROM,
+  COMPACT_WORKING_BELOW, GRAPH_HIDDEN_HOLD,
 } from '../../../../vscode-extension/src/webview/panelLayout'
 
 // The panel's webview is the whole view, wherever VS Code shows it, and it
@@ -73,6 +74,32 @@ describe('where the details go', () => {
     expect(resolvePanelLayout(320, 800, 'right')).toMatchObject({ details: 'bottom', side: 'bottom' })
     expect(resolvePanelLayout(320, 400, 'right').details).toBe('replace')
     expect(resolvePanelLayout(320, 200, 'bottom').details).toBe('replace')
+  })
+})
+
+// "Hide graph" hid the minimap's block with the graph; the body grew past the
+// compact layout's threshold, which ended the layout that hides the graph —
+// and the next frame undid it, and the next redid it. The panel froze.
+describe('the compact working layout holds while the graph is hidden', () => {
+  test('it starts below the threshold, graph shown', () => {
+    expect(compactWorkingHolds(COMPACT_WORKING_BELOW - 1, false)).toBe(true)
+    expect(compactWorkingHolds(COMPACT_WORKING_BELOW, false)).toBe(false)
+    expect(compactWorkingHolds(0, false)).toBe(false)
+  })
+
+  test('hiding the graph gives back at most the tallest strip, and the layout holds across it', () => {
+    const tallestStrip = 200 + 8
+    for (let body = 1; body < COMPACT_WORKING_BELOW; body += 7) {
+      // compact with the strip up → the graph hidden, the strip gone → still compact
+      expect(compactWorkingHolds(body + tallestStrip, true)).toBe(true)
+    }
+  })
+
+  test('and once a panel grown that tall shows the graph again, it does not fall back under', () => {
+    const tallestStrip = 200 + 8
+    const room = COMPACT_WORKING_BELOW + GRAPH_HIDDEN_HOLD   // the first body height that ends it
+    expect(compactWorkingHolds(room, true)).toBe(false)
+    expect(compactWorkingHolds(room - tallestStrip, false)).toBe(false)
   })
 })
 
