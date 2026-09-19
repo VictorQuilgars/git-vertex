@@ -1,5 +1,6 @@
 // The right pane's root: which of the three views shows for the selection.
 
+import { useState, useEffect } from 'react'
 import { CommitNode, ConflictKind } from '../../types'
 import { CenterDiffTarget } from '../CenterFileDiff/CenterFileDiff'
 import { IssueRepo } from '../IssueLink/IssueLink'
@@ -78,16 +79,35 @@ export default function RightPanel({
   const hasUnresolvedConflicts = isConflict && (conflictFiles?.length ?? 0) > 0
   const allConflictsResolved = isConflict && (conflictFiles?.length ?? 0) === 0
 
+  // What the model resolved in this operation, file → its explanation (#269).
+  // Held here rather than in the conflict panel: resolving the last file is
+  // what swaps that panel for the staging view, and with it the only place the
+  // model's work can be reviewed or undone. So the panel stays while there is
+  // some, until the operation is finished, aborted or moves on.
+  const [modelResolved, setModelResolved] = useState<Record<string, string>>({})
+  useEffect(() => { setModelResolved({}) }, [repoPath, conflictMode])
+  const reviewingModel = isConflict && !hasCommit && Object.keys(modelResolved).length > 0
+
   return (
     <div className="right-panel">
-      {hasUnresolvedConflicts ? (
+      {hasUnresolvedConflicts || reviewingModel ? (
         <ConflictPanel
+          repoPath={repoPath}
           conflictFiles={conflictFiles ?? []}
           conflictKinds={conflictKinds ?? {}}
           conflictMode={conflictMode!}
-          onConflictFinish={onConflictFinish!}
+          // A rebase that continues onto its next conflict keeps its mode: the
+          // marks belong to the step that was just committed.
+          onConflictFinish={(action, message) => { setModelResolved({}); onConflictFinish!(action, message) }}
           onConflictAbort={onConflictAbort!}
           onOpenResolver={onOpenResolver!}
+          onOpenFileDiff={onOpenFileDiff}
+          modelResolved={modelResolved}
+          onModelResolved={(file, explanation) => setModelResolved(prev => ({ ...prev, [file]: explanation }))}
+          onModelUndone={file => setModelResolved(prev => {
+            const { [file]: _gone, ...rest } = prev
+            return rest
+          })}
           showToast={showToast}
           onCommitSuccess={onCommitSuccess}
         />

@@ -4,6 +4,9 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🪄 Resolve every conflict with the model
+- **Resolve all with AI**, on the conflicts panel, runs the model over every conflicted file at once instead of one resolver at a time. Each result is staged and marked **AI** with its explanation: **Review** it, or **Undo** it back to the conflict. Nothing is committed until you do.
+
 ### 🚀 Pull requests, by what they need
 - The pull requests view gains a second reading, **By what they need**: *Needs Your Review*, *Changes Requested*, *Ready to Merge*, *Blocked*, *Waiting for Review*, *Draft* — each with its count, every request in exactly one group. **Pin** one to the top, **snooze** one until a day or its next update. The overview's **Waiting on you** lines open it on their group.
 
