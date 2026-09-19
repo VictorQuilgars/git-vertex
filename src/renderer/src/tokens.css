@@ -265,7 +265,7 @@
    * consecutive nodes touch and then overlap. density-discipline.test.ts holds
    * every density to it. Compact sits exactly on it. */
   --row-graph: 28px;   /* one commit in the graph */
-  --row-ref: 22px;     /* one branch/tag line under a commit */
+  --row-ref: 16px;     /* the second line of a stacked commit: 28 + 16 = its 44px row */
   --row-nav: 26px;     /* a row of the left column, and the chips at that rhythm */
   --row-ctl: 28px;     /* an inline control: button, chip, tab */
   --row-field: 30px;   /* a list row, or a form field */
@@ -1318,7 +1318,6 @@
   --space-6xl: 32px;
 
   --row-graph: 24px;
-  --row-ref: 19px;
   --row-nav: 22px;
   --row-ctl: 24px;
   --row-field: 26px;

@@ -586,3 +586,51 @@ describe('parseBranchRows', () => {
     expect(rows[0].commit).toBe('1a2b3c4')
   })
 })
+
+describe('the graph page — LOG_FORMAT and parseLog', () => {
+  const H1 = 'a'.repeat(40), H2 = 'b'.repeat(40), H3 = 'c'.repeat(40)
+  const rec = (hash: string, parents: string, subject: string, refs: string, body: string) =>
+    [hash, parents, subject, 'Ada', 'ada@x.dev', '2026-09-19 10:00:00 +0200', refs, body].join('\x1f') + '\x1e'
+
+  test('a | in a subject is part of the subject, not a separator', () => {
+    const [c] = core.parseLog(rec(H1, '', 'fix: a | b', 'HEAD -> main', ''))
+    expect(c.message).toBe('fix: a | b')
+    expect(c.author).toBe('Ada')
+    expect(c.refs).toEqual(['HEAD -> main'])
+    expect(c.body).toBeUndefined()
+  })
+
+  test('a body is carried on one line, folded and cut', () => {
+    const long = 'word '.repeat(200)
+    const [c, d] = core.parseLog(
+      rec(H1, H2, 'subject', '', 'First paragraph\nstill it.\n\nSecond one.\n') + '\n' + rec(H2, '', 'other', '', long))
+    expect(c.body).toBe('First paragraph still it. Second one.')
+    expect(d.body!.length).toBe(core.LOG_BODY_MAX)
+    expect(c.parents).toEqual([H2])
+  })
+
+  // With --numstat git prints a record's lines AFTER its separator: they go to
+  // the record before, never to the one whose hash follows them.
+  test('numstat lines belong to the record before them; a merge has none', () => {
+    const raw = rec(H1, `${H2} ${H3}`, 'merge', '', '') + '\n'
+      + rec(H2, H3, 'change', 'tag: v1', 'why\n') + '\n3\t1\tsrc/a.ts\n-\t-\timg.png\n2\t0\tsrc/b.ts\n\n'
+      + rec(H3, '', 'root', '', '') + '\n1\t0\tREADME.md\n'
+    const [merge, change, root] = core.parseLog(raw, true)
+    expect([merge.additions, merge.deletions]).toEqual([0, 0])
+    expect([change.additions, change.deletions]).toEqual([5, 1])
+    expect([root.additions, root.deletions]).toEqual([1, 0])
+    expect(change.refs).toEqual(['tag: v1'])
+    expect(change.body).toBe('why')
+  })
+
+  test('without numstat the page carries no counts at all', () => {
+    const [c] = core.parseLog(rec(H1, '', 's', '', ''))
+    expect(c.additions).toBeUndefined()
+  })
+
+  test('the format asks for no signature: a gpg process per commit, for nothing drawn', () => {
+    expect(core.LOG_FORMAT).not.toContain('%G')
+    expect(core.logArgs({ maxCount: 5, all: true, excludes: ['refs/tags/*'] }))
+      .toEqual([`--pretty=format:${core.LOG_FORMAT}`, '--max-count=5', '--date-order', '--exclude=refs/tags/*', '--all'])
+  })
+})

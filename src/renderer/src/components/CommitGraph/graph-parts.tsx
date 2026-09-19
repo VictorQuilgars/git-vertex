@@ -18,22 +18,32 @@ import { aiAvatarDataUri } from '../../utils/aiAvatars'
  */
 export const ROW_HEIGHT  = ROW_HEIGHT_FALLBACK
 
-/** The row's second line in the stacked layout. Must match .cg-row-meta. */
+/** What the stacked layout adds to a row for its second line (--row-ref). */
 export const REF_LINE_H  = REF_LINE_FALLBACK
-
-/** The coloured stripe at the very left of a row (.cg-color-bar). */
-export const COLOR_BAR_W = 3
-
-/**
- * How far the stripe steps in from the panel edge in the stacked layout — flush
- * against it, it merged with the sidebar/graph junction and could not be seen.
- * Must match the margin-left on .cg-row--stacked .cg-color-bar.
- */
-export const STRIPE_INSET = 4
 
 export const LANE_WIDTH  = 22
 
 export const NODE_RADIUS = 11
+
+/** The plain node: a merge commit, and every commit of the compact columns. */
+export const DOT_RADIUS  = 5
+
+/**
+ * The stacked row's lanes (the panel's list): they start at the row's own edge
+ * — no stripe before them, the colour is the band's — with 8px of padding, and
+ * sit 15px apart: an avatar's radius plus the air it needs from the next lane's
+ * line, since a row only ever holds one node. Lane 0's centre is 8 + 15 / 2,
+ * rounded to the pixel so a 2px line is drawn sharp.
+ */
+export const STACKED_LANE_W = 15
+export const STACKED_PAD_L  = 16
+
+/**
+ * From a stacked row's last lane to where its text column starts: half a lane
+ * and the padding again. The band's colour line ends there, and the text
+ * column's own padding is the breath before the message.
+ */
+export const STACKED_GUTTER_END = 15
 
 export const SVG_PAD_L   = 36
 

@@ -202,6 +202,24 @@ describe('the rows a branch is read against are marked', () => {
     expect(selected(p)).toEqual([HASHES[0]])
   })
 
+  // The zone stopped an avatar's width short of every node, and a merge's node
+  // is a dot a third of that: most of the band beside it opened nothing. It
+  // reaches the node as it is drawn now — and still stops short of it.
+  test('beside a merge\'s dot the hover zone reaches the dot, not an avatar\'s edge', () => {
+    const merge = { ...commits[1], hash: 'dddd444dddd444dddd444dddd444dddd444dddd4', shortHash: 'dddd444',
+      message: 'merge', parents: [HASHES[1], HASHES[2]], refs: ['main'] }
+    const list = [
+      { ...commits[0], hash: FEATURE, shortHash: FEATURE.slice(0, 7), message: 'feature work', parents: [merge.hash], refs: ['HEAD -> feature'] },
+      merge, { ...commits[1], refs: [] }, commits[2],
+    ]
+    draw({ currentBranch: 'feature', mergeTargetRef: 'main', commits: list })
+    const rail = document.querySelector<HTMLElement>('.cg-marker-rail[data-roles="target"]')!
+    const hit = rail.previousElementSibling as HTMLElement
+    const band = document.querySelector('.cg-marker-band--target')!
+    const nodeCentre = Number(band.getAttribute('x')) + Number(band.getAttribute('width'))
+    expect(parseFloat(hit.style.width)).toBe(nodeCentre - 5 - 3)
+  })
+
   test('in the panel\'s stacked rows the mark is the whole row\'s height', () => {
     draw({ currentBranch: 'feature', mergeTargetRef: 'main', commits: withFeature, refsBelow: true })
     const rail = document.querySelector<HTMLElement>('.cg-marker-rail')!

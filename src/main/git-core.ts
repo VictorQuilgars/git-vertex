@@ -188,6 +188,130 @@ export async function branchRows(run: GitRunner): Promise<BranchList> {
   return { rows, detached: true }
 }
 
+// ── The graph's page ────────────────────────────────────────────
+
+/** One commit of the graph's page, as both products' CommitNode. */
+export interface LogCommit {
+  hash: string
+  shortHash: string
+  /** The subject line. */
+  message: string
+  /**
+   * The rest of the message, on one line: whitespace folded, cut at
+   * LOG_BODY_MAX. The graph draws it after the subject, muted, and a row has
+   * one line for both. Absent when the commit has no body.
+   */
+  body?: string
+  author: string
+  authorEmail: string
+  date: string
+  parents: string[]
+  refs: string[]
+  /** Lines added and removed, when the page was asked with `numstat`. */
+  additions?: number
+  deletions?: number
+}
+
+export interface LogOptions {
+  maxCount: number
+  all?: boolean
+  refs?: string[]
+  excludes?: string[]
+  /** Count each commit's added and removed lines — the desktop's stats column. */
+  numstat?: boolean
+}
+
+/**
+ * The page's format: a unit separator between the fields and a record
+ * separator after the body. A printable separator was a bet on the subject —
+ * `a | b` moved every field after it one place along, and the author became
+ * half a subject — and a body is several lines, which a line-per-commit
+ * reading cannot hold. %D is before the body so that nothing after the hash
+ * can hold the separators but the body itself.
+ *
+ * ⚠️ NOT %G?: it makes git verify every signed commit on the page, one gpg
+ * process each, for a value the graph does not draw (see `signature` in the
+ * renderer's types.ts). 580 ms against 150 ms on a 200-commit page.
+ */
+export const LOG_FORMAT = '%H%x1f%P%x1f%s%x1f%an%x1f%ae%x1f%ai%x1f%D%x1f%b%x1e'
+
+/** How much of a body the page carries: the graph draws one line of it. */
+export const LOG_BODY_MAX = 240
+
+export function logArgs(o: LogOptions): string[] {
+  const args = [
+    // "added\tdeleted\tpath" lines after each record (none for a merge, whose
+    // diff git log skips) — still one process for the whole page.
+    ...(o.numstat ? ['--numstat'] : []),
+    `--pretty=format:${LOG_FORMAT}`,
+    `--max-count=${o.maxCount}`,
+    // Children before parents, like --topo-order, but siblings by commit date.
+    '--date-order',
+  ]
+  // Explicit refs (a branch shown alone) take precedence over --all. Hidden
+  // refs are taken away from --all rather than replaced by a list of the
+  // visible ones: git keeps deciding what is reachable, so a commit a visible
+  // ref still reaches stays. --exclude only applies to the next ref-collecting
+  // option, hence immediately before --all and nowhere else.
+  if (o.refs && o.refs.length) args.push(...o.refs)
+  else if (o.all) {
+    if (o.excludes) args.push(...o.excludes.map(g => `--exclude=${g}`))
+    args.push('--all')
+  }
+  return args
+}
+
+/** A record's first field: the full hash, at the start of a line. */
+const LOG_RECORD_START = /(?:^|\n)[0-9a-f]{40}\x1f/
+
+function addNumstat(commit: LogCommit, text: string): void {
+  for (const line of text.split('\n')) {
+    const parts = line.split('\t')
+    if (parts.length < 2) continue
+    // A binary file counts `-`: nothing to add.
+    const a = parseInt(parts[0], 10), d = parseInt(parts[1], 10)
+    if (!isNaN(a)) commit.additions = (commit.additions ?? 0) + a
+    if (!isNaN(d)) commit.deletions = (commit.deletions ?? 0) + d
+  }
+}
+
+/**
+ * The page, out of `git log --pretty=format:LOG_FORMAT`. Each chunk between
+ * two record separators holds what git printed after the previous record — its
+ * numstat lines — and then the next record's fields.
+ */
+export function parseLog(raw: string, numstat = false): LogCommit[] {
+  const commits: LogCommit[] = []
+  let last: LogCommit | undefined
+  for (const chunk of raw.split('\x1e')) {
+    const m = LOG_RECORD_START.exec(chunk)
+    const start = m ? m.index + (chunk[m.index] === '\n' ? 1 : 0) : chunk.length
+    if (last && numstat) addNumstat(last, chunk.slice(0, start))
+    if (!m) continue
+    const [hash, parentStr, subject, author, authorEmail, date, refsStr, rawBody = ''] = chunk.slice(start).split('\x1f')
+    const commit: LogCommit = {
+      hash,
+      shortHash: hash.slice(0, 7),
+      message: subject || '(no message)',
+      author: author || '',
+      authorEmail: authorEmail || '',
+      date: date || '',
+      parents: parentStr ? parentStr.trim().split(' ').filter(Boolean) : [],
+      refs: refsStr ? refsStr.split(',').map(r => r.trim()).filter(Boolean) : [],
+    }
+    const body = rawBody.replace(/\s+/g, ' ').trim().slice(0, LOG_BODY_MAX)
+    if (body) commit.body = body
+    if (numstat) { commit.additions = 0; commit.deletions = 0 }
+    commits.push(commit)
+    last = commit
+  }
+  return commits
+}
+
+export async function log(run: GitRunner, options: LogOptions): Promise<LogCommit[]> {
+  return parseLog(await run(['log', ...logArgs(options)]), !!options.numstat)
+}
+
 export function assertRef(ref: string, label = 'reference'): string | null {
   if (typeof ref !== 'string' || !ref.trim()) return `Empty git ${label}`
   if (ref.trim().startsWith('-')) return `Invalid git ${label}: "${ref}"`

@@ -7,6 +7,8 @@ export type StashScope = 'all' | 'staged' | 'unstaged'
 
 export interface CommitNode {
   hash: string; shortHash: string; message: string
+  /** The rest of the message on one line, cut short — see git-core's LogCommit. */
+  body?: string
   author: string; authorEmail: string; date: string
   parents: string[]; refs: string[]
   /**

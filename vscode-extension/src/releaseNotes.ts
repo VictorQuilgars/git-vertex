@@ -40,6 +40,11 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### ⚡ The graph draws what is on screen
 - The graph holds every commit it has loaded and **draws only the rows near the viewport**. After five *Load more* — 3,000 commits — that is **38 row elements instead of 3,000**: a frame of scrolling takes **16.7 ms instead of 66.6**, and a click on a row shows in **30 ms instead of 171**. Keys, jumps, selection and search still work on every commit loaded.
 
+### 🧾 The graph's rows, set for a panel
+- One **44 px** row per commit: the lanes from the edge, the avatar centred, the message and under it the refs, the sha, the author and the date. The row's colour is a **band from its node** instead of a stripe at the edge.
+- **Hover a branch pill** and it reads whole, laid over the row — its remote, its request and its issue named too. **Rest on a \`+N\`** and the refs it stands for are listed under it, each one clickable.
+- A commit's **body follows its subject**, dimmed, on the same line; \`code\` in a message is drawn as code.
+
 ### 🌡️ The heatmap's colours are yours
 - The blame heatmap runs between **two colours from the settings** — \`gitVertex.blame.heatmap.hotColor\` and \`coldColor\`, as \`#RRGGBB\` — instead of an orange and a blue no theme could reach. An open annotation repaints as you change them.
 

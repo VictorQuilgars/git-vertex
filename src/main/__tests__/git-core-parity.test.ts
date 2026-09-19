@@ -56,6 +56,7 @@ const SHARED: Record<string, string> = {
   getTagDetails: 'tagDetails',
   isTagOnRemote: 'tagOnRemote',
   restoreConflict: 'restoreConflict',
+  getLog: 'log',
 }
 
 describe('the shared git core is what both products run', () => {
