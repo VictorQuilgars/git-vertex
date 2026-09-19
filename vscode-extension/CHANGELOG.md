@@ -43,6 +43,7 @@
 - **The pull requests and issues views know who you are, and open in the panel.** The side bar was never told the signed-in account nor the repository: *My Pull Requests*, *Assigned To Me* and *Awaiting My Review* never appeared, *By what they need* could not tell whose review was awaited, saved filters were never listed and the filter button opened nothing, and a row opened the browser rather than the panel's own sheet — so an issue's sheet could not be reached at all. They do now, and saved filters are asked again with each background poll. In a narrow panel the list steps aside for the sheet it opens. (#273)
 - **A stash's *Preview contents* opens**, in an editor tab, and **a branch's menu deletes it and its remote branch together**, as its card already did. (#273)
 - **A narrow panel's side view ends where the cards do.** The layer a rail icon opens took the height of the whole body, so it ran a gap past the cards and out of the panel, its bottom corners cut off. A drawer opened from it where there is no room beside it now takes its place instead of opening off the panel's edge.
+- **Discarding works in the panel.** The trash of the working changes, *Discard* on a file and the deletion of an untracked one asked their question with the browser's own dialog, which a VS Code webview does not show and answers *no*: each stopped at its question and did nothing. They ask with VS Code's dialog now.
 
 ## 1.35.0
 

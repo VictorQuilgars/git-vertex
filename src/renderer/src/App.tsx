@@ -1045,6 +1045,7 @@ export default function App() {
                 selectedCommit={selectedCommit}
                 onCommitSuccess={loadRepoData}
                 showToast={showToast}
+                showConfirm={showConfirm}
                 currentBranch={currentBranch}
                 wipCount={wipCount}
                 onViewWip={() => setSelectedCommit(prev =>

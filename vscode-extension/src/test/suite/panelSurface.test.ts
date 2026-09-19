@@ -125,6 +125,18 @@ const PANEL_UNREACHABLE: Unreachable[] = [
 ]
 
 /**
+ * Native dialogs the panel cannot reach: the desktop's fallback, behind a
+ * bridge method the panel's host always answers. The guard is on the same line.
+ */
+const NATIVE_DIALOG_FALLBACKS: { file: string; guard: string; why: string }[] = [
+  {
+    file: 'src/renderer/src/components/RebaseProgress/RebaseProgress.tsx',
+    guard: 'api.uiConfirm ??',
+    why: 'The panel\'s host answers uiConfirm; only the desktop, which has no such method, falls back.',
+  },
+]
+
+/**
  * Files we know are bundled into the panel. A resolver that silently stops
  * following imports would make every assertion below pass on an empty set, so
  * the graph proves itself before anything is checked against it.
@@ -224,6 +236,31 @@ suite('panel surface — nothing the VS Code panel reaches is unimplemented', ()
       + 'vscode-extension/src/gitService.ts (or add a case in GitVertexHost), remove the entry '
       + 'point from the shared UI in embedded mode, or — if it is already unreachable — say so '
       + `in PANEL_UNREACHABLE with the guard that makes it true:\n  ${live.map(c => `${c.method} — ${c.file}:${c.line}\n    ${c.source}`).join('\n  ')}`)
+  })
+
+  // The same failure through another door: a VS Code webview does not show
+  // `confirm`, `prompt` or `alert` — it answers false, null, nothing, and the
+  // action behind the question silently does not happen. That is how every
+  // discard of the staging pane did nothing in the panel. Ask the host: the
+  // `showConfirm` / `showPrompt` a component is given, or `uiConfirm` /
+  // `uiPrompt` on the bridge.
+  test('no native dialog is called from the panel', function () {
+    if (!bundle) { this.skip(); return }
+    const problems: string[] = []
+    for (const file of bundle) {
+      const rel = path.relative(REPO_ROOT, file)
+      fs.readFileSync(file, 'utf8').split('\n').forEach((line, i) => {
+        const trimmed = line.trim()
+        if (trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('/*')) return
+        if (!/(?:^|[^.\w])(?:window\.)?(?:confirm|prompt|alert)\s*\(|window\.(?:confirm|prompt|alert)\s*\(/.test(line)) return
+        const allowed = NATIVE_DIALOG_FALLBACKS.find(a => a.file === rel && line.includes(a.guard))
+        if (!allowed) problems.push(`${rel}:${i + 1}\n    ${trimmed.slice(0, 100)}`)
+      })
+    }
+    assert.deepStrictEqual(problems, [],
+      'These call a native dialog, which the VS Code panel does not show — the question answers '
+      + 'no by itself and the action behind it never runs. Take the host\'s showConfirm/showPrompt '
+      + `(or window.gitAPI.uiConfirm/uiPrompt) instead:\n  ${problems.join('\n  ')}`)
   })
 
   test('every PANEL_UNREACHABLE claim still has a call site and a guard', function () {

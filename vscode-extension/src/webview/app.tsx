@@ -1621,6 +1621,7 @@ function VertexApp() {
                 selectedCommit={selectedCommit}
                 onCommitSuccess={loadRepoData}
                 showToast={showToast}
+                showConfirm={showConfirm}
                 currentBranch={currentBranch}
                 wipCount={wipCount}
                 onViewWip={() => setSelectedCommit(prev => prev?.hash === '__WIP__' ? null : WIP_NODE)}
