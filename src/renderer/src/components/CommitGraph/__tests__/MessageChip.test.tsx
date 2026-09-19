@@ -182,12 +182,19 @@ describe('the two layouts are decided by the host', () => {
     'src/renderer/src/components/CommitGraph/CommitGraph.tsx', 'utf8')
 
   test('the refs column and its header appear and disappear together', () => {
-    expect(src).toMatch(/\{!refsBelow && <>[\s\S]*?cg-h-refs/)
-    expect(src).toMatch(/\{!refsBelow && \(\s*<div className="cg-refs-col"/)
+    expect(src).toMatch(/\{!grouped && <>[\s\S]*?cg-h-refs/)
+    expect(src).toMatch(/\{!grouped && \(\s*<div className="cg-refs-col"/)
   })
 
   test('the graph overlay is not offset by a column that is not drawn', () => {
-    expect(src).toContain('left: refsBelow ? 0 : refsColW')
+    expect(src).toContain('left: grouped ? 0 : refsColW')
+  })
+
+  // The panel's list and table: its refs with the message either way, two
+  // lines below the width, one from it.
+  test('the list and the table are one decision, on the graph\'s own width', () => {
+    expect(src).toContain('const listRows = refsBelow || (listBelow != null && (containerW === 0 || containerW < listBelow))')
+    expect(src).toContain('const grouped = listRows || listBelow != null')
   })
 
   // It is a prop the panel passes, never a setting: two shapes decided by how
@@ -211,33 +218,33 @@ describe('the stacked row', () => {
   // happens to be shallow is worse than no column.
   test('no optional column survives in the stacked layout', () => {
     for (const flag of ['effShowSha', 'effShowStats', 'effShowDate', 'effShowAuthor']) {
-      expect(src).toContain(`const ${flag} = !refsBelow &&`)
+      expect(src).toContain(`const ${flag} = !listRows &&`)
     }
   })
 
   test('and no column header either, since there is no grid to name', () => {
-    expect(src).toContain('{!refsBelow && <div')
+    expect(src).toContain('{!listRows && <div')
   })
 
   // Every row has a second line, ref or not — the sha, the author and the date
   // live there now, so a row without a branch is not a shorter row.
   test('every row is two lines, not only the ones carrying a ref', () => {
-    expect(src).toContain('displayLayout.map(() => refsBelow)')
+    expect(src).toContain('displayLayout.map(() => listRows)')
   })
 
   // Two stacked rows read as one four-line block without a seam: the band
   // leaves a pixel of ground above and below, and no hairline draws a grid.
   test('rows are separated by the ground the band leaves', () => {
-    expect(css).toMatch(/\.cg-row--stacked \{\n  border-bottom: none/)
-    expect(css).toMatch(/\.cg-row--stacked::before \{[^}]*inset: 1px 0/)
+    expect(css).toMatch(/\.cg-row--grouped \{\n  border-bottom: none/)
+    expect(css).toMatch(/\.cg-row--grouped::before \{[^}]*inset: 1px 0/)
   })
 
   // The reference's list row has no stripe: the lane's colour is the band,
   // born at the node — a stripe beside it was a second bar at the edge, next
   // to the role marks' own.
   test('no stripe: the colour is a band from the node to the end of the lanes', () => {
-    expect(src).toContain('{!refsBelow && <div className="cg-color-bar"')
-    expect(css).toMatch(/\.cg-row--stacked::before \{[\s\S]*?transparent var\(--cg-node-x\)[\s\S]*?var\(--cg-band-edge\)/)
+    expect(src).toContain('{!grouped && <div className="cg-color-bar"')
+    expect(css).toMatch(/\.cg-row--grouped::before \{[\s\S]*?transparent var\(--cg-node-x\)[\s\S]*?var\(--cg-band-edge\)/)
     expect(src).toContain("'--cg-node-x': `${svgPadL + commit.lane * laneW}px`")
   })
 
@@ -263,7 +270,7 @@ describe('the stacked row, after the screenshots', () => {
   // The rows carry the separators; drawn above the SVG they cut every branch
   // line they crossed. The rail must run continuously over the dividers.
   test('stacked rows sit below the graph overlay', () => {
-    expect(css).toMatch(/\.cg-row--stacked \{ z-index: 1; \}/)
+    expect(css).toMatch(/\.cg-row--grouped \{ z-index: 1; \}/)
   })
 
   // The lanes start at the row's own edge, 15px apart — lane 0's centre on a
@@ -274,22 +281,22 @@ describe('the stacked row, after the screenshots', () => {
       'src/renderer/src/components/CommitGraph/graph-parts.tsx', 'utf8')
     expect(parts).toContain('export const STACKED_LANE_W = 15')
     expect(parts).toContain('export const STACKED_PAD_L  = 16')
-    expect(src).toContain('const svgPadL = refsBelow ? STACKED_PAD_L : SVG_PAD_L')
+    expect(src).toContain('const svgPadL = grouped ? STACKED_PAD_L : SVG_PAD_L')
   })
 
   // The band's right-edge bar and the chip connector both pointed at things the
   // stacked layout does not have.
   test('lane bands and chip connectors are column-layout only', () => {
     // `windowRows`: the rows near the viewport (graph-window.ts), not every row loaded.
-    const gated = src.split('{!refsBelow && windowRows.map').length - 1
+    const gated = src.split('{!grouped && windowRows.map').length - 1
     expect(gated).toBeGreaterThanOrEqual(2)
   })
 
   test('the band is painted under the row\'s content, over its grounds', () => {
     // Behind the text, never over it; the hover and selection grounds stay
     // flat underneath. The full-width hairlines stand down.
-    expect(css).toMatch(/\.cg-row--stacked::before \{[^}]*z-index: -1/)
-    expect(css).toMatch(/\.cg-row--stacked:not\(\.cg-selected\) \{ box-shadow: none/)
+    expect(css).toMatch(/\.cg-row--grouped::before \{[^}]*z-index: -1/)
+    expect(css).toMatch(/\.cg-row--grouped:not\(\.cg-selected\) \{ box-shadow: none/)
   })
 
   test('the checked-out branch is the one filled chip', () => {

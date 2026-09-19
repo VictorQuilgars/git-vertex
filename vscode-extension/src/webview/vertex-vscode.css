@@ -330,6 +330,49 @@
 .gvt--narrow .gvt-search { width: auto; flex: 1; min-width: 0; }
 .gvt--narrow .gvt-search:focus-within { width: auto; }
 
+/* ── The details' switch and placement (DetailsToggle.tsx) ──────────
+   One control in two halves, sharing a hover: the main half shows or hides
+   the details, the chevron opens where they go. */
+.gvt-split { position: relative; display: inline-flex; align-items: stretch; flex-shrink: 0; border-radius: 5px; }
+.gvt-split:hover { background: color-mix(in srgb, var(--surface-sunken) var(--alpha-half), transparent); }
+.gvt-split-main { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.gvt-split-chevron {
+  width: 14px; border-top-left-radius: 0; border-bottom-left-radius: 0;
+  border-left: 1px solid transparent;
+}
+.gvt-split:hover .gvt-split-chevron { border-left-color: var(--border-muted); }
+/* Over the minimap's block, which is at --z-dropdown and comes after the toolbar. */
+.gvt-placement {
+  position: absolute; top: calc(100% + 3px); right: 0; z-index: calc(var(--z-dropdown) + 1);
+  display: flex; gap: 4px; padding: 4px;
+  background: var(--surface-hover); border: 1px solid var(--border-default); border-radius: 8px;
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
+}
+.gvt-placement-opt {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 4px; border: 1px solid transparent; border-radius: 5px; background: none;
+  color: var(--text-primary-soft); font-size: 11px; cursor: pointer;
+}
+.gvt-placement-opt:hover { background: var(--surface-active); }
+.gvt-placement-opt[aria-checked="true"] { border-color: var(--accent); }
+.gvt-placement-opt:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
+/* Each placement drawn as the panel it makes: a frame, and the details in it. */
+.gvt-placement-thumb {
+  position: relative; display: block; width: 36px; height: 25px; overflow: hidden;
+  border: 1px solid var(--text-tertiary); border-radius: 3px;
+}
+.gvt-placement-thumb::after { content: ''; position: absolute; background: color-mix(in srgb, var(--accent) 55%, transparent); }
+.gvt-placement-thumb--right::after { top: 0; right: 0; bottom: 0; width: 32%; }
+.gvt-placement-thumb--bottom::after { left: 0; right: 0; bottom: 0; height: 34%; }
+/* Auto is the side it would pick now, faded, with its A where the graph is. */
+.gvt-placement-thumb--auto::after { opacity: 0.45; }
+.gvt-placement-a {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 600; line-height: 1;
+}
+.gvt-placement-thumb--right .gvt-placement-a { right: 32%; }
+.gvt-placement-thumb--bottom .gvt-placement-a { bottom: 34%; }
+
 /* ── In-progress operation banner ────────────────────────────────
    This used to carry its own amber family (#3d2a12 / #5c4813 / #f0c674 /
    #ffd9a0) — a fourth one in a product that already has --warning,

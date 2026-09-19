@@ -40,6 +40,10 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### ⚡ The graph draws what is on screen
 - The graph holds every commit it has loaded and **draws only the rows near the viewport**. After five *Load more* — 3,000 commits — that is **38 row elements instead of 3,000**: a frame of scrolling takes **16.7 ms instead of 66.6**, and a click on a row shows in **30 ms instead of 171**. Keys, jumps, selection and search still work on every commit loaded.
 
+### 🪟 The details, to the right or at the bottom
+- A **switch beside the search field** shows or hides the details, and its chevron picks where they go: **Auto** (the side the panel's shape suggests), **Right** or **Bottom**. **Alt** with the switch puts them on the other side.
+- The graph follows the width it is left: a **list** of two-line rows when it is narrow, a **table** — one line per commit, author, date and sha in columns — when the details are under it.
+
 ### 🧾 The graph's rows, set for a panel
 - One **44 px** row per commit: the lanes from the edge, the avatar centred, the message and under it the refs, the sha, the author and the date. The row's colour is a **band from its node** instead of a stripe at the edge.
 - **Hover a branch pill** and it reads whole, laid over the row — its remote, its request and its issue named too. **Rest on a \`+N\`** and the refs it stands for are listed under it, each one clickable.

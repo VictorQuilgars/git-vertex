@@ -91,6 +91,11 @@ interface Props {
   hiddenBranches?: Set<string>
   /** The pull request the checked-out branch offers, if any — see prIntentFor. */
   pr?: PRIntent | null
+  /**
+   * The details' switch and placement (DetailsToggle), drawn right after the
+   * search field — where the graph's layout controls sit.
+   */
+  detailsToggle?: React.ReactNode
   onCreatePR?: (intent: PRIntent) => void
 }
 
@@ -336,6 +341,7 @@ export default function CompactToolbar(p: Props) {
           {identity}
           <span className="gvt-spring" />
           {sync}
+          {!searchShown && p.detailsToggle}
           {p.searchRow === 'toggle' && (
             <IconBtn title={t('gvt.searchToggle')} active={searchOpen}
               onClick={() => setSearchOpen(open => { if (open && p.searchQuery) p.onSearch(''); return !open })}>
@@ -349,7 +355,7 @@ export default function CompactToolbar(p: Props) {
             <Icon name="kebab" size={14} />
           </IconBtn>
         </div>
-        {searchShown && <div className="gvt-row gvt-row--search">{search}</div>}
+        {searchShown && <div className="gvt-row gvt-row--search">{search}{p.detailsToggle}</div>}
         {moreMenu && (
           <ContextMenu x={moreMenu.x} y={moreMenu.y} items={moreItems} onClose={() => setMoreMenu(null)} />
         )}
@@ -413,6 +419,7 @@ export default function CompactToolbar(p: Props) {
       )}
 
       {search}
+      {p.detailsToggle}
     </div>
   )
 }
