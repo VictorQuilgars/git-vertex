@@ -17,7 +17,7 @@ import WelcomeTab from './WelcomeTab'
 import { resolvePanelLayout, clampDetailsHeight, overlayWidth, autoDetailsSide, compactWorkingHolds, DETAILS_MIN, LIST_BELOW, type DetailsLocation, type DetailsSide } from './panelLayout'
 import DetailsToggle from './DetailsToggle'
 import { planReach } from '../../../src/renderer/src/app/search-reach'
-import { LOG_PAGE } from '../../../src/renderer/src/app/shared'
+import { LOG_PAGE, StashPreview } from '../../../src/renderer/src/app/shared'
 import AIReadingTab from './AIReadingTab'
 import SettingsModal from '../../../src/renderer/src/components/SettingsModal/SettingsModal'
 import ThemeGallery from '../../../src/renderer/src/components/ThemeGallery/ThemeGallery'
@@ -28,7 +28,7 @@ import RefCard from '../../../src/renderer/src/components/RefCard/RefCard'
 import { useRefCard } from '../../../src/renderer/src/components/RefCard/useRefCard'
 import { useSearchOperators } from '../../../src/renderer/src/app/useSearchOperators'
 import { authorOfQuery, authorQuery } from '../../../src/renderer/src/utils/searchQuery'
-import type { ConflictKind } from '../../../src/renderer/src/types'
+import type { ConflictKind, StashScope } from '../../../src/renderer/src/types'
 import Sidebar, { SidebarView, type GithubListItem } from '../../../src/renderer/src/components/Sidebar/Sidebar'
 import IssueDetail from '../../../src/renderer/src/components/IssueDetail/IssueDetail'
 import PRDetail from '../../../src/renderer/src/components/IssueDetail/PRDetail'
@@ -235,12 +235,17 @@ function VertexApp() {
   // opened (#141). Same contract as the desktop: conditional requests, so a
   // minute costs nothing while nothing changes, and 60s because that is the
   // interval GitHub publishes for itself.
+  /** Bumped by each background poll: the saved filters are queries of their own and ride it. */
+  const [githubPollTick, setGithubPollTick] = useState(0)
   useEffect(() => {
     if (!githubRepo) return
     let stopped = false
     let timer: ReturnType<typeof setTimeout> | null = null
     const tick = async () => {
-      if (!document.hidden && !stopped) await loadGhLists(githubRepo, undefined, true)
+      if (!document.hidden && !stopped) {
+        await loadGhLists(githubRepo, undefined, true)
+        setGithubPollTick(n => n + 1)
+      }
       if (!stopped) timer = setTimeout(tick, GITHUB_POLL_MS)
     }
     timer = setTimeout(tick, GITHUB_POLL_MS)
@@ -892,6 +897,22 @@ function VertexApp() {
       runOp(t('ext.app.stashDropped'), () => window.gitAPI.dropStash(index))
     }
   }, [runOp])
+  // The side bar's `+` on STASH offers a scope and names the entry, as on the
+  // desktop. It used to be the toolbar's handler, which takes neither: Staged
+  // only and Unstaged only stashed everything, untracked files included (#273).
+  const handleCreateStash = useCallback(async (scope: StashScope = 'all') => {
+    const message = await window.gitAPI.uiPrompt(t('prompt.stashMessage'))
+    if (message === undefined) return
+    runOp(t('ext.app.stashCreated'), () =>
+      window.gitAPI.createStash(message || undefined, scope === 'all' ? undefined : { scope }))
+  }, [runOp])
+  // A worktree's Open, and a click on its row. Where it opens is the host's
+  // call — the workspace decides it (see `openWorktree`).
+  const handleOpenWorktree = useCallback(async (worktreePath: string) => {
+    const r = await window.gitAPI.openWorktree(worktreePath)
+    if (!r.success) showToast(r.error ?? t('ext.app.opFailed', 'Open'), 'err')
+    else if (r.opened === 'here') showToast(t('ext.app.worktreeOnScreen'))
+  }, [showToast])
   const handleCreateTagPrompt = useCallback(async () => {
     const name = await window.gitAPI.uiPrompt(t('ext.app.tagNameHead'))
     if (name) runOp(t('ext.app.tagCreated'), () => window.gitAPI.createTag(name))
@@ -1365,10 +1386,12 @@ function VertexApp() {
             recentRepos={[]}
             stashes={stashes}
             tags={tags}
-            onOpenRepo={() => {}}
-            onClone={() => {}}
-            onSetRepo={() => {}}
-            onRemoveRecent={() => {}}
+            // The side bar's no-repository doors never show here (repoPath is
+            // never empty: the panel has EmptyRepo); if they did, they would
+            // be VS Code's own, the ones EmptyRepo offers.
+            onOpenRepo={() => { void window.gitAPI.workbench('vscode.openFolder') }}
+            onClone={() => { void window.gitAPI.workbench('git.clone') }}
+            onSetRepo={handleOpenWorktree}
             onCheckout={handleCheckout}
             onGoTo={handleGoTo}
             onCreateBranch={handleNewBranch}
@@ -1379,11 +1402,13 @@ function VertexApp() {
             onPushBranch={handlePushBranch}
             onDeleteRemoteBranch={handleDeleteRemoteBranch}
             onSetUpstream={handleSetUpstream}
-            onCreateStash={handleStash}
+            onCreateStash={handleCreateStash}
             onApplyStash={handleApplyStash}
             onPopStash={handlePopStashIndex}
             onDropStash={handleDropStash}
+            onPreviewStash={(index, message) => { void window.gitAPI.openStashTab(index, message) }}
             onRefreshStashes={loadStashes}
+            onRefresh={() => { void loadRepoData() }}
             onCreateTag={handleCreateTagPrompt}
             onCheckoutTag={handleCheckout}
             showAllBranches={showAllBranches}
@@ -1401,6 +1426,16 @@ function VertexApp() {
             onNewIssue={githubRepo ? () => setIssueComposerOpen(true) : undefined}
             githubRefreshing={githubRefreshing}
             githubRefreshTick={githubRefreshTick}
+            githubPollTick={githubPollTick}
+            githubLogin={githubLogin}
+            githubRepo={githubRepo}
+            onShowGithubDetail={(item, kind) => {
+              setIssueDetail({ kind, item })
+              // Narrow, the list is a layer over the centre — where the sheet
+              // opens. It steps aside, or the click would seem to do nothing.
+              if (overlaySide) setActiveView(null)
+            }}
+            githubDetailOpen={!!issueDetail}
             onDeleteTag={handleDeleteTag}
             onPushTag={handlePushTag}
             onDeleteRemoteTag={handleDeleteRemoteTag}
@@ -1428,6 +1463,7 @@ function VertexApp() {
             onToggleFavorite={branchMeta.toggleFavorite}
             onOpenBranchOnRemote={handleOpenBranchOnRemote}
             onCopyBranchLink={handleCopyBranchLink}
+            onDeleteBranchBoth={handleDeleteBranchBoth}
             onAssociateIssue={setIssueModalBranch}
             prIntentFor={prIntentFor}
             onCreatePR={handleStartPR}
@@ -1860,6 +1896,8 @@ const boot = (window as any).__GV_BOOT__ as
     // drawer the desktop reads these in.
     aiKind?: 'branch' | 'stash' | 'working' | 'changelog' | 'split'
     aiKey?: string; aiLabel?: string
+    // A stash's contents, from the side bar's preview.
+    stashIndex?: number; stashMessage?: string
   } | undefined
 
 // The 3-way conflict resolver in its own tab: resolving or closing disposes
@@ -1962,6 +2000,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                 ? <CompareTab refA={boot.refA} refB={boot.refB} />
                 : boot?.mode === 'compareWorking' && boot.hash
                   ? <CompareWorkingView hash={boot.hash} />
+                : boot?.mode === 'stash' && typeof boot.stashIndex === 'number'
+                  ? <StashPreview index={boot.stashIndex} message={boot.stashMessage ?? ''} />
                 : boot?.mode === 'rebase'
                     ? <RebaseProgress />
                     : boot?.mode === 'todo'

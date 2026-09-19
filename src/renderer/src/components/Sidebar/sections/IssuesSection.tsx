@@ -21,10 +21,12 @@ export function IssuesSection({ s }: { s: SidebarState }) {
                   onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setIssuesQuery('') } }} />
                 {/* The filter editor opens from HERE, not the header: it is an
                     action on the list, and the list is what folds (#144). */}
-                <button className="sb-gh-filter-btn" title={t('sb.gh.filter.new')}
-                  onClick={() => setFilterEditor({ section: 'issues', index: -1 })}>
-                  <Icon name="sliders" size={12} />
-                </button>
+                {githubRepo && (
+                  <button className="sb-gh-filter-btn" title={t('sb.gh.filter.new')}
+                    onClick={() => setFilterEditor({ section: 'issues', index: -1 })}>
+                    <Icon name="sliders" size={12} />
+                  </button>
+                )}
               </div>
               <GhGroup title={t('sb.gh.group.allIssues')} count={githubIssues.length}>
                 {githubIssues.filter(issue => ghMatch(issue, issuesQuery)).map(issue => (

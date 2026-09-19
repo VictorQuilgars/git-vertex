@@ -17,7 +17,7 @@ const base: any = {
   repoPath: '/r', repoName: 'r', currentBranch: 'main', branches: [], recentRepos: [],
   stashes: [], tags: [], soloBranch: null, visibility: emptyVisibility(),
   showToast: () => {}, showPrompt: async () => null, showConfirm: async () => true,
-  onOpenRepo: () => {}, onClone: () => {}, onSetRepo: () => {}, onRemoveRecent: () => {},
+  onOpenRepo: () => {}, onClone: () => {}, onSetRepo: () => {},
   onCheckout: () => {}, onCreateBranch: () => {}, onDeleteBranch: () => {},
   onMergeBranch: () => {}, onRenameBranch: () => {}, onRebaseOnto: () => {},
   onPushBranch: () => {}, onDeleteRemoteBranch: () => {}, onSetUpstream: () => {},
@@ -698,6 +698,16 @@ describe('where a section keeps its controls', () => {
     const boxes = document.querySelectorAll('.sb-gh-search')
     expect(boxes.length).toBeGreaterThan(0)
     for (const b of boxes) expect(b.querySelector('.sb-gh-filter-btn')).toBeTruthy()
+  })
+
+  // #273 — the drawer queries a repository; a host that did not pass one got
+  // a button that opened nothing. No repository, no button.
+  test('no repository to query, no filter button', () => {
+    draw({ githubPRs: [pr(1)], githubIssues: [pr(2)] })
+    unfold('PULL REQUESTS')
+    unfold('GITHUB ISSUES')
+    expect(document.querySelectorAll('.sb-gh-search').length).toBe(2)
+    expect(document.querySelector('.sb-gh-filter-btn')).toBeNull()
   })
 
   // ⚠️ A control that only exists on hover is unreachable by keyboard, so the

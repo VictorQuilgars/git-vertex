@@ -55,6 +55,11 @@ declare global {
     workbench: (id: string) => Promise<unknown>
     /** Put another repository of the workspace on screen. */
     setPanelRepo: (repoPath: string) => Promise<unknown>
+    /**
+     * A worktree's "Open": switched to when it is a folder of the workspace,
+     * opened in a new window when it is not — `here` when it is already on screen.
+     */
+    openWorktree: (path: string) => Promise<{ success: boolean; error?: string; opened?: 'here' | 'panel' | 'window' }>
 
     /** A file-history tab follows the active editor, or stops. */
     historyFollow: (on: boolean) => Promise<unknown>
@@ -65,6 +70,8 @@ declare global {
     // ── Tabs the panel opens in the editor, where the desktop opens a view ──
     openCompare: (base: string, target: string) => Promise<unknown>
     openCompareWorkingTab: (hash: string) => Promise<unknown>
+    /** A stash's contents — the desktop's stash view, as an editor tab. */
+    openStashTab: (index: number, message: string) => Promise<unknown>
     openInteractiveRebaseTab: (hash: string) => Promise<unknown>
     openStagingEditor: (path?: string) => Promise<unknown>
     /**

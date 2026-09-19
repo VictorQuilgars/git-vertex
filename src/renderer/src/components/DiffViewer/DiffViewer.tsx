@@ -264,11 +264,14 @@ export default function DiffViewer({ commit, diff, files, loading, headerLabel }
             </div>
             <div className="commit-meta">
               <div className="commit-title">{commit.message}</div>
-              <div className="commit-sub">
-                <span>{commit.author}</span>
-                <span className="dot">·</span>
-                <span>{new Date(commit.date).toLocaleString(t('graph.dateLocale'))}</span>
-              </div>
+              {/* A stash's preview has neither: an empty date read "Invalid Date". */}
+              {(commit.author || commit.date) && (
+                <div className="commit-sub">
+                  {commit.author && <span>{commit.author}</span>}
+                  {commit.author && commit.date && <span className="dot">·</span>}
+                  {commit.date && <span>{new Date(commit.date).toLocaleString(t('graph.dateLocale'))}</span>}
+                </div>
+              )}
             </div>
           </>
         ) : (

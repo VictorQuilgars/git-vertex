@@ -88,11 +88,15 @@ export function PrsSection({ s }: { s: SidebarState }) {
                     action on the list, and the list is what folds (#144). */}
                 {/* Opens it. Closing is the drawer's own control's job — a
                     button that toggles would shut it from behind whatever the
-                    drawer is covering (#145 follow-up). */}
-                <button className="sb-gh-filter-btn" title={t('sb.gh.filter.new')}
-                  onClick={() => setFilterEditor({ section: 'prs', index: -1 })}>
-                  <Icon name="sliders" size={12} />
-                </button>
+                    drawer is covering (#145 follow-up). Only with the
+                    repository it queries: the drawer needs it, and without it
+                    the button opened nothing (#273). */}
+                {githubRepo && (
+                  <button className="sb-gh-filter-btn" title={t('sb.gh.filter.new')}
+                    onClick={() => setFilterEditor({ section: 'prs', index: -1 })}>
+                    <Icon name="sliders" size={12} />
+                  </button>
+                )}
               </div>
               {/* Whose it is, or what it needs: two readings of the same list. */}
               <div className="sb-gh-groupby" role="group" aria-label={t('sb.gh.groupBy')}>
