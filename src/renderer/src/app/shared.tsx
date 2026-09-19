@@ -133,7 +133,7 @@ export function viewNeedsRepo(body: ViewTab): boolean {
 /** Two view tabs are the same tab when they show the same thing. */
 export function sameView(a: ViewTab, b: ViewTab): boolean {
   if (a.view !== b.view) return false
-  if (a.view === 'compare' && b.view === 'compare') return a.a === b.a && a.b === b.b
+  if (a.view === 'compare' && b.view === 'compare') return a.a === b.a && a.b === b.b && (a.axis ?? 'diverged') === (b.axis ?? 'diverged')
   if (a.view === 'fileHistory' && b.view === 'fileHistory') return a.file === b.file
   if (a.view === 'stash' && b.view === 'stash') return a.index === b.index
   if (a.view === 'fileDiff' && b.view === 'fileDiff') return sameDiffTarget(a.target, b.target)

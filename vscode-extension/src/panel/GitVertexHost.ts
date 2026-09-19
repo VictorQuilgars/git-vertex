@@ -248,6 +248,8 @@ export function ensureDiffProvider(service: GitService): void {
   })
 }
 
+const keptHosts = new Set<GitVertexHost>()
+
 export class GitVertexHost implements vscode.Disposable {
   private _gitService?: GitService
   private _fsWatcher?: vscode.FileSystemWatcher
@@ -269,6 +271,7 @@ export class GitVertexHost implements vscode.Disposable {
     // this extension) is what's waiting on the file being saved and closed.
     private readonly _rebaseTodo?: { document: vscode.TextDocument; finish: (content: string) => Promise<void> },
   ) {
+    keptHosts.add(this)
     this._webview.options = {
       enableScripts: true,
       localResourceRoots: [vscode.Uri.joinPath(this._extensionUri, 'media')],
@@ -536,6 +539,7 @@ export class GitVertexHost implements vscode.Disposable {
         const all = this._state.get<Record<string, string>>('gvSettings', {})
         all[args[0]] = args[1]
         await this._state.update('gvSettings', all)
+        if (String(args[0]).startsWith('gv-kept:')) for (const host of keptHosts) host._webview.postMessage({ type: 'keptChanged' })
         return { success: true }
       }
       // ── Settings: external tools & SSH keys (v1.19.0 app-side) ──
@@ -713,7 +717,7 @@ export class GitVertexHost implements vscode.Disposable {
       }
       case 'openCompare': {
         if (this._repoPath) {
-          openGitVertexCompareTab(this._extensionUri, this._state, this._repoPath, args[0], args[1])
+          openGitVertexCompareTab(this._extensionUri, this._state, this._repoPath, args[0], args[1], args[2])
         }
         return { success: true }
       }
@@ -1410,6 +1414,7 @@ export class GitVertexHost implements vscode.Disposable {
   }
 
   public dispose(): void {
+    keptHosts.delete(this)
     followingHistory.delete(this)
     if (activeCommitMenuWebview === this._webview) activeCommitMenuWebview = undefined
     this._fsWatcher?.dispose()
@@ -1706,11 +1711,16 @@ export function openGitVertexCompareTab(
   state: vscode.Memento,
   repoPath: string,
   refA?: string,
-  refB?: string,
+  refB?: string | null,
+  axis: 'diverged' | 'endpoints' = 'diverged',
 ): void {
-  const key = `${refA ?? ''}..${refB ?? ''}`
+  const key = JSON.stringify([repoPath, refA, refB, axis])
   const existing = comparePanels.get(key)
-  if (existing) { existing.reveal(existing.viewColumn); return }
+  if (existing) {
+    existing.webview.postMessage({ type: 'restoreComparison', a: refA ?? '', b: refB === null ? null : refB ?? '', axis })
+    existing.reveal(existing.viewColumn)
+    return
+  }
 
   const panel = vscode.window.createWebviewPanel(
     COMPARE_VIEW_TYPE,
@@ -1725,7 +1735,7 @@ export function openGitVertexCompareTab(
   panel.iconPath = vscode.Uri.joinPath(extensionUri, 'images', 'icon.png')
 
   const host = new GitVertexHost(panel.webview, extensionUri, state,
-    { mode: 'compare', refA: refA ?? '', refB: refB ?? '' }, () => panel.dispose())
+    { mode: 'compare', refA: refA ?? '', refB: refB === null ? null : refB ?? '', axis }, () => panel.dispose())
   host.setRepo(repoPath)
 
   panel.onDidDispose(() => {

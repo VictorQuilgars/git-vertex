@@ -68,7 +68,7 @@ declare global {
     offHistoryFile: (cb: (file: string) => void) => void
 
     // ── Tabs the panel opens in the editor, where the desktop opens a view ──
-    openCompare: (base: string, target: string) => Promise<unknown>
+    openCompare: (base: string, target: string | null, axis?: 'diverged' | 'endpoints') => Promise<unknown>
     openCompareWorkingTab: (hash: string) => Promise<unknown>
     /** A stash's contents — the desktop's stash view, as an editor tab. */
     openStashTab: (index: number, message: string) => Promise<unknown>

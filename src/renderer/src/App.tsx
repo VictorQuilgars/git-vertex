@@ -31,6 +31,7 @@ import CloneModal from './components/CloneModal/CloneModal'
 import Launchpad from './components/Launchpad/Launchpad'
 import ThemeGallery from './components/ThemeGallery/ThemeGallery'
 import ThemeBuilder from './components/ThemeBuilder/ThemeBuilder'
+import { KeepSearchButton } from './components/SearchHint/KeepSearchButton'
 import CompareView from './components/CompareView/CompareView'
 import FileHistory from './components/FileHistory/FileHistory'
 import RepoManager from './components/RepoManager/RepoManager'
@@ -530,6 +531,7 @@ export default function App() {
         searchMatches={searchMatches}
         searchOpsLoading={searchOpsLoading}
         onSearch={setSearchQuery}
+        keepSearch={<KeepSearchButton repo={repoPath} search={searchHook.searchSnapshot} loading={searchOpsLoading || extendedSearchLoading || aiSearchLoading} />}
         onUndo={handleUndo}
         onRedo={handleRedo}
         onFetch={handleFetch}
@@ -634,6 +636,10 @@ export default function App() {
         <div className="app-sidebar" style={{ width: sidebarW }} ref={sidebarPanelRef}>
           {(
             <Sidebar
+              onOpenKept={entry => {
+                if (entry.kind === 'comparison') openViewTab({ view: 'compare', a: entry.a, b: entry.b, axis: entry.axis, label: entry.name })
+                else searchHook.restoreSearch(entry)
+              }}
               githubPRs={githubPRs}
               githubIssues={githubIssues}
               onStartBranchFromIssue={handleCreateBranchFromIssue}

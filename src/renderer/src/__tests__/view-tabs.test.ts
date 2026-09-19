@@ -16,13 +16,12 @@ describe('sameView', () => {
     expect(sameView(compare('main', null), compare('main', 'feature'))).toBe(false)
   })
 
-  // The label carries the axis, so two comparisons of the same pair are one
-  // tab whichever question it opened on — reopening it from a branch menu
-  // should not strand you with two tabs of the same two refs.
-  test('the label is not part of the identity', () => {
+  // Reopening a kept comparison must restore the question it asked.
+  test('the axis is part of the identity', () => {
     const a = { view: 'compare', a: 'main', b: 'feature', axis: 'diverged', label: 'main … feature' } as const
     const b = { view: 'compare', a: 'main', b: 'feature', axis: 'endpoints', label: 'main ‥ feature' } as const
-    expect(sameView(a, b)).toBe(true)
+    expect(sameView(a, b)).toBe(false)
+    expect(sameView(a, { ...a, label: "Renamed" })).toBe(true)
   })
 
   test('a history is its file, a stash is its index', () => {

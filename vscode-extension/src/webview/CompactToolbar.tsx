@@ -49,6 +49,7 @@ interface Props {
   behind?: number
   onCheckout: (ref: string) => void
   onSearch: (q: string) => void
+  keepSearch?: React.ReactNode
   onFetch: () => void
   onPull: () => void
   onPush: () => void
@@ -388,6 +389,7 @@ export default function CompactToolbar(p: Props) {
           {p.searchMatches}
         </span>
       )}
+      {p.keepSearch}
       {p.searchQuery && <button className="gvt-search-clear" title={t('common.clearSearch')} aria-label={t('common.clearSearch')} onClick={() => p.onSearch('')}>×</button>}
     </div>
   )

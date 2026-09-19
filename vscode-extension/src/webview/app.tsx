@@ -39,8 +39,9 @@ import RebaseProgress from '../../../src/renderer/src/components/RebaseProgress/
 import RebaseTodoApp from './RebaseTodoApp'
 import ConflictResolver from '../../../src/renderer/src/components/ConflictResolver/ConflictResolver'
 import FileHistory from '../../../src/renderer/src/components/FileHistory/FileHistory'
+import { useKeptSearch } from '../../../src/renderer/src/hooks/useKeptSearch'
+import { KeepSearchButton } from '../../../src/renderer/src/components/SearchHint/KeepSearchButton'
 import CompareView from '../../../src/renderer/src/components/CompareView/CompareView'
-import CompareWorkingView from './CompareWorkingView'
 import AssociateIssueModal from '../../../src/renderer/src/components/IssueLink/AssociateIssueModal'
 import PRComposer from '../../../src/renderer/src/components/PRComposer/PRComposer'
 import IssueComposer from '../../../src/renderer/src/components/IssueComposer/IssueComposer'
@@ -143,9 +144,11 @@ function VertexApp() {
   // conflict here exactly as it does on the desktop.
   const [conflictKinds, setConflictKinds] = useState<Record<string, ConflictKind>>({})
   const [conflictMode, setConflictMode] = useState<'merge' | 'rebase' | 'cherry-pick' | 'revert' | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setQuery] = useState('')
+  const keptSearch = useKeptSearch(repoPath ?? null)
+  const setSearchQuery = (query: string) => { keptSearch.clear(); setQuery(query) }
   // `file:` is git's to answer; the rest of the query is matched by the graph.
-  const searchOps = useSearchOperators(searchQuery, repoName || null)
+  const searchOps = useSearchOperators(keptSearch.restored ? '' : searchQuery, repoPath ?? null)
   const [searchMatches, setSearchMatches] = useState(-1)
   const [rightW, setRightW] = useState(380)
   const [showAllBranches, setShowAllBranches] = useState(true)
@@ -1382,7 +1385,11 @@ function VertexApp() {
   const sidebarEl = activeView && (
           <Sidebar
             view={activeView}
-            repoPath={repoName || 'repo'}
+            repoPath={repoPath ?? null}
+            onOpenKept={entry => {
+              if (entry.kind === 'comparison') void window.gitAPI.openCompare(entry.a, entry.b, entry.axis)
+              else { setQuery(entry.query); keptSearch.restore(entry) }
+            }}
             repoName={repoName}
             currentBranch={currentBranch}
             branches={branches}
@@ -1535,8 +1542,9 @@ function VertexApp() {
             remoteNames={remoteNames}
             selectedHash={selectedCommit?.hash ?? null}
             onSelectCommit={c => setSelectedCommit(prev => prev?.hash === c.hash ? null : c)}
-            searchQuery={searchQuery}
-            requiredHashes={searchOps.requiredHashes}
+            searchQuery={keptSearch.restored?.ai ? '' : searchQuery}
+            searchHashes={keptSearch.restored?.hashes == null ? null : new Set(keptSearch.restored.hashes)}
+            requiredHashes={keptSearch.restored ? (keptSearch.restored.requiredHashes === null ? null : new Set(keptSearch.restored.requiredHashes)) : searchOps.requiredHashes}
             currentBranch={currentBranch}
             onCherryPick={handleCherryPick}
             onRevert={handleRevert}
@@ -1715,6 +1723,10 @@ function VertexApp() {
         behind={tracking.behind}
         onCheckout={handleCheckout}
         onSearch={setSearchQuery}
+        keepSearch={<KeepSearchButton repo={repoPath ?? null} loading={!keptSearch.restored && searchOps.loading}
+          search={keptSearch.restored ?? { kind: 'search', query: searchQuery, ai: false, hashes: null,
+            requiredHashes: searchOps.requiredHashes === null ? null : [...searchOps.requiredHashes] }} />}
+
         onFetch={handleFetch}
         onPull={handlePull}
         onPush={handlePush}
@@ -1887,7 +1899,7 @@ function FileHistoryTab({ initial }: { initial: string }) {
 // via window.__GV_BOOT__, injected by the host's HTML.
 const boot = (window as any).__GV_BOOT__ as
   {
-    mode?: string; file?: string; refA?: string; refB?: string; baseHash?: string; hash?: string
+    mode?: string; file?: string; refA?: string; refB?: string | null; axis?: 'diverged' | 'endpoints'; baseHash?: string; hash?: string
     initialMessage?: string; action?: string; subject?: string; stepCurrent?: number; stepTotal?: number
     // "What's new": the note travels with the boot payload, since the host
     // already knows which version it opened the tab for.
@@ -1966,17 +1978,17 @@ class PanelErrorBoundary extends React.Component<
  * registry and the branch-from-issue action in those tabs, silently — each tab
  * is a component that does what VertexApp does for it.
  */
-function CompareTab({ refA, refB }: { refA?: string; refB?: string }) {
+function CompareTab({ refA, refB, axis }: { refA?: string; refB?: string | null; axis?: 'diverged' | 'endpoints' }) {
   const [repoKey, setRepoKey] = useState<string | null>(null)
   useEffect(() => {
     void (async () => {
       try {
         const info = await window.gitAPI.appGetInfo()
-        setRepoKey(info?.repoName ?? null)
+        setRepoKey(info?.repoPath ?? null)
       } catch { /* the registry simply stays empty */ }
     })()
   }, [])
-  return <CompareView initialA={refA} initialB={refB} repoKey={repoKey ?? 'repo'} />
+  return <CompareView initialA={refA} initialB={refB} initialAxis={axis} repoKey={repoKey} />
 }
 
 // The layout before React mounts, from the same mirror the desktop uses (#240):
@@ -1997,9 +2009,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             : boot?.mode === 'history' && boot.file
               ? <FileHistoryTab initial={boot.file} />
               : boot?.mode === 'compare'
-                ? <CompareTab refA={boot.refA} refB={boot.refB} />
+                ? <CompareTab refA={boot.refA} refB={boot.refB} axis={boot.axis} />
                 : boot?.mode === 'compareWorking' && boot.hash
-                  ? <CompareWorkingView hash={boot.hash} />
+                  ? <CompareTab refA={boot.hash} refB={null} axis="endpoints" />
                 : boot?.mode === 'stash' && typeof boot.stashIndex === 'number'
                   ? <StashPreview index={boot.stashIndex} message={boot.stashMessage ?? ''} />
                 : boot?.mode === 'rebase'

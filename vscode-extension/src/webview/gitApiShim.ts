@@ -45,6 +45,10 @@ window.addEventListener('message', (e: MessageEvent) => {
   const msg = e.data
   if (!msg || typeof msg !== 'object') return
 
+  if (msg.type === 'restoreComparison') { window.dispatchEvent(new CustomEvent('gv-restore-comparison', { detail: msg })); return }
+
+  if (msg.type === 'keptChanged') { window.dispatchEvent(new Event('gv-kept-changed')); return }
+
   if (msg.type === 'gitApiResult') {
     const entry = pending.get(msg.id)
     if (!entry) return
