@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, type ReactNode, type RefObject } from 'react'
+import { useEffect, useState, useCallback, type CSSProperties, type ReactNode, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon, type IconName } from '../Icon/Icon'
 import { Brand, type BrandName } from '../BrandMark/BrandMark'
@@ -7,11 +7,20 @@ import './PanelDrawer.css'
 /**
  * A drawer that comes out of the left panel (#145, and #130 next).
  *
- * It is NOT a modal over the graph and not a centred sheet: it opens along the
- * panel's right edge, takes the panel's full height, and pushes into the
- * graph's space while the panel itself stays where it is. At full height it
- * reads as the panel having grown; with a margin at either end it reads as a
- * card laid on top, whatever its width.
+ * It is NOT a modal over the graph and not a centred sheet: it opens beside the
+ * panel, as tall as the panel's card, and lies over the graph's space while the
+ * panel itself stays where it is.
+ *
+ * It is a CARD of the frame, like the panes: one `--pane-gap` right of the card
+ * it comes out of, its top and bottom on that card's, its corners
+ * `--pane-radius`. It used to be glued to the panel's edge with square corners
+ * — neither an extension of a card that is rounded and set apart by a gap, nor
+ * a card of its own. Under the flush layout the three tokens are 0, 0 and 1px,
+ * and it is the flush extension it always was there.
+ *
+ * The tokens are read from the ANCHOR and carried onto the drawer: it renders
+ * in `document.body`, outside the panel's root, and a short VS Code panel
+ * turns the frame flush on that root alone.
  *
  * ⚠️ It renders through a PORTAL, because `.sidebar` is `overflow: hidden` — a
  * drawer positioned inside it would simply be clipped at the panel's edge. So
@@ -41,7 +50,7 @@ export default function PanelDrawer({ anchor, title, icon, brand, closeLabel, on
   onClose: () => void
   children: ReactNode
 }) {
-  const [box, setBox] = useState<{ left: number; top: number; height: number; width: number } | null>(null)
+  const [box, setBox] = useState<{ left: number; top: number; height: number; width: number; frame: FrameTokens } | null>(null)
   /** Pulling shut: the drawer stays mounted until its exit animation ends. */
   const [closing, setClosing] = useState(false)
 
@@ -59,11 +68,21 @@ export default function PanelDrawer({ anchor, title, icon, brand, closeLabel, on
     const el = anchor.current
     if (!el) return
     const r = el.getBoundingClientRect()
+    const frame = frameOf(el)
+    const beside = r.right + frame.gap
     // Wide enough for the form, and never wider than what is left of the
     // window — a VS Code panel is far narrower than a desktop window, and the
     // drawer has to hold there too.
-    const width = Math.max(240, Math.min(DRAWER_WIDTH, window.innerWidth - r.right - 24))
-    setBox({ left: r.right, top: r.top, height: r.height, width })
+    const room = window.innerWidth - beside - Math.max(frame.gap, RIGHT_MARGIN)
+    if (room >= MIN_WIDTH) {
+      setBox({ left: beside, top: r.top, height: r.height, width: Math.min(DRAWER_WIDTH, room), frame })
+      return
+    }
+    // No room beside the card: a narrow VS Code panel, whose side view is
+    // already a layer across the graph. The drawer takes the card's own place
+    // rather than running off the window, as it did at 240px from the edge.
+    const width = Math.max(r.width, Math.min(DRAWER_WIDTH, window.innerWidth - r.left - frame.gap))
+    setBox({ left: r.left, top: r.top, height: r.height, width, frame })
   }, [anchor])
 
   useEffect(() => {
@@ -93,7 +112,10 @@ export default function PanelDrawer({ anchor, title, icon, brand, closeLabel, on
         // The exit animation has to finish before the drawer is unmounted, so
         // the parent is told only when it ends.
         onAnimationEnd={() => { if (closing) onClose() }}
-        style={{ left: box.left, top: box.top, height: box.height, width: box.width }}>
+        style={{
+          left: box.left, top: box.top, height: box.height, width: box.width,
+          '--pane-radius': box.frame.radius, '--pane-edge': box.frame.edge,
+        } as CSSProperties}>
         <div className="pdrawer-head">
           {icon && <Icon name={icon} size={15} className="pdrawer-icon" />}
           {brand && <Brand name={brand} size={15} className="pdrawer-icon" />}
@@ -118,3 +140,26 @@ const DRAWER_WIDTH = 600
 
 /** Comfortably past the exit animation, and short enough not to be noticed. */
 const CLOSE_FALLBACK_MS = 400
+
+/** What is kept between the drawer and the window's right edge, at the least. */
+const RIGHT_MARGIN = 24
+
+/** Narrower than this beside its card, the drawer takes the card's place instead. */
+const MIN_WIDTH = 240
+
+interface FrameTokens { gap: number; radius: string; edge: string }
+
+/**
+ * The frame where the drawer comes from — the layout's three tokens as that
+ * element resolves them. The defaults are the flush layout's, which is what
+ * :root carries, for an anchor that resolves nothing.
+ */
+function frameOf(el: HTMLElement): FrameTokens {
+  const css = getComputedStyle(el)
+  const read = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback
+  return {
+    gap: parseFloat(read('--pane-gap', '0px')) || 0,
+    radius: read('--pane-radius', '0px'),
+    edge: read('--pane-edge', '1px'),
+  }
+}
