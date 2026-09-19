@@ -261,6 +261,7 @@ declare global {
     markResolved: (filepath: string) => Promise<R>
     resolveConflict: (filepath: string, content: string) => Promise<R>
     resolveConflictSide: (filepath: string, side: 'ours' | 'theirs') => Promise<R>
+    restoreConflict: (filepath: string) => Promise<R>
     continueRebase: (messages?: string[]) => Promise<R>
     continueMerge: (message?: string) => Promise<R>
     abortRebase: () => Promise<R>

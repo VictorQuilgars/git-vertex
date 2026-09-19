@@ -148,6 +148,7 @@ const gitAPI = {
   markResolved: (filepath: string) => invoke('git:mark-resolved', filepath),
   resolveConflict: (filepath: string, content: string) => invoke('git:resolve-conflict', filepath, content),
   resolveConflictSide: (filepath: string, side: 'ours' | 'theirs') => invoke('git:resolve-conflict-side', filepath, side),
+  restoreConflict: (filepath: string) => invoke('git:restore-conflict', filepath),
   continueRebase: (messages?: string[]) => invoke('git:continue-rebase', messages),
   continueMerge: (message?: string) => invoke('git:continue-merge', message),
   abortRebase: () => invoke('git:abort-rebase'),

@@ -429,6 +429,56 @@ describe('git-core — against a real repository, on both hosts', () => {
     await expect(onBothHosts(repo, r => core.searchInDiffs(r, 'nothing-here-at-all')))
       .resolves.toEqual({ hashes: [] })
   })
+
+  // It writes the index, so the two hosts take turns rather than race for its lock.
+  test('restoreConflict puts a resolved file back in conflict', async () => {
+    run('git checkout -q -b theirs ' + first)
+    write('a.txt', 'one\nTHEIRS\nthree\n')
+    run('git commit -qam theirs && git checkout -q main')
+    for (const [host, make] of HOSTS) {
+      run('git merge theirs || true')
+      expect(run('git status --porcelain a.txt')).toBe('UU a.txt\n')
+      write('a.txt', 'one\nTWO\nTHEIRS\nthree\n')
+      run('git add a.txt')
+      expect(run('git status --porcelain a.txt')).toBe('M  a.txt\n')
+
+      expect({ host, ...(await core.restoreConflict(make(repo), 'a.txt')) }).toEqual({ host, success: true })
+      expect(run('git status --porcelain a.txt')).toBe('UU a.txt\n')
+      const body = fs.readFileSync(path.join(repo, 'a.txt'), 'utf8')
+      expect(body).toMatch(/^<{7} /m)
+      expect(body).toMatch(/^={7}$/m)
+      expect(body).toContain('THEIRS')
+      run('git merge --abort')
+    }
+  })
+
+  // `checkout --merge` on its own would do each of these, and succeed.
+  test('restoreConflict leaves alone what it must not touch', async () => {
+    run('git checkout -q -b theirs ' + first)
+    write('a.txt', 'one\nTHEIRS\nthree\n')
+    run('git commit -qam theirs && git checkout -q main && git merge theirs || true')
+    write('a.txt', 'one\nTWO\nTHEIRS\nthree\n')
+    run('git add a.txt')
+
+    // Never in conflict, with an edit on disk: the edit survives.
+    write('b.txt', 'mine, not staged\n')
+    expect((await onBothHosts(repo, r => core.restoreConflict(r, 'b.txt'))).success).toBe(false)
+    expect(fs.readFileSync(path.join(repo, 'b.txt'), 'utf8')).toBe('mine, not staged\n')
+
+    // Resolved, then edited: that edit survives too.
+    write('a.txt', 'one\nTWO\nTHEIRS\nthree\nand more\n')
+    const edited = await onBothHosts(repo, r => core.restoreConflict(r, 'a.txt'))
+    expect(edited).toEqual({ success: false, error: expect.stringContaining('changed since') })
+    expect(fs.readFileSync(path.join(repo, 'a.txt'), 'utf8')).toContain('and more')
+
+    // Committed: the record is still in the index, the merge is over.
+    run('git checkout -q -- b.txt && git add a.txt && git commit -qm merged')
+    const done = await onBothHosts(repo, r => core.restoreConflict(r, 'a.txt'))
+    expect(done).toEqual({ success: false, error: expect.stringContaining('in progress') })
+    expect(run('git status --porcelain')).toBe('')
+
+    expect((await onBothHosts(repo, r => core.restoreConflict(r, '--all'))).error).toContain('Invalid')
+  })
 })
 
 // ── The branch list ───────────────────────────────────────────
