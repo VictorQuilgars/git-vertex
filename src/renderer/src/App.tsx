@@ -717,6 +717,7 @@ export default function App() {
               }}
               onFilterAuthor={(author) => setSearchQuery(authorQuery(author))}
               authorFilter={authorOfQuery(searchQuery)}
+              onReveal={ref => { void revealRef(ref) }}
               onCompareBranch={(name) => openViewTab({ view: 'compare', a: currentBranch, b: name, axis: 'diverged', label: `${currentBranch} … ${name}` })}
               soloBranch={soloBranch}
               visibility={visibility}

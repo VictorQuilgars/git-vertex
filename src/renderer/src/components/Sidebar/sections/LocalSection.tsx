@@ -8,10 +8,13 @@ import { BranchItem } from '../BranchItem'
 import type { SidebarState } from '../useSidebar'
 
 export function LocalSection({ s }: { s: SidebarState }) {
-  const { currentBranch, branches, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch, onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream, onExplainBranch, onBranchChangelog, onGoTo, onCompareBranch, soloBranch, onToggleSolo, onToggleHide, onPull, isFavorite, issueFor, onToggleFavorite, onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR, onCopyBranchLink, onDeleteBranchBoth, t, localBranches, branchHidden, toggleFolder, openFolders, filtering, showAll, localMenu } = s
+  const { currentBranch, branches, onReveal, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch, onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream, onExplainBranch, onBranchChangelog, onGoTo, onCompareBranch, soloBranch, onToggleSolo, onToggleHide, onPull, isFavorite, issueFor, onToggleFavorite, onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR, onCopyBranchLink, onDeleteBranchBoth, t, localBranches, branchHidden, toggleFolder, openFolders, showAll, localMenu, layoutFor, layoutToggle } = s
+  const names = localBranches.map(b => b.name)
+  const asTree = layoutFor('local', names) === 'tree'
   return (
     <Section id="local" title="LOCAL" icon="device" count={localBranches.length} onAdd={onCreateBranch} addLabel={t('sb.newBranch')}
             menuItems={localMenu()}
+            layout={layoutToggle('local', names)}
             hiddenCount={localBranches.filter(branchHidden).length}
             onShowAll={showAll('branches')}>
             {(() => {
@@ -30,8 +33,11 @@ export function LocalSection({ s }: { s: SidebarState }) {
                 onCompare={!b.current ? () => onCompareBranch(b.name) : undefined}
                 onRebaseOnto={!b.current ? () => onRebaseOnto(b.name) : undefined}
                 onPush={() => onPushBranch(b.name)}
+                // pushBranch sets the upstream, which is what publishing is.
+                onPublish={() => onPushBranch(b.name)}
                 onSetUpstream={() => onSetUpstream(b.name)}
                 onPull={b.current ? onPull : undefined}
+                onReveal={onReveal && (() => onReveal(b.name))}
                 soloed={soloBranch === b.name}
                 hidden={branchHidden(b)}
                 onToggleSolo={() => onToggleSolo(b.name)}
@@ -60,7 +66,7 @@ export function LocalSection({ s }: { s: SidebarState }) {
                 gone={b.gone}
                       />
               )
-              if (filtering) return localBranches.map(b => leaf(b))
+              if (!asTree) return localBranches.map(b => leaf(b))
               const nodes = buildBranchTree(localBranches, b => b.name)
               return <BranchTree nodes={nodes} open={openFolders(nodes)} onToggle={toggleFolder}
                 renderLeaf={(b, label) => leaf(b, label)} />

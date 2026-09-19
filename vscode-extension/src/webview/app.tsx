@@ -1452,6 +1452,7 @@ function VertexApp() {
             onSelectCommit={handleSelectCommitByHash}
             onFilterAuthor={(author) => setSearchQuery(authorQuery(author))}
             authorFilter={authorOfQuery(searchQuery)}
+            onReveal={(ref: string) => { void revealCommit(ref) }}
             home={emptyState}
             mergeTarget={mergeTarget}
             launchpad={launchpad}

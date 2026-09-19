@@ -1155,3 +1155,45 @@
 .sb-kept-open span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sb-kept-open time { display: block; font-size: 10px; color: var(--text-tertiary); }
 .sb-kept-row input { min-width: 0; width: 100%; }
+
+/* ── A row's own acts (#274) ───────────────────────────────────
+   Two or three icons for what a row's state calls for, the whole menu still
+   behind the kebab. They are real buttons at every moment — that is what puts
+   them in the tab order — and it is opacity, not mounting, that waits for the
+   pointer: a row whose controls appear by being added to the DOM reflows the
+   name beside them on every hover. `focus-within` is what makes the keyboard
+   path work: tab into a row and its acts are visible while they are reachable. */
+.sb-row-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity var(--dur-fast);
+}
+.sb-branch-item:hover .sb-row-actions,
+.sb-stash-item:hover .sb-row-actions,
+.sb-tag-item:hover .sb-row-actions,
+.sb-remote-item:hover .sb-row-actions,
+.sb-submodule-item:hover .sb-row-actions,
+.sb-branch-item:focus-within .sb-row-actions,
+.sb-stash-item:focus-within .sb-row-actions,
+.sb-tag-item:focus-within .sb-row-actions,
+.sb-remote-item:focus-within .sb-row-actions,
+.sb-submodule-item:focus-within .sb-row-actions { opacity: 1; }
+/* No pointer to wait for: a touch screen shows them, because there is no
+   hover state to discover them with. */
+@media (hover: none) { .sb-row-actions { opacity: 1; } }
+.sb-row-action {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: var(--space-2xs);
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.sb-row-action:hover { color: var(--accent); background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); }
+.sb-row-action--danger:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) var(--alpha-subtle), transparent); }

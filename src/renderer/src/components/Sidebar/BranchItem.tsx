@@ -1,6 +1,9 @@
 // One branch row, and everything its menu offers.
-import React, { useState, useRef } from 'react'
+import { useState } from 'react'
 import { Icon } from '../Icon/Icon'
+import { RowActionBar } from './RowActionBar'
+import { branchRowActions } from './rowActions'
+import { useRowClick } from './rowClick'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { buildBranchMenu } from '../ContextMenu/branchMenu'
 import type { PRIntent } from '../ContextMenu/prIntent'
@@ -55,12 +58,17 @@ export interface BranchItemProps {
   /** The two AI readings of this branch (#70 P1). */
   onExplain?: () => void
   onChangelog?: () => void
+  /** One click: take the graph to this branch's tip (#275). */
+  onReveal?: () => void
+  /** Publish an unpublished branch — the sync act its state calls for (#274). */
+  onPublish?: () => void
+  /** Fetch this remote branch's own remote (#274). */
+  onFetch?: () => void
 }
 
-export function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, hidden, favorite, issue, onPull, onToggleSolo, onToggleHide, onToggleFavorite, onOpenOnRemote, onAssociateIssue, onExplain, onChangelog, pr, onCreatePR, publishedAs, onCopyLink, onDeleteBoth, ahead = 0, behind = 0, gone = false, showRemotePrefix = false, displayAs }: BranchItemProps) {
+export function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, hidden, favorite, issue, onPull, onToggleSolo, onToggleHide, onToggleFavorite, onOpenOnRemote, onAssociateIssue, onExplain, onChangelog, onReveal, onPublish, onFetch, pr, onCreatePR, publishedAs, onCopyLink, onDeleteBoth, ahead = 0, behind = 0, gone = false, showRemotePrefix = false, displayAs }: BranchItemProps) {
   const [hover, setHover] = useState(false)
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
-  const lastClickTime = useRef(0)
   const { t } = useLang()
   const fullDisplay = remote
     ? (showRemotePrefix ? name.replace(/^remotes\//, '') : name.replace(/^remotes\/[^/]+\//, ''))
@@ -90,24 +98,18 @@ export function BranchItem({ name, current, remote, currentBranch, onCheckout, o
     t
   )
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (current) return
-    const now = Date.now()
-    if (now - lastClickTime.current < 400) {
-      // Double-click détecté : bloquer la sélection AVANT que le navigateur agisse
-      e.preventDefault()
-      onCheckout()
-      lastClickTime.current = 0
-    } else {
-      lastClickTime.current = now
-    }
-  }
+  // One click takes the graph to the tip, the double-click still switches —
+  // and takes back the reveal the first press armed (#275).
+  const click = useRowClick(onReveal, current ? undefined : onCheckout)
+
+  // What this branch's own state calls for, of what the host actually wired.
+  const actions = branchRowActions({ current, remote, ahead, behind, gone, publishedAs })
 
   return (
     <>
       <div
         className={`sb-branch-item ${current ? 'current' : ''} ${remote ? 'remote' : ''} ${hidden ? 'is-hidden' : ''} ${soloed ? 'soloed' : ''}`}
-        onMouseDown={handleMouseDown}
+        onMouseDown={click.onMouseDown}
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
@@ -131,6 +133,13 @@ export function BranchItem({ name, current, remote, currentBranch, onCheckout, o
         {current && (
           <Icon name="check" size={11} className="current-check" />
         )}
+        {/* The commonest acts, on the row itself (#274) — the whole menu stays
+            behind the kebab beside them. */}
+        <RowActionBar actions={actions} t={t} label={fullDisplay}
+          handlers={{
+            switch: current ? undefined : () => { click.cancel(); onCheckout() },
+            pull: onPull, push: onPush, publish: onPublish, fetch: onFetch,
+          }} />
         {/* Hover affordance for the whole menu rather than the lone delete
             cross it replaces — right-click was the only way in before, which
             is what made every other branch action invisible (v1.21.0). */}

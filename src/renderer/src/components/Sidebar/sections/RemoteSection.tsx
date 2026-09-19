@@ -7,10 +7,13 @@ import { BranchItem } from '../BranchItem'
 import type { SidebarState } from '../useSidebar'
 
 export function RemoteSection({ s }: { s: SidebarState }) {
-  const { currentBranch, onDeleteRemoteBranch, onExplainBranch, onBranchChangelog, onGoTo, soloBranch, onToggleSolo, onToggleHide, isFavorite, onToggleFavorite, onOpenBranchOnRemote, prIntentFor, onCreatePR, onCopyBranchLink, single, branchHidden, familyMenu, toggleFolder, openFolders, filtering, showAll, remoteBranches } = s
+  const { currentBranch, onReveal, onDeleteRemoteBranch, onExplainBranch, onBranchChangelog, onGoTo, soloBranch, onToggleSolo, onToggleHide, isFavorite, onToggleFavorite, onOpenBranchOnRemote, prIntentFor, onCreatePR, onCopyBranchLink, single, branchHidden, familyMenu, toggleFolder, openFolders, showAll, remoteBranches, layoutFor, layoutToggle, handleFetchRemote } = s
+  const names = remoteBranches.map(b => b.name.replace(/^remotes\//, ''))
+  const asTree = layoutFor('remote', names) === 'tree'
   return (
     <Section id="remote" title="REMOTE" icon="cloud" count={remoteBranches.length} defaultOpen={single}
               menuItems={familyMenu('remotes')}
+              layout={layoutToggle('remote', names)}
               hiddenCount={remoteBranches.filter(branchHidden).length}
               onShowAll={showAll('remotes')}>
               {(() => {
@@ -27,6 +30,8 @@ export function RemoteSection({ s }: { s: SidebarState }) {
                     remote={true}
                     currentBranch={currentBranch}
                     onCheckout={() => onGoTo(b.name)}
+                    onReveal={onReveal && (() => onReveal(b.name))}
+                    onFetch={() => handleFetchRemote(b.name.replace(/^remotes\//, '').split('/')[0])}
                     onDeleteRemote={() => onDeleteRemoteBranch(b.name)}
                     soloed={soloBranch === b.name}
                     hidden={branchHidden(b)}
@@ -43,7 +48,7 @@ export function RemoteSection({ s }: { s: SidebarState }) {
                     onCopyLink={onCopyBranchLink && (() => onCopyBranchLink(b.name))}
                   />
               )
-              if (filtering) return remoteBranches.map(b => leaf(b))
+              if (!asTree) return remoteBranches.map(b => leaf(b))
               const nodes = buildBranchTree(remoteBranches, b => b.name.replace(/^remotes\//, ''))
               return <BranchTree nodes={nodes} open={openFolders(nodes)} onToggle={toggleFolder}
                 renderLeaf={(b, label) => leaf(b, label)} />

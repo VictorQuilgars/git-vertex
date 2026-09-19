@@ -5,6 +5,7 @@ import { BranchInfo } from '../../types'
 import { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { loadGhFilters, saveGhFilters, type GhSavedFilter, type GhFilterStore } from './ghFilters'
 import { folderPaths, type BranchNode } from './branchTree'
+import { readLayout, writeLayout, hasPaths, matchesFilter, type SbLayout, type SbLayoutView } from './sidebarLayout'
 import { isRefHidden, type RefFamily } from '../../utils/graphVisibility'
 import { useLang } from '../../i18n/LanguageContext'
 import { type SidebarView, type ReflogEntry, type Contributor, type ChangelogEntry, type NoteEntry, type RemoteEntry, type SubmoduleEntry, type WorktreeEntry, type AgentEntry, type SidebarProps } from './types'
@@ -21,7 +22,7 @@ export function useSidebar(props: SidebarProps) {
   onShowCommits,
   subjectFor, tab = 'list', onTab, memoryToken,
   onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag,
-  onSelectCommit, onCompareBranch,
+  onSelectCommit, onCompareBranch, onReveal,
   soloBranch, visibility, onToggleSolo, onToggleHide,
   onToggleHideTag, onToggleHideRemote, onSetFamilyHidden,
   onPull,
@@ -294,14 +295,71 @@ export function useSidebar(props: SidebarProps) {
     if (r.success) showToast(t('sb.remote.fetchOk', name))
     else showToast(t('toast.fetchErr', r.error ?? ''), 'err')
   }
+  /**
+   * ONE filter field, and every list it can see answers it (#276).
+   *
+   * It was the branches' own, and TAGS, STASH, REMOTES and WORKTREES had
+   * none — a long list of tags was read by scrolling it. In the panel the
+   * rail has already chosen a view, so the field narrows that view and says
+   * which in its placeholder; on the desktop every section is on screen at
+   * once, so it narrows all of them, which is the same promise.
+   */
   const [branchFilter, setBranchFilter] = useState('')
+  const keep = (text: string) => matchesFilter(text, branchFilter)
   // Favorites float to the top of LOCAL — the whole point of starring a branch
   // is not to hunt for it in a long list (v1.21.0). Order is otherwise
   // untouched, so unstarred branches keep the ordering git gave us.
   const localBranches = branches
     .filter(b => !b.remote)
-    .filter(b => !branchFilter || b.name.toLowerCase().includes(branchFilter.toLowerCase()))
+    .filter(b => keep(b.name))
     .sort((a, b) => Number(isFavorite?.(b.name) ?? false) - Number(isFavorite?.(a.name) ?? false))
+  const filteredTags = tags.filter(tg => keep(tg.name))
+  // A stash is found by what it says, not by `stash@{2}`.
+  const filteredStashes = stashes.filter(st => keep(st.message))
+  const filteredRemotes = remotes.filter(r => keep(r.name) || keep(r.fetchUrl))
+  // Either end of a worktree row: the folder it is in, or the branch it holds.
+  const filteredWorktrees = worktrees.filter(wt => keep(wt.path) || keep(wt.branch ?? ''))
+  /**
+   * List or tree, per view, kept on this machine. Held here rather than read
+   * in each section so a re-render of one does not lose the other's choice.
+   */
+  const [layouts, setLayouts] = useState<Record<SbLayoutView, SbLayout>>(() => ({
+    local: readLayout('local'), remote: readLayout('remote'), tags: readLayout('tags'),
+  }))
+  const toggleLayout = useCallback((view: SbLayoutView) => {
+    setLayouts(prev => {
+      const next: SbLayout = prev[view] === 'tree' ? 'list' : 'tree'
+      writeLayout(view, next)
+      return { ...prev, [view]: next }
+    })
+  }, [])
+  /**
+   * What a section draws as. A filter FLATTENS whatever the choice was — a
+   * tree that stays folded while you type reads as an empty section — and a
+   * list with no slash in it is a list whatever the setting says.
+   */
+  const layoutFor = (view: SbLayoutView, names: readonly string[]): SbLayout =>
+    branchFilter || !hasPaths(names) ? 'list' : layouts[view]
+  const layoutToggle = (view: SbLayoutView, names: readonly string[]) =>
+    hasPaths(names) ? { mode: layouts[view], onToggle: () => toggleLayout(view) } : undefined
+  /**
+   * Which list the field is filtering, and what it therefore says. The two
+   * GitHub views have searches of their own — a second field above them would
+   * be two boxes over one list — and the AI stack is not a list of refs, so
+   * neither shows it.
+   */
+  const FILTERED = {
+    branches: 'sb.filterBranches', tags: 'sb.filter.tags', stash: 'sb.filter.stashes',
+    remotes: 'sb.filter.remotes', worktrees: 'sb.filter.worktrees',
+  } as const
+  const filtered = (v: SidebarView | undefined): v is keyof typeof FILTERED =>
+    !!v && v in FILTERED
+  const filterView: SidebarView | 'all' | null = single
+    ? (filtered(view) ? view : null)
+    : (showAI ? null : 'all')
+  const filterPlaceholder = filterView === 'all'
+    ? t('sb.filter.any')
+    : filtered(filterView as SidebarView | undefined) ? t(FILTERED[filterView as keyof typeof FILTERED]) : ''
   // ── What each section hides from the graph ────────────────────
   // A row is hidden in its own right or because its family is; the count on a
   // section header has to say both, or "Hide all tags" would leave every tag
@@ -377,10 +435,10 @@ export function useSidebar(props: SidebarProps) {
   }
   const remoteBranches = branches
     .filter(b => b.remote)
-    .filter(b => !branchFilter || b.name.toLowerCase().includes(branchFilter.toLowerCase()))
+    .filter(b => keep(b.name))
 
   return {
-    repoPath, repoName, currentBranch, branches, recentRepos, stashes, tags, wipCount, wipSelected, onViewWip, onOpenRepo, onClone, onSetRepo, onCheckout, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch, onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream, onCreateStash, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onRefreshStashes, onExplainBranch, onBranchChangelog, onOpenChangelog, onOpenExplanation, onOpenNote, onShowCommits, subjectFor, tab, onTab, memoryToken, onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag, onSelectCommit, onCompareBranch, soloBranch, visibility, onToggleSolo, onToggleHide, onToggleHideTag, onToggleHideRemote, onSetFamilyHidden, onPull, githubPRs, githubIssues, onOpenGithubItem, onStartBranchFromIssue, onShowGithubDetail, githubDetailOpen, githubLogin, githubRepo, isFavorite, issueFor, onToggleFavorite, onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR, showAllBranches, onToggleAllBranches, onRefreshGithub, onStartPR, onNewIssue, githubRefreshing, githubRefreshTick, githubPollTick, onCopyBranchLink, onDeleteBranchBoth, showToast, showPrompt, showConfirm, onRefresh, view, single, activeTab, showAI, show, reflog, setReflog, contributors, onFilterAuthor, authorFilter, home, mergeTarget, launchpad, remotes, setRemotes, defaultRemote, setDefaultRemote, submodules, setSubmodules, worktrees, setWorktrees, agents, setAgents, work, setWork, t, loadAgents, changelogs, setChangelogs, explanations, setExplanations, notes, setNotes, loadMemory, loadWorktrees, agentsFor, handleAddWorktree, handleRemoveWorktree, handleInitSubmodule, handleUpdateSubmodule, handleSyncSubmodule, handleDeinitSubmodule, handleAddRemote, handleRemoveRemote, handleRenameRemote, stashMenu, setStashMenu, prsQuery, setPrsQuery, issuesQuery, setIssuesQuery, ghFilters, setGhFilters, filterEditor, setFilterEditor, mutateFilters, stashScopeItems, handleRenameStash, handlePruneRemote, handleSetDefaultRemote, handleFetchRemote, branchFilter, setBranchFilter, localBranches, branchHidden, tagHidden, remoteHidden, stashesHidden, familyMenu, foldersKey, closedFolders, setClosedFolders, toggleFolder, openFolders, filtering, rootRef, filterDraft, setFilterDraft, showAll, localMenu, remoteBranches,
+    repoPath, repoName, currentBranch, branches, recentRepos, stashes, tags, wipCount, wipSelected, onViewWip, onOpenRepo, onClone, onSetRepo, onCheckout, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch, onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream, onCreateStash, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onRefreshStashes, onExplainBranch, onBranchChangelog, onOpenChangelog, onOpenExplanation, onOpenNote, onShowCommits, subjectFor, tab, onTab, memoryToken, onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag, onSelectCommit, onCompareBranch, soloBranch, visibility, onToggleSolo, onToggleHide, onToggleHideTag, onToggleHideRemote, onSetFamilyHidden, onPull, githubPRs, githubIssues, onOpenGithubItem, onStartBranchFromIssue, onShowGithubDetail, githubDetailOpen, githubLogin, githubRepo, isFavorite, issueFor, onToggleFavorite, onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR, showAllBranches, onToggleAllBranches, onRefreshGithub, onStartPR, onNewIssue, githubRefreshing, githubRefreshTick, githubPollTick, onCopyBranchLink, onDeleteBranchBoth, showToast, showPrompt, showConfirm, onRefresh, view, single, activeTab, showAI, show, reflog, setReflog, contributors, onFilterAuthor, authorFilter, home, mergeTarget, launchpad, remotes, setRemotes, defaultRemote, setDefaultRemote, submodules, setSubmodules, worktrees, setWorktrees, agents, setAgents, work, setWork, t, loadAgents, changelogs, setChangelogs, explanations, setExplanations, notes, setNotes, loadMemory, loadWorktrees, agentsFor, handleAddWorktree, handleRemoveWorktree, handleInitSubmodule, handleUpdateSubmodule, handleSyncSubmodule, handleDeinitSubmodule, handleAddRemote, handleRemoveRemote, handleRenameRemote, stashMenu, setStashMenu, prsQuery, setPrsQuery, issuesQuery, setIssuesQuery, ghFilters, setGhFilters, filterEditor, setFilterEditor, mutateFilters, stashScopeItems, handleRenameStash, handlePruneRemote, handleSetDefaultRemote, handleFetchRemote, branchFilter, setBranchFilter, localBranches, branchHidden, tagHidden, remoteHidden, stashesHidden, familyMenu, foldersKey, closedFolders, setClosedFolders, toggleFolder, openFolders, filtering, rootRef, filterDraft, setFilterDraft, showAll, localMenu, remoteBranches, onReveal, filteredTags, filteredStashes, filteredRemotes, filteredWorktrees, layouts, toggleLayout, layoutFor, layoutToggle, filterView, filterPlaceholder,
   }
 }
 

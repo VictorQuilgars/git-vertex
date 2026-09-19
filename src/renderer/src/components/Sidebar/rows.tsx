@@ -1,17 +1,26 @@
 // One row of each of the other lists: a stash, a tag, a reflog entry, a remote, a submodule, a worktree.
-import React, { useState, useRef } from 'react'
+import { useState } from 'react'
 import { Icon } from '../Icon/Icon'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
+import { RowActionBar } from './RowActionBar'
+import { stashRowActions, tagRowActions, remoteRowActions, worktreeRowActions } from './rowActions'
+import { useRowClick } from './rowClick'
 import { useLang } from '../../i18n/LanguageContext'
 import { type StashEntry, type TagEntry, type ReflogEntry, type RemoteEntry, type SubmoduleEntry, type WorktreeEntry, type AgentEntry } from './types'
 
 // ── Stash item ────────────────────────────────────────────────────
-export function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, onExplain, hidden }: {
+export function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, onExplain, onReveal, hidden }: {
   stash: StashEntry
   onApply: () => void
   onPop: () => void
   onDrop: () => void
   onPreview?: () => void
+  /**
+   * One click: take the graph to this stash's commit (#275). The preview it
+   * displaces is not lost — it keeps the menu's first entry and gains the
+   * double-click, which is what every other row here means by two clicks.
+   */
+  onReveal?: () => void
   onRename?: () => void
   /** Reads it aloud — what work is parked here (#70 P1). */
   onExplain?: () => void
@@ -26,6 +35,8 @@ export function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, 
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const { t } = useLang()
   const label = stash.message.replace(/^stash@\{\d+\}: /, '')
+  // Without a reveal the row is what it was: one click, the preview.
+  const click = useRowClick(onReveal, onReveal ? onPreview : undefined)
 
   const menuItems: MenuItemDef[] = [
     ...(onPreview ? [{ label: t('sb.stash.preview'), action: onPreview }] : []),
@@ -41,12 +52,19 @@ export function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, 
     <>
       <div
         className={`sb-stash-item${hidden ? ' is-hidden' : ''}`}
-        onClick={onPreview}
+        onMouseDown={onReveal ? click.onMouseDown : undefined}
+        onClick={onReveal ? undefined : onPreview}
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
         title={onPreview ? t('sb.stash.title', stash.message) : stash.message}
       >
         <Icon name="stash" size={11} className="stash-icon" />
         <span className="sb-stash-label">{label}</span>
+        <RowActionBar actions={stashRowActions()} t={t} label={label}
+          handlers={{
+            apply: () => { click.cancel(); onApply() },
+            pop: () => { click.cancel(); onPop() },
+            delete: () => { click.cancel(); onDrop() },
+          }} />
         <span className="sb-stash-index">#{stash.index}</span>
       </div>
       {ctx && (
@@ -57,10 +75,14 @@ export function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, 
 }
 
 // ── Tag item ──────────────────────────────────────────────────────
-export function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDeleteRemote, hidden, onToggleHide }: {
+export function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDeleteRemote, onReveal, hidden, onToggleHide, displayAs }: {
   tag: TagEntry
+  /** Last path segment, when the tree already spells the folders (#276). */
+  displayAs?: string
   /** Double-click: take me here, landing on a branch. Never detaches HEAD. */
   onGoTo?: () => void
+  /** One click: take the graph to the commit this tag points at (#275). */
+  onReveal?: () => void
   /** Menu only: check out the COMMIT the tag points at, detaching HEAD. */
   onCheckoutCommit?: () => void
   onDelete: () => void; onPush: () => void; onDeleteRemote: () => void
@@ -68,7 +90,6 @@ export function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDel
   onToggleHide?: () => void
 }) {
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
-  const lastClickTime = useRef(0)
   const { t } = useLang()
   const menuItems: MenuItemDef[] = [
     // A tag is not a branch and cannot be checked out as one. What this does is
@@ -88,33 +109,25 @@ export function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDel
     { label: t('sb.tag.deleteRemote'), action: onDeleteRemote, danger: true },
   ]
 
-  // Same 400ms double-click detection as BranchItem. It used to check the tag
-  // out and detach HEAD (v1.23.0); a double-click now means the same thing here
-  // as everywhere else — land on a branch — so it offers to create one at the
-  // tagged commit instead.
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!onGoTo) return
-    const now = Date.now()
-    if (now - lastClickTime.current < 400) {
-      e.preventDefault()
-      onGoTo()
-      lastClickTime.current = 0
-    } else {
-      lastClickTime.current = now
-    }
-  }
+  // The double-click used to check the tag out and detach HEAD (v1.23.0); it
+  // now means the same thing here as everywhere else — land on a branch — so
+  // it offers to create one at the tagged commit instead. The single click
+  // reveals the commit, and the double takes that reveal back (#275).
+  const click = useRowClick(onReveal, onGoTo)
 
   return (
     <>
       <div
         className={`sb-tag-item${hidden ? ' is-hidden' : ''}`}
-        onMouseDown={handleMouseDown}
+        onMouseDown={click.onMouseDown}
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
         title={onGoTo ? t('sb.tag.hint', tag.name, tag.hash) : `${tag.name} → ${tag.hash}`}
       >
         <Icon name="tag" size={13} className="sb-tag-icon" />
-        <span className="sb-tag-name">{tag.name}</span>
+        <span className="sb-tag-name">{displayAs ?? tag.name}</span>
         {hidden && <span className="sb-row-flag" title={t('sb.hidden.flag')}>⊘</span>}
+        <RowActionBar actions={tagRowActions()} t={t} label={tag.name}
+          handlers={{ switch: onGoTo && (() => { click.cancel(); onGoTo() }) }} />
         <code className="sb-tag-hash">{tag.hash}</code>
       </div>
       {ctx && (
@@ -140,7 +153,7 @@ export function ReflogItem({ entry, onSelect }: { entry: ReflogEntry; onSelect: 
 
 // ── Remote item ───────────────────────────────────────────────────
 export function RemoteItem({
-  remote, isDefault, onSetDefault, onFetch, onPrune, onRename, onRemove, onCopyUrl, hidden, onToggleHide
+  remote, isDefault, onSetDefault, onFetch, onPrune, onRename, onRemove, onCopyUrl, onOpen, hidden, onToggleHide
 }: {
   remote: RemoteEntry
   isDefault: boolean
@@ -150,6 +163,8 @@ export function RemoteItem({
   onRename: () => void
   onRemove: () => void
   onCopyUrl: () => void
+  /** Open the remote where it lives — absent for a URL that is not a page. */
+  onOpen?: () => void
   /** Hidden here means all of this remote's branches are out of the graph. */
   hidden?: boolean
   onToggleHide?: () => void
@@ -162,6 +177,7 @@ export function RemoteItem({
     // checked (not just disabled) so the current default is visible at a glance
     { label: t('sb.remote.setDefault'), action: onSetDefault, checked: isDefault },
     { label: t('sb.remote.copyUrl'), action: onCopyUrl },
+    ...(onOpen ? [{ label: t('sb.remote.open'), action: onOpen }] : []),
     { label: t('sb.rename'), action: onRename },
     ...(onToggleHide ? [{
       label: hidden ? t('sb.remote.show') : t('sb.remote.hide'),
@@ -188,6 +204,8 @@ export function RemoteItem({
           </span>
           <span className="sb-remote-url">{remote.fetchUrl}</span>
         </div>
+        <RowActionBar actions={remoteRowActions()} t={t} label={remote.name}
+          handlers={{ fetch: onFetch, open: onOpen }} />
       </div>
       {ctx && (
         <ContextMenu x={ctx.x} y={ctx.y} items={menuItems} onClose={() => setCtx(null)} />
@@ -244,16 +262,25 @@ export function SubmoduleItem({
 }
 
 // ── Worktree item ─────────────────────────────────────────────────
-export function WorktreeItem({ wt, agents = [], onOpen, onRemove }: {
+export function WorktreeItem({ wt, agents = [], active = false, onOpen, onRemove, onReveal }: {
   wt: WorktreeEntry
   // Running AI agents whose cwd is inside this worktree
   agents?: AgentEntry[]
+  /** The worktree this window is showing — it has nothing to open. */
+  active?: boolean
   onOpen: () => void
   onRemove: () => void
+  /**
+   * One click: the graph goes to what this worktree is at (#275) — the
+   * working changes for the one on screen, its HEAD for any other, whose
+   * changes this graph cannot show.
+   */
+  onReveal?: () => void
 }) {
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const { t } = useLang()
   const name = wt.path.split('/').pop() || wt.path
+  const click = useRowClick(onReveal, onReveal ? onOpen : undefined)
   const menuItems: MenuItemDef[] = [
     { label: t('sb.wt.open'), action: onOpen },
     { label: t('sb.wt.copyPath'), action: () => navigator.clipboard.writeText(wt.path) },
@@ -269,7 +296,8 @@ export function WorktreeItem({ wt, agents = [], onOpen, onRemove }: {
     <>
       <div
         className="sb-submodule-item"
-        onClick={onOpen}
+        onMouseDown={onReveal ? click.onMouseDown : undefined}
+        onClick={onReveal ? undefined : onOpen}
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
         title={agents.length ? `${wt.path}\n${agents.map(a => `● ${a.name} (pid ${a.pid})`).join('\n')}` : wt.path}
         style={{ cursor: 'pointer' }}
@@ -289,6 +317,8 @@ export function WorktreeItem({ wt, agents = [], onOpen, onRemove }: {
           </span>
           <span className="sb-sub-url">{wt.path}</span>
         </div>
+        <RowActionBar actions={worktreeRowActions({ active })} t={t} label={name}
+          handlers={{ open: () => { click.cancel(); onOpen() } }} />
       </div>
       {ctx && (
         <ContextMenu x={ctx.x} y={ctx.y} items={menuItems} onClose={() => setCtx(null)} />

@@ -177,6 +177,17 @@ export interface SidebarProps {
   onPushTag: (name: string) => void
   onDeleteRemoteTag: (name: string) => void
   onSelectCommit: (hash: string) => void
+  /**
+   * Take the graph to what this row is about — a branch, a tag, a stash, a
+   * worktree's HEAD (#275). One click, where a click did nothing: the ref is
+   * resolved by the host and the page grown to reach it when the commit is
+   * not loaded, the way the graph's `/` finder reaches a tip three pages
+   * down. The double-click keeps its own meaning.
+   *
+   * Omitted ⇒ the rows do not react to a single click at all, rather than
+   * reacting by doing nothing.
+   */
+  onReveal?: (ref: string) => void
   onCompareBranch: (branchName: string) => void
   soloBranch: string | null
   /**
