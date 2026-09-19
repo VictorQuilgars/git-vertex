@@ -10,6 +10,13 @@ export interface CommitDraft {
    * old message rewrite whatever HEAD has become.
    */
   amendHead?: string
+  /**
+   * The text git wrote for the operation in progress (MERGE_MSG and its kin),
+   * when that is what the message was filled with. It belongs to the operation:
+   * once none is in progress, a message still equal to it is git's leftover,
+   * not the user's draft.
+   */
+  prefilled?: string
 }
 const emptyDraft = (): CommitDraft => ({ message: '', amend: false, amendMessage: '' })
 
@@ -20,7 +27,8 @@ export function useCommitDraft(repoPath?: string) {
     try {
       const value = key && JSON.parse(localStorage.getItem(key) ?? 'null')
       if (value && typeof value.message === 'string' && typeof value.amendMessage === 'string' && typeof value.amend === 'boolean'
-        && (value.amendHead === undefined || typeof value.amendHead === 'string')) return value
+        && (value.amendHead === undefined || typeof value.amendHead === 'string')
+        && (value.prefilled === undefined || typeof value.prefilled === 'string')) return value
     } catch { /* A corrupt or unavailable cache must not prevent committing. */ }
     return emptyDraft()
   })
