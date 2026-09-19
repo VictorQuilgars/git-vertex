@@ -1654,7 +1654,9 @@ function VertexApp() {
     <div className={`app gv-app${short ? ' gv-app--short' : ''}`}>
       <CompactToolbar
         narrow={layout.narrow}
-        searchRow={layout.details === 'bottom' ? 'always' : 'toggle'}
+        // A row of its own for the search when the panel has the height: not
+        // in a short panel, nor in a narrow one showing a pane at a time.
+        searchRow={layout.details === 'replace' || short ? 'toggle' : 'always'}
         graphHidden={focusWorking}
         onToggleGraph={compactWorking && !stacked ? () => setGraphHidden(v => !v) : undefined}
         repoName={repoName}

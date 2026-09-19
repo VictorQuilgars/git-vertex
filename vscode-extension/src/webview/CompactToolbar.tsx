@@ -22,7 +22,8 @@ interface Props {
   /** The folded layout of a narrow panel (see panelLayout.ts). */
   narrow?: boolean
   /**
-   * Narrow only. `always`: the search field has its own row. `toggle`: the
+   * When the search field is not in the first row (a narrow panel, or a row
+   * that does not hold it): `always`, it has a row of its own; `toggle`, that
    * row is too dear in a short panel, so a search button in the first row
    * reveals it.
    */
@@ -142,17 +143,23 @@ function relTime(d: Date | null, lang: string, t: Translate): string {
 }
 
 /**
- * How much of the one-row toolbar the width holds: all of it, the sync buttons
- * without their words, or the folded layout — the narrow panel's two rows.
+ * How the toolbar fits the width it has, in the order it gives things up:
+ *   full         one row, every action, the sync buttons with their words;
+ *   compact      the same row without the words;
+ *   split        the search field — and the details switch beside it — on a
+ *                row of their own, every action still in the first row;
+ *   splitCompact the same, without the words;
+ *   folded       the narrow panel's layout: the secondary actions behind "⋯".
+ * The actions are what the toolbar is for: they leave the row last.
  *
- * Decided on what the row MEASURED it needs at each step, not on a fixed width:
- * the row grows whenever an action joins it, and a threshold written for last
- * month's row let this one run off the panel's edge — the search field cut,
- * the details switch beyond reach, between 640 and 1,050 px. Each step's need
- * is remembered, so a step taken cannot undo itself: its own row fits, and the
- * width the previous one needed has not changed.
+ * Decided on what each step MEASURED it needs, not on a fixed width: the row
+ * grows whenever an action joins it, and a threshold written for last month's
+ * row let this one run off the panel's edge. Each step's need is remembered,
+ * so a step taken cannot undo itself — its own row fits, and the width the one
+ * before needed has not changed. A step never measured is tried, and measured.
  */
-type Fit = 'full' | 'compact' | 'folded'
+type Fit = 'full' | 'compact' | 'split' | 'splitCompact' | 'folded'
+const FITS: Fit[] = ['full', 'compact', 'split', 'splitCompact', 'folded']
 function useToolbarFit(root: React.RefObject<HTMLDivElement>, disabled: boolean): Fit {
   const need = useRef<Partial<Record<Fit, number>>>({})
   const [room, setRoom] = useState(0)
@@ -163,20 +170,27 @@ function useToolbarFit(root: React.RefObject<HTMLDivElement>, disabled: boolean)
     const ro = new ResizeObserver(() => setRoom(el.clientWidth))
     ro.observe(el)
     return () => ro.disconnect()
-    // The row and the folded layout are two elements: observe the one drawn.
+    // Each step is its own element: observe the one drawn.
   }, [root, disabled, fit])
   useLayoutEffect(() => {
     const el = root.current
     if (disabled || !el) return
     if (fit !== 'folded') {
-      // What the row takes without its spring, and with the search field at
-      // rest: a focused field grows, and typing must not fold the row.
-      const spring = el.querySelector<HTMLElement>(':scope > .gvt-spring')
-      const search = el.querySelector<HTMLElement>(':scope > .gvt-search')
-      need.current[fit] = el.scrollWidth - (spring?.offsetWidth ?? 0) - Math.max(0, (search?.offsetWidth ?? 0) - 150)
+      // The row that holds the actions — the root, or its first row once the
+      // search has one of its own — without its spring, and with the search
+      // field at rest: a focused field grows, and typing must not move the row.
+      const row = el.querySelector<HTMLElement>(':scope > .gvt-row--main') ?? el
+      const spring = row.querySelector<HTMLElement>(':scope > .gvt-spring')
+      const search = row.querySelector<HTMLElement>(':scope > .gvt-search')
+      // The branch's name gives way in the two-row steps — but not before the
+      // sync buttons' words: what it lost below its own cap counts as needed,
+      // except at the last step before folding, where it may shrink.
+      const name = row.querySelector<HTMLElement>('.gvt-branch-name')
+      const cap = name ? parseFloat(getComputedStyle(name).maxWidth) || Infinity : 0
+      const cut = name && fit !== 'splitCompact' ? Math.max(0, Math.min(name.scrollWidth, cap) - name.clientWidth) : 0
+      need.current[fit] = row.scrollWidth - (spring?.offsetWidth ?? 0) - Math.max(0, (search?.offsetWidth ?? 0) - 150) + cut
     }
-    const fits = (step: Fit) => (need.current[step] ?? 0) <= room
-    const next: Fit = room <= 0 || fits('full') ? 'full' : fits('compact') ? 'compact' : 'folded'
+    const next = room <= 0 ? 'full' : FITS.find(step => step === 'folded' || (need.current[step] ?? 0) <= room)!
     if (next !== fit) setFit(next)
   })
   return disabled ? 'folded' : fit
@@ -387,46 +401,9 @@ export default function CompactToolbar(p: Props) {
     </button>
   )
 
-  if (narrow) {
-    const searchShown = p.searchRow !== 'toggle' || searchOpen
-    return (
-      <div className="gvt gvt--narrow" ref={rootRef}>
-        <div className="gvt-row">
-          {identity}
-          <span className="gvt-spring" />
-          {graphToggle}
-          {sync}
-          {!searchShown && p.detailsToggle}
-          {p.searchRow === 'toggle' && (
-            <IconBtn title={t('gvt.searchToggle')} active={searchOpen}
-              onClick={() => setSearchOpen(open => { if (open && p.searchQuery) p.onSearch(''); return !open })}>
-              <Icon name="search" size={14} />
-            </IconBtn>
-          )}
-          <IconBtn title={t('gvt.more')} active={!!moreMenu} onClick={e => {
-            const r = e.currentTarget.getBoundingClientRect()
-            setMoreMenu({ x: Math.max(0, r.right - 220), y: r.bottom + 3 })
-          }}>
-            <Icon name="kebab" size={14} />
-          </IconBtn>
-        </div>
-        {searchShown && <div className="gvt-row gvt-row--search">{search}{p.detailsToggle}</div>}
-        {moreMenu && (
-          <ContextMenu x={moreMenu.x} y={moreMenu.y} items={moreItems} onClose={() => setMoreMenu(null)} />
-        )}
-      </div>
-    )
-  }
-
-  return (
-    <div className={`gvt${fit === 'compact' ? ' gvt--compact' : ''}`} ref={rootRef}>
-      {identity}
-
-      <span className="gvt-spring" />
-      {graphToggle}
-
-      {sync}
-
+  // Every action but the sync ones, in the order the row has always had them.
+  const actions = (
+    <>
       <span className="gvt-sep" />
 
       {/* Repo actions */}
@@ -469,6 +446,71 @@ export default function CompactToolbar(p: Props) {
           <Icon name="gear" size={14} />
         </IconBtn>
       )}
+    </>
+  )
+
+  // Short: the search field waits behind a button rather than taking a row.
+  const searchShown = p.searchRow !== 'toggle' || searchOpen
+  const searchToggle = p.searchRow === 'toggle' && (
+    <IconBtn title={t('gvt.searchToggle')} active={searchOpen}
+      onClick={() => setSearchOpen(open => { if (open && p.searchQuery) p.onSearch(''); return !open })}>
+      <Icon name="search" size={14} />
+    </IconBtn>
+  )
+
+  if (narrow) {
+    return (
+      <div className="gvt gvt--narrow" ref={rootRef}>
+        <div className="gvt-row">
+          {identity}
+          <span className="gvt-spring" />
+          {graphToggle}
+          {sync}
+          {!searchShown && p.detailsToggle}
+          {searchToggle}
+          <IconBtn title={t('gvt.more')} active={!!moreMenu} onClick={e => {
+            const r = e.currentTarget.getBoundingClientRect()
+            setMoreMenu({ x: Math.max(0, r.right - 220), y: r.bottom + 3 })
+          }}>
+            <Icon name="kebab" size={14} />
+          </IconBtn>
+        </div>
+        {searchShown && <div className="gvt-row gvt-row--search">{search}{p.detailsToggle}</div>}
+        {moreMenu && (
+          <ContextMenu x={moreMenu.x} y={moreMenu.y} items={moreItems} onClose={() => setMoreMenu(null)} />
+        )}
+      </div>
+    )
+  }
+
+  // Two rows, every action still in the first: the search field and the
+  // details switch — the graph's layout controls — take the second.
+  if (fit === 'split' || fit === 'splitCompact') {
+    return (
+      <div className={`gvt gvt--split${fit === 'splitCompact' ? ' gvt--compact' : ''}`} ref={rootRef}>
+        <div className="gvt-row gvt-row--main">
+          {identity}
+          <span className="gvt-spring" />
+          {graphToggle}
+          {sync}
+          {actions}
+          {!searchShown && <>{searchToggle}{p.detailsToggle}</>}
+        </div>
+        {searchShown && <div className="gvt-row gvt-row--search">{search}{p.detailsToggle}</div>}
+      </div>
+    )
+  }
+
+  return (
+    <div className={`gvt${fit === 'compact' ? ' gvt--compact' : ''}`} ref={rootRef}>
+      {identity}
+
+      <span className="gvt-spring" />
+      {graphToggle}
+
+      {sync}
+
+      {actions}
 
       {search}
       {p.detailsToggle}

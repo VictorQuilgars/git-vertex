@@ -125,11 +125,14 @@ app.whenReady().then(async () => {
     assert.deepEqual(hiddenFor, Array(5).fill('none'), `Hide graph did not hold: ${hiddenFor}`)
     await evalJS("[...document.querySelectorAll('button')].find(b=>b.textContent==='Show graph').click()")
     await settle()
-    // Between a narrow column and a wide panel, the toolbar's row stays inside
-    // the panel: it drops the sync words, then folds, when it has to.
+    // Between a narrow column and a wide panel, the toolbar stays inside the
+    // panel — it drops the sync words, then gives the search a row of its own —
+    // and every action stays in the bar: none goes behind the "⋯" of the narrow
+    // column's layout.
     for (const w of [1100, 1000, 956, 860, 760, 700]) {
       win.setContentSize(w, 360); await settle()
-      assert(await evalJS("(()=>{const g=document.querySelector('.gvt');return g.scrollWidth<=g.clientWidth+1})()"), `the toolbar runs off the panel at ${w}px`)
+      assert(await evalJS("(()=>{const g=document.querySelector('.gvt');return g.scrollWidth<=g.clientWidth+1&&[...document.querySelectorAll('.gvt-row')].every(r=>{const rr=r.getBoundingClientRect();return [...r.children].every(c=>c.getBoundingClientRect().right<=rr.right+1)})})()"), `the toolbar runs off the panel at ${w}px`)
+      assert(await evalJS("['Stash','Terminal'].every(l=>document.querySelector(`.gvt-btn[aria-label=\"${l}\"]`))"), `an action left the bar at ${w}px`)
     }
     win.setContentSize(1100,254); await settle(); await assertCompact()
     await evalJS("[...document.querySelectorAll('button')].find(b=>b.textContent==='Options').click()")
