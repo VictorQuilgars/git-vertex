@@ -1169,7 +1169,10 @@ function VertexApp() {
   }, [])
 
   const appBodyRef = useRef<HTMLDivElement>(null)
-  // The composer's drawer measures this — see the post beside .app-center.
+  // The card the composers' drawers come out of — the rail's, which is there
+  // whatever else is: the desktop's come out of its side bar's card the same
+  // way. It used to be a measuring post placed AFTER the gap, so they came out
+  // one gap further right than the filter drawer does.
   const composerAnchorRef = useRef<HTMLDivElement>(null)
 
   const [bodySize, setBodySize] = useState({ w: 0, h: 0 })
@@ -1618,6 +1621,7 @@ function VertexApp() {
                 selectedCommit={selectedCommit}
                 onCommitSuccess={loadRepoData}
                 showToast={showToast}
+                showConfirm={showConfirm}
                 currentBranch={currentBranch}
                 wipCount={wipCount}
                 onViewWip={() => setSelectedCommit(prev => prev?.hash === '__WIP__' ? null : WIP_NODE)}
@@ -1788,7 +1792,7 @@ function VertexApp() {
             block, and opening a view widens the block rather than adding a
             second one beside it. In a narrow panel the view is a layer over
             the graph instead — the rail stays, the block does not widen. */}
-        <div className="gv-left">
+        <div className="gv-left" ref={composerAnchorRef}>
           <ActivityRail active={activeView} onSelect={handleSelectView} compact={layout.narrow} />
           {activeView && !overlaySide && (
           <div className="gv-sidepanel" style={{ width: sideW }}>
@@ -1804,10 +1808,6 @@ function VertexApp() {
           {sidebarEl}
           </div>
         )}
-        {/* Where the composer's drawer emerges: the right edge of whatever
-            panel column exists — and the window's left edge when none does
-            (stacked). Zero width: a measuring post, not layout. */}
-        <div ref={composerAnchorRef} style={{ width: 0, alignSelf: 'stretch' }} />
         {/* The graph and the details: side by side, or — a narrow panel with
             the height for it — the details under the graph, in a column of
             their own with a horizontal splitter between them. */}

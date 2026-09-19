@@ -17,6 +17,13 @@ export interface RightPanelProps {
   selectedCommit: CommitNode | null
   onCommitSuccess: () => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
+  /**
+   * The host's confirmation — its own dialog on the desktop, VS Code's modal in
+   * the panel. Required: the staging pane asked `window.confirm`, which a VS
+   * Code webview does not show and answers `false`, so every discard in the
+   * panel stopped at its question and did nothing.
+   */
+  showConfirm: (msg: string, danger?: boolean) => Promise<boolean>
   onSelectCommit: (hash: string) => void
   currentBranch?: string
   wipCount?: number
@@ -66,7 +73,7 @@ export interface RightPanelProps {
 }
 
 export default function RightPanel({
-  repoPath, selectedCommit, onCommitSuccess, showToast, onSelectCommit, currentBranch, wipCount, onViewWip,
+  repoPath, selectedCommit, onCommitSuccess, showToast, showConfirm, onSelectCommit, currentBranch, wipCount, onViewWip,
   conflictFiles, conflictKinds, conflictMode, onConflictFinish, onConflictAbort, onOpenResolver, onOpenFileDiff, onOpenStagingEditor, githubRepo,
   onOpenFileOnRemote, onCopyFileLink, onRestoreFile, onOpenFileHistory, onCompareWorking,
   onRewordMessage, commitProposal, onCommitProposalConsumed, onExplainWorking, onSplitCommits,
@@ -117,6 +124,7 @@ export default function RightPanel({
           repoPath={repoPath}
           onCommitSuccess={onCommitSuccess}
           showToast={showToast}
+          showConfirm={showConfirm}
           currentBranch={currentBranch}
           conflictMode={allConflictsResolved ? conflictMode : null}
           conflictFiles={conflictFiles}

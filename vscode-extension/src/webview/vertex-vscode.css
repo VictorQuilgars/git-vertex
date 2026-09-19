@@ -124,6 +124,10 @@
   top: var(--pane-gap);
   bottom: var(--pane-gap);
   left: calc(var(--pane-gap) * 2 + 36px);
+  /* ⚠️ The insets decide its height, not .gv-sidepanel's 100%: that one won
+     over `bottom`, and the layer ran a gap past the cards and 8px out of the
+     window — its bottom corners cut, and the drawers measured on it too. */
+  height: auto;
   z-index: var(--z-drawer);
   min-width: 160px;
   background: var(--surface);

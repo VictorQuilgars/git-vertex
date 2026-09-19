@@ -1,7 +1,7 @@
-/* The drawer comes out of the panel's right edge and takes its full height:
-   top edge to bottom edge, flush with the surface it extends, so nothing of
-   the graph shows above or below it. That is what makes it read as the panel
-   having grown rather than as a card laid on top. */
+/* The drawer is a card of the frame: a gap right of the card it comes out of
+   (PanelDrawer.tsx places it), that card's top and bottom, the panes' radius
+   and edge. Under the flush layout the gap and the radius are 0 and the edge
+   is a line: the same rules draw the flush extension it was there. */
 /* It is PULLED out of the panel and pushed back in.
    ⚠️ Not `translateX`. Translating the box by its own width starts it 600px to
    the LEFT of the panel's edge — out by the side of the screen — and it flies
@@ -23,8 +23,11 @@
   display: flex;
   flex-direction: column;
   background: var(--surface);
-  border-right: 1px solid var(--border-muted);
-  box-shadow: 8px 0 24px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
+  border: var(--pane-edge) solid var(--border-muted);
+  border-radius: var(--pane-radius);
+  /* It lies over the graph, as the narrow panel's side view does — the same
+     shadow says the same thing. */
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
   overflow: hidden;
 }
 .pdrawer--closing { animation: pdrawer-shut var(--dur-base) ease-in forwards; }

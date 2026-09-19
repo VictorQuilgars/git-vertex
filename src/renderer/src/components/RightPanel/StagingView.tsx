@@ -119,10 +119,12 @@ export function CheckTreeRow({ node, depth, ctx }: { node: TreeNode; depth: numb
   )
 }
 
-export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff, onOpenStagingEditor, commitProposal, onProposalConsumed, onExplainWorking, onSplitCommits, embedded, branchStrip, emptyState }: {
+export function StagingView({ repoPath, onCommitSuccess, showToast, showConfirm, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff, onOpenStagingEditor, commitProposal, onProposalConsumed, onExplainWorking, onSplitCommits, embedded, branchStrip, emptyState }: {
   repoPath?: string
   onCommitSuccess: () => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
+  /** Asked before anything is thrown away — never `window.confirm` (see RightPanel). */
+  showConfirm: (msg: string, danger?: boolean) => Promise<boolean>
   currentBranch?: string
   conflictMode?: string | null
   conflictFiles?: string[]
@@ -410,7 +412,7 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranc
     const unstaged = [...changes.unstaged.map(f => f.path), ...changes.untracked.filter(f => !f.endsWith('/'))]
     const all = [...staged, ...unstaged]
     if (!all.length) return
-    if (!window.confirm(t('panel.discardAll.confirm', String(all.length)))) return
+    if (!(await showConfirm(t('panel.discardAll.confirm', String(all.length)), true))) return
     if (staged.length) await window.gitAPI.unstage(staged)
     for (const f of all) await window.gitAPI.discardFile(f)
     await load()
@@ -523,7 +525,7 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranc
   const unstageOne = (paths: string[]) =>
     handle(() => window.gitAPI.unstage(paths), true, t('toast.unstaged', paths.length))
   const discardOne = async (path: string) => {
-    if (!window.confirm(t('panel.discard.confirm', path))) return
+    if (!(await showConfirm(t('panel.discard.confirm', path), true))) return
     handle(() => window.gitAPI.discardFile(path), true, t('toast.discarded', 1))
   }
   const toggleAllStaged = () => {
@@ -555,7 +557,10 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranc
     <ContextMenu
       x={fileMenu.x} y={fileMenu.y}
       items={[
-        ...(embeddedRow ? [
+        // The panel's rows carry these as buttons that wait for the pointer (or,
+        // in the one-row layout, only this menu): on a right-click too, where a
+        // VS Code user looks for a file's actions.
+        ...(embedded ? [
           { label: t('panel.openDiff'), action: () => selectFile({ path: fileMenu.path, area: stateByPath.get(fileMenu.path) === 'staged' ? 'staged' : 'unstaged' }) },
           ...(onOpenStagingEditor ? [{ label: t('panel.hunkEditor'), action: () => onOpenStagingEditor(fileMenu.path) }] : []),
           { label: t('panel.discard'), danger: true, action: () => { void discardOne(fileMenu.path) } },
@@ -707,7 +712,8 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranc
                     const isSelected = selectedDiff?.path === f.path
                     return (
                       <div key={f.path} className={`stx-row st-clickable ${isSelected ? 'st-selected' : ''}`}
-                        onClick={() => selectFile({ path: f.path, area: staged ? 'staged' : 'unstaged' })}>
+                        onClick={() => selectFile({ path: f.path, area: staged ? 'staged' : 'unstaged' })}
+                        onContextMenu={e => openFileMenu(e, f.path)}>
                         <IndetCheckbox className="stx-check" checked={staged} indeterminate={f.state === 'partial'}
                           title={staged ? t('panel.unstaged') : t('panel.stage')}
                           onChange={() => staged ? unstageOne([f.path]) : stageOne([f.path])} />
@@ -821,7 +827,7 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranc
                             <button className="st-action st-stage" title={t('panel.stage.file', f.path)} onClick={e => { e.stopPropagation(); handle(() => window.gitAPI.stage([f.path])) }}>+</button>
                             <button className="st-action st-discard" title={t('panel.discard')} onClick={async e => {
                               e.stopPropagation()
-                              if (!window.confirm(t('panel.discard.confirm', f.path))) return
+                              if (!(await showConfirm(t('panel.discard.confirm', f.path), true))) return
                               handle(() => window.gitAPI.discardFile(f.path))
                             }}>↺</button>
                           </div>
@@ -840,7 +846,7 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranc
                               onClick={() => handle(() => window.gitAPI.stage([f]))}>+</button>
                             <button className="st-action st-discard" title={t('panel.deleteUntracked')} onClick={async e => {
                               e.stopPropagation()
-                              if (!window.confirm(t('panel.deleteUntracked.confirm', f))) return
+                              if (!(await showConfirm(t('panel.deleteUntracked.confirm', f), true))) return
                               handle(() => window.gitAPI.discardFile(f))
                             }}>🗑</button>
                           </div>

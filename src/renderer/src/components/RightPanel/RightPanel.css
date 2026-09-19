@@ -480,6 +480,13 @@
   opacity: 0; transition: opacity var(--dur-fast), background var(--dur-fast); flex-shrink: 0;
 }
 .st-file-row:hover .st-action { opacity: 1; }
+/* The panel's single list is .stx-row, list and tree alike, and the rule above
+   never reached it: a file's ↺ — the only per-file discard there — stayed
+   invisible under the pointer, and the trash, which takes everything, was all
+   that was left. On focus too, or the buttons are a mouse's only. */
+.stx-row:hover .st-action,
+.stx-row:focus-within .st-action,
+.st-action:focus-visible { opacity: 1; }
 .st-stage { background: color-mix(in srgb, var(--success-emphasis) var(--alpha-subtle), transparent); color: var(--success); }
 .st-stage:hover { background: color-mix(in srgb, var(--success-emphasis) var(--alpha-visible), transparent); }
 .st-unstage { background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); color: var(--accent); }

@@ -270,6 +270,16 @@
   .sb-on-hover { opacity: 1; }
   .sb-section-count { position: static; }
 }
+/* The VS Code panel shows one view at a time, the rail's choice: there an OPEN
+   section keeps its + on screen — creating is what the view is opened for, and
+   a button found only by passing over a title is found by those who already
+   know it is there. The count leaves the stack to sit beside it, and stays on
+   hover, so nothing moves; refresh still waits for the pointer. Folded, the
+   header is back to the rule above: its count, and the controls on hover. */
+.sidebar--single .sb-section--open > .sb-section-header .sb-add-btn--create { opacity: 1; }
+.sidebar--single .sb-section--open > .sb-section-header .sb-section-count { position: static; }
+.sidebar--single .sb-section--open > .sb-section-header:hover .sb-section-count,
+.sidebar--single .sb-section--open > .sb-section-header:focus-within .sb-section-count { opacity: 1; }
 
 /* The filter editor's opener, now beside the search field it belongs with. */
 .sb-gh-filter-btn {
