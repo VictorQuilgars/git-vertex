@@ -1,4 +1,6 @@
-import { screen, waitFor } from '@testing-library/react'
+import fs from 'fs'
+import path from 'path'
+import { screen, waitFor, fireEvent, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import RightPanel from '../RightPanel'
 import { installMockGitAPI, renderWithProviders } from '../../../__tests__/test-utils'
@@ -53,5 +55,37 @@ describe('discarding the working changes', () => {
     await waitFor(() => expect(showConfirm).toHaveBeenCalled())
     expect(api.discardFile).not.toHaveBeenCalled()
     expect(api.unstage).not.toHaveBeenCalled()
+  })
+})
+
+// One file at a time. The panel's list is .stx-row, and the stylesheet only
+// revealed a row's buttons on .st-file-row, the desktop's: the ↺ stayed
+// invisible under the pointer, the rows had no right-click menu, and the trash
+// was the only way to discard anything.
+describe('discarding one file in the panel', () => {
+  const rowOf = (file: string) => screen.getByTitle(file).closest('.stx-row') as HTMLElement
+
+  test('the row\'s ↺ asks, then discards that file only', async () => {
+    const { api, showConfirm } = render(true)
+    await waitFor(() => expect(rowOf('src/b.ts')).toBeInTheDocument())
+    await userEvent.click(within(rowOf('src/b.ts')).getByTitle('Discard changes'))
+    await waitFor(() => expect(api.discardFile).toHaveBeenCalledWith('src/b.ts'))
+    expect(api.discardFile).toHaveBeenCalledTimes(1)
+    expect(showConfirm).toHaveBeenCalledWith(expect.stringContaining('src/b.ts'), true)
+  })
+
+  test('a right-click on a row offers Discard, and it discards that file', async () => {
+    const { api } = render(true)
+    await waitFor(() => expect(rowOf('src/b.ts')).toBeInTheDocument())
+    fireEvent.contextMenu(rowOf('src/b.ts'), { clientX: 40, clientY: 40 })
+    const menu = await screen.findByRole('menu')
+    await userEvent.click(within(menu).getByText('Discard changes'))
+    await waitFor(() => expect(api.discardFile).toHaveBeenCalledWith('src/b.ts'))
+  })
+
+  // jsdom runs no stylesheet: this holds the rule the buttons depend on.
+  test('the stylesheet shows a row\'s buttons under the pointer on the panel\'s rows too', () => {
+    const css = fs.readFileSync(path.resolve(__dirname, '../RightPanel.css'), 'utf8')
+    expect(css).toMatch(/\.stx-row:hover \.st-action[^{]*\{\s*opacity:\s*1/)
   })
 })

@@ -557,7 +557,10 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, showConfirm,
     <ContextMenu
       x={fileMenu.x} y={fileMenu.y}
       items={[
-        ...(embeddedRow ? [
+        // The panel's rows carry these as buttons that wait for the pointer (or,
+        // in the one-row layout, only this menu): on a right-click too, where a
+        // VS Code user looks for a file's actions.
+        ...(embedded ? [
           { label: t('panel.openDiff'), action: () => selectFile({ path: fileMenu.path, area: stateByPath.get(fileMenu.path) === 'staged' ? 'staged' : 'unstaged' }) },
           ...(onOpenStagingEditor ? [{ label: t('panel.hunkEditor'), action: () => onOpenStagingEditor(fileMenu.path) }] : []),
           { label: t('panel.discard'), danger: true, action: () => { void discardOne(fileMenu.path) } },
@@ -709,7 +712,8 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, showConfirm,
                     const isSelected = selectedDiff?.path === f.path
                     return (
                       <div key={f.path} className={`stx-row st-clickable ${isSelected ? 'st-selected' : ''}`}
-                        onClick={() => selectFile({ path: f.path, area: staged ? 'staged' : 'unstaged' })}>
+                        onClick={() => selectFile({ path: f.path, area: staged ? 'staged' : 'unstaged' })}
+                        onContextMenu={e => openFileMenu(e, f.path)}>
                         <IndetCheckbox className="stx-check" checked={staged} indeterminate={f.state === 'partial'}
                           title={staged ? t('panel.unstaged') : t('panel.stage')}
                           onChange={() => staged ? unstageOne([f.path]) : stageOne([f.path])} />
