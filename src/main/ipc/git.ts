@@ -404,6 +404,11 @@ export function registerGitHandlers(): void {
     return state.gitService.lockWorktree(path, reason)
   })
 
+  handle('git:fetch-pull-request', async (_event, number: number, opts?: { checkout?: boolean; remote?: string }) => {
+    if (!state.gitService) return { success: false, error: 'No repo open' }
+    return state.gitService.fetchPullRequest(number, opts ?? {})
+  })
+
   handle('git:copy-worktree-changes', async (_event, from: string, to: string, label: string) => {
     if (!state.gitService) return { success: false, error: 'No repo open' }
     return state.gitService.copyWorktreeChanges(from, to, label)

@@ -2697,6 +2697,17 @@ exit 0
     return core.worktrees(this.run, opts)
   }
 
+  /**
+   * Bring a pull request's head into a local branch, fork or not (#290), and
+   * optionally land on it. Fetching without checking out is what reviewing
+   * needs: the objects, not the working tree.
+   */
+  async fetchPullRequest(number: number, opts: { checkout?: boolean; remote?: string } = {}): Promise<core.FetchPullRequestResult> {
+    const remote = opts.remote ?? (await this.getDefaultRemote()).remote
+    if (!remote) return { success: false, error: 'No remote configured' }
+    return core.fetchPullRequestHead(this.run, remote, number, { checkout: opts.checkout })
+  }
+
   /** Carry what is uncommitted in one worktree into another (#285). */
   async copyWorktreeChanges(from: string, to: string, label: string): Promise<core.CopyChangesResult> {
     return core.copyChangesToWorktree(this.run, from, to, label)

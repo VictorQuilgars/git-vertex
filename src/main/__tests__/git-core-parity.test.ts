@@ -63,6 +63,7 @@ const SHARED: Record<string, string> = {
   listFixups: 'fixupCommits',
   listWorktrees: 'worktrees',
   copyWorktreeChanges: 'copyChangesToWorktree',
+  fetchPullRequest: 'fetchPullRequestHead',
 }
 
 describe('the shared git core is what both products run', () => {

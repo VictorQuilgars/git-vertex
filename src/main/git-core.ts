@@ -1124,3 +1124,79 @@ export async function copyChangesToWorktree(
     return { success: false, leftInStash: true, error: reason(e) }
   }
 }
+
+// ── A pull request, as refs ─────────────────────────────────────
+//
+// A request whose head is a branch of this repository could be checked out
+// from Branches › REMOTE, once somebody worked out which remote branch it
+// was; one from a FORK could not be checked out at all, because its head is
+// in a repository this clone has no remote for (#290).
+//
+// GitHub publishes every request's head under the repository's own refs —
+// `refs/pull/<n>/head` — fork or not, which is the one refspec that answers
+// both cases. It is read-only: pushing back to it is not a thing, and a
+// branch made from it is an ordinary local branch with no upstream.
+
+/** The local branch a request is fetched into. Predictable, and never a name a person picked. */
+export function pullRequestBranch(number: number): string {
+  return `pr/${number}`
+}
+
+/**
+ * `refs/pull/<n>/head:<local>` — what `git fetch <remote> …` is given.
+ *
+ * `+` is deliberately absent: a forced update would rewrite a local branch
+ * somebody may have committed on. A request that was force-pushed therefore
+ * fails to fetch rather than silently taking the work with it, and the
+ * caller says so.
+ */
+export function pullRequestRefspec(number: number, local = pullRequestBranch(number)): string {
+  return `refs/pull/${number}/head:${local}`
+}
+
+export interface FetchPullRequestResult {
+  success: boolean
+  /** The local branch it landed on. */
+  branch?: string
+  /** It was already there and could not be moved — see the refspec above. */
+  diverged?: boolean
+  error?: string
+}
+
+/**
+ * Fetch a request's head into a local branch, fork or not.
+ *
+ * Fetching is separated from checking out on purpose: reviewing a request —
+ * its files, a comparison — needs the objects and not the working tree, and
+ * asking somebody to switch branches to read a diff is how a review costs a
+ * stash.
+ */
+export async function fetchPullRequestHead(
+  run: GitRunner, remote: string, number: number,
+  opts: { checkout?: boolean; local?: string } = {},
+): Promise<FetchPullRequestResult> {
+  const local = opts.local ?? pullRequestBranch(number)
+  if (!Number.isInteger(number) || number <= 0) return { success: false, error: `${number} is not a pull request number` }
+  const bad = assertRef(remote, 'remote') ?? assertRef(local, 'branch')
+  if (bad) return { success: false, error: bad }
+  try {
+    await run(['fetch', remote, pullRequestRefspec(number, local)])
+  } catch (e) {
+    const why = reason(e)
+    // git's own words for "that would not be a fast-forward" — the branch is
+    // there and holds something else, which is a decision, not a retry.
+    if (/non-fast-forward|rejected/i.test(why)) {
+      return { success: false, branch: local, diverged: true, error: `${local} already exists and has moved — delete it, or rename it, first` }
+    }
+    return { success: false, error: why }
+  }
+  if (!opts.checkout) return { success: true, branch: local }
+  try {
+    await run(['checkout', local])
+    return { success: true, branch: local }
+  } catch (e) {
+    // The head IS fetched and waiting on its branch — name it, rather than
+    // reporting the whole thing as a failure with nothing to show for it.
+    return { success: false, branch: local, error: reason(e) }
+  }
+}

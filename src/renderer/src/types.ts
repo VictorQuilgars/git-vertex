@@ -306,6 +306,8 @@ declare global {
     unlockWorktree: (path: string) => Promise<R>
     /** Stash in one worktree, apply in another — the stash is kept either way. */
     copyWorktreeChanges: (from: string, to: string, label: string) => Promise<R & { leftInStash?: boolean }>
+    /** A pull request's head as a local branch, fork included (#290). */
+    fetchPullRequest: (number: number, opts?: { checkout?: boolean; remote?: string }) => Promise<R & { branch?: string; diverged?: boolean }>
     addWorktree: (path: string, ref: string, newBranch?: string) => Promise<R>
     removeWorktree: (path: string, force?: boolean) => Promise<R>
     selectDirectory: (title?: string) => Promise<{ path: string | null }>

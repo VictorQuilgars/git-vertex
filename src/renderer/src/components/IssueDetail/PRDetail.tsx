@@ -75,12 +75,18 @@ interface Comment { author: string; createdAt: string; body: string }
 
 function api(): any { return window.gitAPI as any }
 
-export default function PRDetail({ repo, number, onClose, onChanged }: {
+export default function PRDetail({ repo, number, onClose, onChanged, onCode }: {
   repo: { owner: string; repo: string }
   number: number
   onClose: () => void
   /** After any successful write: the host refreshes the lists this came from. */
   onChanged?: () => void
+  /**
+   * The request's CODE, from the sheet as well as from its row (#290) — the
+   * sheet showed counts and no way to read a single file of what it proposes.
+   * Omitted ⇒ the buttons are not drawn.
+   */
+  onCode?: (what: 'switch' | 'worktree' | 'changes' | 'compare') => void
 }) {
   const { t } = useLang()
   const [pr, setPr] = useState<FullPR | null>(null)
@@ -333,6 +339,21 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
         <Icon name="pullRequest" size={16} />
         <span className="idv-topbar-title">{t('gh.pr.title')}</span>
         <div className="idv-spring" />
+        {/* What this request proposes, as code: the head is fetched from
+            `refs/pull/<n>/head`, a fork's included (#290). */}
+        {pr && onCode && (
+          <>
+            <button className="idv-tool" title={t('gh.pr.viewChanges')} onClick={() => onCode('changes')}>
+              <Icon name="diff" size={14} />
+            </button>
+            <button className="idv-tool" title={t('gh.pr.switchTo')} onClick={() => onCode('switch')}>
+              <Icon name="arrowSwitch" size={14} />
+            </button>
+            <button className="idv-tool" title={t('gh.pr.openInWorktree')} onClick={() => onCode('worktree')}>
+              <Icon name="worktree" size={14} />
+            </button>
+          </>
+        )}
         {pr && (
           <button className="idv-tool" title={t('gh.panel.openIn')}
             onClick={() => api().openExternal(pr.url)}>

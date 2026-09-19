@@ -108,6 +108,7 @@ const gitAPI = {
   lockWorktree: (path: string, reason?: string) => invoke('git:lock-worktree', path, reason),
   unlockWorktree: (path: string) => invoke('git:unlock-worktree', path),
   copyWorktreeChanges: (from: string, to: string, label: string) => invoke('git:copy-worktree-changes', from, to, label),
+  fetchPullRequest: (number: number, opts?: { checkout?: boolean; remote?: string }) => invoke('git:fetch-pull-request', number, opts),
   listRemoteBranches: () => invoke('git:list-remote-branches'),
   squashFixups: (base: string) => invoke('git:squash-fixups', base),
   listFixups: (base: string) => invoke('git:list-fixups', base),

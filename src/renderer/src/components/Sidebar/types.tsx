@@ -317,6 +317,16 @@ export interface SidebarProps {
    */
   githubPRs?: GithubListItem[]
   githubIssues?: GithubListItem[]
+  /**
+   * A comparison the host opens, for a pull request that has been fetched
+   * (#290). `diverged` is what the request itself shows — what the head did
+   * since the two parted — and `endpoints` is the two trees as they stand.
+   *
+   * The fetching, the switching and the worktree are the side bar's own: they
+   * are `window.gitAPI` calls with a prompt and a toast, like the stash
+   * rename beside them. Opening a view is not.
+   */
+  onComparePullRequest?: (base: string, head: string, axis: 'diverged' | 'endpoints') => void
   /** Start work on an issue: create the branch it suggests and link the two.
       Omitted ⇒ no context menu on the issue rows. */
   onStartBranchFromIssue?: (issue: { number: number; title: string; url: string }) => void

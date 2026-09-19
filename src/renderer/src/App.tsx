@@ -60,6 +60,7 @@ import { useAppTabs } from './app/useAppTabs'
 import { useAppUpdates } from './app/useAppUpdates'
 import { useAppActions } from './app/useAppActions'
 import { useAppSearch } from './app/useAppSearch'
+import { usePullRequestCode } from './hooks/usePullRequestCode'
 import './App.css'
 
 // Kept on this module for the tests and hosts that import them from here.
@@ -394,6 +395,12 @@ export default function App() {
   // beside the two side panes — computed from the panes the user actually has
   // (see utils/layout.ts), so a wide right pane counts as much as a narrow window.
   const windowWidth = useWindowWidth()
+  // A request's code, from the sheet — the same hook the side bar's rows use.
+  const pullRequestCode = usePullRequestCode({
+    t, showToast,
+    onCompare: (base, head, axis) => openViewTab({ view: 'compare', a: base, b: head, axis, label: `${base} … ${head}` }),
+    onSwitched: () => { void loadRepoData() },
+  })
   const compactDetails = !!selectedCommit && !conflictResolverFile && !rebaseHash && !viewTab && !issueDetail
     && detailsTakeCenter(windowWidth, repoPath ? sidebarW : 0, rightW)
   // The minimap's block, above the three panes; the graph draws into it.
@@ -644,6 +651,7 @@ export default function App() {
               githubIssues={githubIssues}
               onStartBranchFromIssue={handleCreateBranchFromIssue}
               onShowGithubDetail={(item, kind) => setIssueDetail({ kind, item })}
+              onComparePullRequest={(base, head, axis) => openViewTab({ view: 'compare', a: base, b: head, axis, label: `${base} … ${head}` })}
               githubDetailOpen={!!issueDetail}
               githubLogin={githubLogin}
               githubRepo={githubOwnerRepo}
@@ -961,6 +969,7 @@ export default function App() {
               number={issueDetail.item.number}
               onClose={() => setIssueDetail(null)}
               onChanged={() => { if (githubOwnerRepo) void loadGithubLists(githubOwnerRepo) }}
+              onCode={what => { void pullRequestCode(issueDetail.item, what) }}
             />
             ) : (
             <IssueDetail

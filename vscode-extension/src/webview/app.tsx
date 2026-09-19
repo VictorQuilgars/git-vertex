@@ -32,6 +32,7 @@ import type { ConflictKind, StashScope } from '../../../src/renderer/src/types'
 import Sidebar, { SidebarView, type GithubListItem } from '../../../src/renderer/src/components/Sidebar/Sidebar'
 import IssueDetail from '../../../src/renderer/src/components/IssueDetail/IssueDetail'
 import PRDetail from '../../../src/renderer/src/components/IssueDetail/PRDetail'
+import { usePullRequestCode } from '../../../src/renderer/src/hooks/usePullRequestCode'
 import ActivityRail from './ActivityRail'
 import InteractiveRebase from '../../../src/renderer/src/components/InteractiveRebase/InteractiveRebase'
 import StagingEditor from '../../../src/renderer/src/components/StagingEditor/StagingEditor'
@@ -934,6 +935,12 @@ function VertexApp() {
     seenRepoRef.current = repoPath
   }, [repoPath])
 
+  // A request's code, from the sheet — the same hook the side bar's rows use.
+  const pullRequestCode = usePullRequestCode({
+    t, showToast,
+    onCompare: (base: string, head: string, axis: 'diverged' | 'endpoints') => { void window.gitAPI.openCompare(base, head, axis) },
+    onSwitched: () => { void loadRepoData() },
+  })
   const handleSelectCommitByHash = useCallback((hash: string) => {
     const found = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
     if (found) setSelectedCommit(found)
@@ -1491,6 +1498,9 @@ function VertexApp() {
             githubIssues={githubIssues}
             onStartBranchFromIssue={handleCreateBranchFromIssue}
             onOpenGithubItem={(url) => window.gitAPI.openExternal(url)}
+            onComparePullRequest={(base: string, head: string, axis: 'diverged' | 'endpoints') => {
+              void window.gitAPI.openCompare(base, head, axis)
+            }}
             issueFor={branchMeta.issueFor}
             onToggleFavorite={branchMeta.toggleFavorite}
             onOpenBranchOnRemote={handleOpenBranchOnRemote}
@@ -1524,6 +1534,7 @@ function VertexApp() {
                 number={issueDetail.item.number}
                 onClose={() => setIssueDetail(null)}
                 onChanged={() => { if (githubRepo) void loadGhLists(githubRepo) }}
+                onCode={(what) => { void pullRequestCode(issueDetail.item, what) }}
               />
             ) : (
               <IssueDetail

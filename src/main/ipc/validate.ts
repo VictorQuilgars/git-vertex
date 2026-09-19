@@ -261,6 +261,7 @@ export const ARG_RULES: Record<string, ArgSpec[]> = {
   'git:lock-worktree': ['absPath', null],
   'git:unlock-worktree': ['absPath'],
   'git:copy-worktree-changes': ['absPath', 'absPath', null],
+  'git:fetch-pull-request': [null, { remote: 'remote' }],
   'app:open-terminal': ['absPath'],
   'app:reveal-in-file-manager': ['absPath'],
   'git:gitflow-start': [null, 'refName'],
