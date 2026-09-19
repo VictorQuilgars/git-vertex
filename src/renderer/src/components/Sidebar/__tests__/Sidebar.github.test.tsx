@@ -700,6 +700,20 @@ describe('where a section keeps its controls', () => {
     for (const b of boxes) expect(b.querySelector('.sb-gh-filter-btn')).toBeTruthy()
   })
 
+  // The VS Code panel shows one view at a time, and there an open section keeps
+  // its + on screen (Sidebar.css, `.sidebar--single`). The desktop stacks every
+  // section and keeps it on hover. jsdom runs no stylesheet: this holds the hook
+  // the rule hangs on, and that the + is the button it names.
+  test('the panel\'s one-view side bar is marked for its always-there +, the stacked one is not', () => {
+    const { container, unmount } = draw({ githubPRs: [pr(1)], githubIssues: [], view: 'prs', onStartPR: () => {} })
+    expect(container.querySelector('.sidebar')).toHaveClass('sidebar--single')
+    expect(header('PULL REQUESTS').closest('.sb-section')).toHaveClass('sb-section--open')
+    expect(header('PULL REQUESTS').querySelector('.sb-add-btn--create')).toBeInTheDocument()
+    unmount()
+    const stacked = draw({ githubPRs: [pr(1)], githubIssues: [], onStartPR: () => {} })
+    expect(stacked.container.querySelector('.sidebar')).not.toHaveClass('sidebar--single')
+  })
+
   // #273 — the drawer queries a repository; a host that did not pass one got
   // a button that opened nothing. No repository, no button.
   test('no repository to query, no filter button', () => {
