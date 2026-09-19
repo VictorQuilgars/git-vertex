@@ -26,6 +26,7 @@
 - **A message git wrote no longer outlives its operation.** Mid-merge, rebase, cherry-pick or revert, the commit form starts from the message git has already written — and when the operation was finished or aborted from a terminal, that text stayed behind as a draft nobody had typed. On a clean tree a draft keeps the form open, so the *Next steps* card never came back, and in a short panel the message field was scrolled out of sight: nothing on screen said why. git's message is now marked as git's, and goes once no operation is in progress — if it is still word for word what git wrote. Edited, it is yours, and it stays. A draft left behind before this fix is not marked, and has to be cleared by hand once.
 - **A role mark opens from anywhere between the graph's edge and its node.** The zone that opens *HEAD*, *Upstream* or *Target* stopped an avatar's width short of every node, and a merge's node is a small dot: most of the band beside it opened nothing. It reaches the node as it is drawn.
 - **A commit subject with a `|` in it is read whole.** The graph's page was read field by field on `|`, so `fix: a | b` pushed every field after it one place along — the author became half the subject, the date the author's address. The page is read on separators a message cannot hold, in one place for both products (the shared git core).
+- **A stash's preview no longer says *Invalid Date*.** Its header is a commit's, and a stash has neither an author nor a date: the header now shows only what it has. (#273)
 
 ## 1.37.0
 

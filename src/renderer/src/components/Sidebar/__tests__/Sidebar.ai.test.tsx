@@ -47,7 +47,7 @@ function renderAI(overrides: Record<string, any> = {}, api: Record<string, any> 
     subjectFor: (h: string) => h.startsWith('a') ? 'refactor: rename the thing' : undefined,
   }
   for (const k of [
-    'onOpenRepo', 'onClone', 'onSetRepo', 'onRemoveRecent', 'onCheckout', 'onCreateBranch',
+    'onOpenRepo', 'onClone', 'onSetRepo', 'onCheckout', 'onCreateBranch',
     'onDeleteBranch', 'onMergeBranch', 'onRenameBranch', 'onRebaseOnto', 'onPushBranch',
     'onDeleteRemoteBranch', 'onSetUpstream', 'onCreateStash', 'onApplyStash', 'onPopStash',
     'onDropStash', 'onRefreshStashes', 'onCreateTag', 'onDeleteTag', 'onCheckoutTag',
@@ -172,7 +172,7 @@ describe('the sidebar AI stack', () => {
       branches: [], recentRepos: [], stashes: [], tags: [],
       soloBranch: null, visibility: emptyVisibility(),
       showToast: jest.fn(), showPrompt: jest.fn(), showConfirm: jest.fn(),
-      onOpenRepo: jest.fn(), onClone: jest.fn(), onSetRepo: jest.fn(), onRemoveRecent: jest.fn(),
+      onOpenRepo: jest.fn(), onClone: jest.fn(), onSetRepo: jest.fn(),
       onCheckout: jest.fn(), onCreateBranch: jest.fn(), onDeleteBranch: jest.fn(),
       onMergeBranch: jest.fn(), onRenameBranch: jest.fn(), onRebaseOnto: jest.fn(),
       onPushBranch: jest.fn(), onDeleteRemoteBranch: jest.fn(), onSetUpstream: jest.fn(),
@@ -291,7 +291,7 @@ describe('the readings kept beside the changelogs', () => {
       showToast: jest.fn(), showPrompt: jest.fn(), showConfirm: jest.fn(),
       tab: 'list',
     }
-    for (const k of ['onOpenRepo', 'onClone', 'onSetRepo', 'onRemoveRecent', 'onCheckout',
+    for (const k of ['onOpenRepo', 'onClone', 'onSetRepo', 'onCheckout',
       'onCreateBranch', 'onDeleteBranch', 'onMergeBranch', 'onRenameBranch', 'onRebaseOnto',
       'onPushBranch', 'onDeleteRemoteBranch', 'onSetUpstream', 'onCreateStash', 'onApplyStash',
       'onPopStash', 'onDropStash', 'onRefreshStashes', 'onCreateTag', 'onDeleteTag',

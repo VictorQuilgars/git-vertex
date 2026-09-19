@@ -14,7 +14,7 @@ const base: any = {
   repoPath: '/r', repoName: 'r', currentBranch: 'feature/here', branches: [], recentRepos: [],
   stashes: [], tags: [], soloBranch: null, visibility: emptyVisibility(),
   showToast: () => {}, showPrompt: async () => null, showConfirm: async () => true,
-  onOpenRepo: () => {}, onClone: () => {}, onSetRepo: () => {}, onRemoveRecent: () => {},
+  onOpenRepo: () => {}, onClone: () => {}, onSetRepo: () => {},
   onCheckout: () => {}, onCreateBranch: () => {}, onDeleteBranch: () => {},
   onMergeBranch: () => {}, onRenameBranch: () => {}, onRebaseOnto: () => {},
   onPushBranch: () => {}, onDeleteRemoteBranch: () => {}, onSetUpstream: () => {},

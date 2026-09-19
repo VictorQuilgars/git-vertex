@@ -683,7 +683,6 @@ export default function App() {
               onOpenRepo={handleOpenRepo}
               onClone={() => setCloneOpen(true)}
               onSetRepo={handleSetRepo}
-              onRemoveRecent={handleRemoveRecent}
               onCheckout={handleCheckout}
               onGoTo={handleGoTo}
               onCreateBranch={handleCreateBranch}

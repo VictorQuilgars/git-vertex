@@ -102,7 +102,6 @@ export interface SidebarProps {
   onOpenRepo: () => void
   onClone: () => void
   onSetRepo: (path: string) => void
-  onRemoveRecent: (path: string) => void
   onCheckout: (name: string) => void
   onCreateBranch: () => void
   onDeleteBranch: (name: string) => void

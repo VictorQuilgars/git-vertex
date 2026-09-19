@@ -750,6 +750,35 @@ export class GitVertexHost implements vscode.Disposable {
         if (target && target !== this._repoPath) this.onSwitchRepo?.(target)
         return { success: true }
       }
+      case 'openWorktree': {
+        // The desktop's "Open" puts the worktree on screen in place of the
+        // repository. Here the repository is the workspace's: a worktree that
+        // is one of its folders is switched to, like the toolbar's picker
+        // does; any other opens in a window of its own, which leaves this one
+        // — its editors, its layout — as it was (#273).
+        const target = String(args[0] ?? '')
+        if (!target) return { success: false, error: 'No worktree path' }
+        const real = (p: string) => { try { return fs.realpathSync(p) } catch { return path.resolve(p) } }
+        const wanted = real(target)
+        if (this._repoPath && real(this._repoPath) === wanted) return { success: true, opened: 'here' }
+        const folder = (vscode.workspace.workspaceFolders ?? [])
+          .map(f => getRepoRootForFile(f.uri.fsPath))
+          .find(root => !!root && real(root) === wanted)
+        if (folder && this.onSwitchRepo) { this.onSwitchRepo(folder); return { success: true, opened: 'panel' } }
+        try {
+          await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(target), { forceNewWindow: true })
+        } catch (e: any) {
+          return { success: false, error: e?.message ?? String(e) }
+        }
+        return { success: true, opened: 'window' }
+      }
+      // A stash's contents, in a tab — the desktop opens the same view as one.
+      case 'openStashTab': {
+        if (this._repoPath && typeof args[0] === 'number') {
+          openGitVertexStashTab(this._extensionUri, this._state, this._repoPath, args[0], String(args[1] ?? ''))
+        }
+        return { success: true }
+      }
       case 'historyFollow': {
         // Only a history tab can follow, and only while it has a panel to
         // retitle; the registry is what the editor's changes are fanned out to.
@@ -1821,6 +1850,47 @@ export function openGitVertexCompareWorkingTab(
     compareWorkingPanels.delete(hash)
   })
   compareWorkingPanels.set(hash, panel)
+}
+
+// ── Stash tabs (one WebviewPanel per stash) ────────────────────────
+// The side bar's preview of a stash — the desktop opens it as a view tab, and
+// this is the panel's tab. Keyed by the message as well as the index: a stash
+// pushed or dropped moves the indexes, and `stash@{0}` is then another stash.
+const STASH_VIEW_TYPE = 'gitVertex.stash'
+const stashPanels = new Map<string, vscode.WebviewPanel>()
+
+export function openGitVertexStashTab(
+  extensionUri: vscode.Uri,
+  state: vscode.Memento,
+  repoPath: string,
+  index: number,
+  message: string,
+): void {
+  const key = `${repoPath}\0${index}\0${message}`
+  const existing = stashPanels.get(key)
+  if (existing) { existing.reveal(existing.viewColumn); return }
+
+  const panel = vscode.window.createWebviewPanel(
+    STASH_VIEW_TYPE,
+    `Stash #${index}`,
+    vscode.ViewColumn.Active,
+    {
+      enableScripts: true,
+      retainContextWhenHidden: true,
+      localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')],
+    },
+  )
+  panel.iconPath = vscode.Uri.joinPath(extensionUri, 'images', 'icon.png')
+
+  const host = new GitVertexHost(panel.webview, extensionUri, state,
+    { mode: 'stash', stashIndex: index, stashMessage: message }, () => panel.dispose())
+  host.setRepo(repoPath)
+
+  panel.onDidDispose(() => {
+    host.dispose()
+    stashPanels.delete(key)
+  })
+  stashPanels.set(key, panel)
 }
 
 // The rich 3-way ConflictResolver (A/B line picking + base + manual edit) now

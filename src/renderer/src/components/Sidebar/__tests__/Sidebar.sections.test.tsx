@@ -31,7 +31,7 @@ function draw() {
     showToast: jest.fn(), showPrompt: jest.fn(), showConfirm: jest.fn(),
   }
   for (const k of [
-    'onOpenRepo', 'onClone', 'onSetRepo', 'onRemoveRecent', 'onCheckout', 'onCreateBranch',
+    'onOpenRepo', 'onClone', 'onSetRepo', 'onCheckout', 'onCreateBranch',
     'onDeleteBranch', 'onMergeBranch', 'onRenameBranch', 'onRebaseOnto', 'onPushBranch',
     'onDeleteRemoteBranch', 'onSetUpstream', 'onCreateStash', 'onApplyStash', 'onPopStash',
     'onDropStash', 'onRefreshStashes', 'onCreateTag', 'onDeleteTag', 'onCheckoutTag', 'onGoTo',
