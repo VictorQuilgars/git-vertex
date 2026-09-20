@@ -182,3 +182,69 @@ describe('a stash row (#287)', () => {
     expect(p.onPreviewStash).toHaveBeenCalledWith(0, 'stash@{0}: WIP on main: cache keys')
   })
 })
+
+
+describe('worktree branch menus (#286)', () => {
+  test.each([
+    ['Push', 'onPushBranch'],
+    ['Rename', 'onRenameBranch'],
+    ['Set Upstream (origin)', 'onSetUpstream'],
+  ])('%s acts on the worktree branch, not the current branch', async (label, handler) => {
+    const p = draw({ view: 'worktrees' })
+    await menuOn(await screen.findByText('/wt/review'))
+    const labels = menuLabels()
+    expect(labels.indexOf(label)).toBeGreaterThan(labels.indexOf('Delete Worktree'))
+    await userEvent.click(screen.getByText(label))
+    expect(p[handler]).toHaveBeenCalledWith('feat/cards')
+  })
+
+  test.each([
+    ['Compare', 'Compare with "main"', 'onCompareBranch'],
+    ['Graph Display', 'Solo — Show Only This Branch', 'onToggleSolo'],
+  ])('%s targets the worktree branch', async (submenu, label, handler) => {
+    const p = draw({ view: 'worktrees' })
+    await menuOn(await screen.findByText('/wt/review'))
+    await openSub(submenu)
+    await userEvent.click(screen.getByText(label))
+    expect(p[handler]).toHaveBeenCalledWith('feat/cards')
+  })
+
+  test('the active worktree uses the current branch actions', async () => {
+    const onPull = jest.fn()
+    const p = draw({ view: 'worktrees', onPull })
+    await menuOn(await screen.findByText('/repo'))
+    expect(menuLabels()).not.toContain('Switch to Branch')
+    await userEvent.click(screen.getByText('Pull'))
+    expect(onPull).toHaveBeenCalledTimes(1)
+    expect(p.onGoTo).not.toHaveBeenCalled()
+  })
+
+  // The branch menu's "go there" block is the one part a worktree row already
+  // answers: Open IS opening its worktree, and git refuses both a switch to a
+  // branch a worktree holds and a second worktree for it.
+  test('says nothing the row above it already says, and nothing git would refuse', async () => {
+    draw({ view: 'worktrees' })
+    await menuOn(await screen.findByText('/wt/review'))
+    const labels = menuLabels()
+    expect(labels).not.toContain('Switch to Branch')
+    expect(labels.filter(l => /worktree/i.test(l))).toEqual(['Delete Worktree'])
+  })
+
+  test('a detached worktree keeps only its worktree actions', async () => {
+    // What git-core calls a worktree on no branch — it matches no branch name.
+    draw({ view: 'worktrees' }, { listWorktrees: jest.fn().mockResolvedValue({
+      worktrees: [{ ...WORKTREES[1], branch: '(detached)' }],
+    }) })
+    await menuOn(await screen.findByText('/wt/review'))
+    expect(menuLabels()).toEqual(['Open', 'Reveal in File Manager', 'Open Terminal Here', 'Copy Path', 'Unlock', 'Delete Worktree'])
+  })
+
+  test('the pull request intent belongs to the worktree branch', async () => {
+    const intent = { head: 'feat/cards', headLabel: 'feat/cards', baseLabel: 'main', needsPush: false }
+    const onCreatePR = jest.fn()
+    draw({ view: 'worktrees', prIntentFor: (branch: string) => branch === 'feat/cards' ? intent : null, onCreatePR })
+    await menuOn(await screen.findByText('/wt/review'))
+    await userEvent.click(screen.getByText(/pull request.*feat\/cards/i))
+    expect(onCreatePR).toHaveBeenCalledWith(intent)
+  })
+})

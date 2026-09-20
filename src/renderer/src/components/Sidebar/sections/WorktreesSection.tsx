@@ -1,7 +1,21 @@
 // Sidebar › worktrees. Reads its slice of the sidebar's state; the state itself lives in useSidebar.
 import { Section } from '../Section'
 import { WorktreeItem } from '../rows'
+import { localBranchProps } from '../localBranchProps'
+import { branchItemMenu, type BranchItemProps } from '../BranchItem'
 import type { SidebarState } from '../useSidebar'
+
+/**
+ * The branch menu as a worktree row offers it (#286).
+ *
+ * Its "go there" block is dropped whole: the row's own entries already open
+ * this worktree, and a branch checked out here cannot be given a second one —
+ * `git worktree add` refuses a branch another tree holds. `checkedOutIn` stays
+ * so nothing offers the switch git would refuse either.
+ */
+function forWorktreeRow(p: BranchItemProps): BranchItemProps {
+  return { ...p, onCheckout: undefined, onOpenItsWorktree: undefined, onCreateWorktreeFor: undefined }
+}
 
 export function WorktreesSection({ s }: { s: SidebarState }) {
   const { onSetRepo, onReveal, onViewWip, repoPath, single, t, agentsFor, handleAddWorktree, handleRemoveWorktree, filteredWorktrees, handleWorktreeTerminal, handleWorktreeReveal, handleToggleWorktreeLock, handleCopyChangesTo } = s
@@ -11,11 +25,19 @@ export function WorktreesSection({ s }: { s: SidebarState }) {
             {filteredWorktrees.length === 0
               ? <div className="sb-empty">{t('sb.noWorktree')}</div>
               : filteredWorktrees.map(wt => {
+                  // A detached worktree is on no branch — git-core names that
+                  // state `(detached)`, which is not a branch and matches none.
+                  const branch = wt.branch && wt.branch !== '(detached)'
+                    ? s.branches.find(b => !b.remote && b.name === wt.branch)
+                    : undefined
                   const active = !!repoPath && wt.path === repoPath
                   return (
                     <WorktreeItem
                       key={wt.path}
                       wt={wt}
+                      // Everything the branch checked out here can do, after
+                      // what the worktree itself can (#286).
+                      branchMenuItems={branch ? branchItemMenu(forWorktreeRow(localBranchProps(s, branch)), t) : undefined}
                       active={active}
                       agents={agentsFor(wt.path)}
                       onOpen={() => onSetRepo(wt.path)}

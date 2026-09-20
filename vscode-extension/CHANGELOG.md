@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- **A worktree row carries its branch's menu.** The row knew which branch the worktree held and offered nothing about it: syncing that branch, giving it an upstream, renaming it, comparing it or opening its pull request meant going back to Branches and finding it again. A right-click on a worktree now offers **the branch's own menu, after the worktree's own entries** — push, upstream, merge, rebase, rename, delete, compare, the pull request, graph display — built by the same builder the branch row uses, so an action sits in the same place whichever row was clicked. What the row above it already answers is left out: its **Open** *is* opening that worktree, and git refuses both a switch to a branch another worktree holds and a second worktree for one. A **detached** worktree is on no branch, and keeps its worktree entries alone. (#286)
+
 ## 1.36.0
 
 ### Added

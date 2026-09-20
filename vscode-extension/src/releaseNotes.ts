@@ -16,6 +16,11 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🌳 A worktree row carries its branch's menu
+- Right-click a worktree: **everything its branch can do** is there, after the worktree's own entries — push, upstream, merge, rebase, rename, compare, the pull request, graph display. Syncing or renaming the branch a worktree held used to mean finding it again in Branches. A **detached** worktree keeps its worktree entries alone.
+`,
   '1.36.0': `## What's new in 1.36.0
 
 ### 🪄 Resolve every conflict with the model

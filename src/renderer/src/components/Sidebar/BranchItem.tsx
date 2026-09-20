@@ -17,7 +17,8 @@ export interface BranchItemProps {
   current: boolean
   remote?: boolean
   currentBranch: string
-  onCheckout: () => void
+  /** Absent where switching is not on offer — a worktree row's menu (#286). */
+  onCheckout?: () => void
   onDelete?: () => void
   onMerge?: () => void
   onRename?: () => void
@@ -83,20 +84,16 @@ export interface BranchItemProps {
   onCreateWorktreeFor?: () => void
 }
 
-export function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, hidden, favorite, issue, onPull, onToggleSolo, onToggleHide, onToggleFavorite, onOpenOnRemote, onAssociateIssue, onExplain, onChangelog, onReveal, onOpenCard, onPublish, onFetch, onPullBranch, onChangeUpstream, onRebaseOntoUpstream, onSquashFixups, onHideRemote, onCompareUpstream, tip, tipActions, checkedOutIn, onOpenItsWorktree, onCreateWorktreeFor, pr, onCreatePR, publishedAs, onCopyLink, onDeleteBoth, ahead = 0, behind = 0, gone = false, showRemotePrefix = false, displayAs }: BranchItemProps) {
-  const [hover, setHover] = useState(false)
-  const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
-  const { t } = useLang()
+export function branchItemMenu({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, hidden, favorite, issue, onPull, onToggleSolo, onToggleHide, onToggleFavorite, onOpenOnRemote, onAssociateIssue, onExplain, onChangelog, onPullBranch, onChangeUpstream, onRebaseOntoUpstream, onSquashFixups, onHideRemote, onCompareUpstream, tip, tipActions, checkedOutIn, onOpenItsWorktree, onCreateWorktreeFor, pr, onCreatePR, publishedAs, onCopyLink, onDeleteBoth, showRemotePrefix = false }: BranchItemProps, t: ReturnType<typeof useLang>['t']): MenuItemDef[] {
   const fullDisplay = remote
     ? (showRemotePrefix ? name.replace(/^remotes\//, '') : name.replace(/^remotes\/[^/]+\//, ''))
     : name
-  // The menu, the ref and copy-name all keep the full name; only what the eye
-  // reads is shortened by the tree.
-  const display = displayAs ?? fullDisplay
 
+  // Whatever the tree shortens on the row, the menu, the ref and copy-name all
+  // keep the full name.
   // Same builder the toolbars use — right-click here and the ⋮ button up there
   // now offer the identical menu (v1.21.0).
-  const menuItems: MenuItemDef[] = buildBranchMenu(
+  return buildBranchMenu(
     { name, display: fullDisplay, current, remote: !!remote, pr: pr ?? undefined, publishedAs, checkedOutIn },
     { currentBranch, soloed, hidden, favorite, issue },
     {
@@ -118,6 +115,21 @@ export function BranchItem({ name, current, remote, currentBranch, onCheckout, o
     // The tip's own actions, in the slots the graph fills from its row (#281).
     tip && tipActions ? branchTipExtras(tip, current, tipActions, t) : {}
   )
+}
+
+export function BranchItem(props: BranchItemProps) {
+  const { name, current, remote, onCheckout, onPush, soloed, hidden, favorite, issue, onPull, onReveal, onOpenCard, onPublish, onFetch, onPullBranch, checkedOutIn, onOpenItsWorktree, publishedAs, ahead = 0, behind = 0, gone = false, showRemotePrefix = false, displayAs } = props
+  const [hover, setHover] = useState(false)
+  const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
+  const { t } = useLang()
+  const fullDisplay = remote
+    ? (showRemotePrefix ? name.replace(/^remotes\//, '') : name.replace(/^remotes\/[^/]+\//, ''))
+    : name
+  // The menu, the ref and copy-name all keep the full name; only what the eye
+  // reads is shortened by the tree.
+  const display = displayAs ?? fullDisplay
+
+  const menuItems = branchItemMenu(props, t)
 
   // One click takes the graph to the tip, the double-click still switches —
   // and takes back the reveal the first press armed (#275).
@@ -162,7 +174,7 @@ export function BranchItem({ name, current, remote, currentBranch, onCheckout, o
             // that row opens the worktree instead (#285).
             switch: current ? undefined : () => {
               click.cancel()
-              if (checkedOutIn && onOpenItsWorktree) onOpenItsWorktree(); else onCheckout()
+              if (checkedOutIn && onOpenItsWorktree) onOpenItsWorktree(); else onCheckout?.()
             },
             // `onPull` is the checked-out branch's pull; `onPullBranch` is the
             // fast-forward for one you are not standing on (#280). To the eye
