@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+     stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+  <!-- switchBranch — Git Vertex icon set. Grid 24, stroke 1.7, round caps.
+       The lane you are on, and a move off it: what a checkout does. The
+       arrow stands CLEAR of the lane — drawn from it, the two fused into
+       one bracket at 12px. Two shapes, and NO node — the set's own floor rule says a node under 13px
+       is a blob, and this is drawn at 12 on a side bar row (token-discipline
+       holds that rule). Deliberately not the branch mark beside it on the row,
+       which forks from nodes, and not a tick, which the row already wears to
+       say "current".
+       It replaces arrowSwitch, a 16-grid silhouette whose open paths were
+       declared filled: it rendered as a blob at any size.
+       EDIT THIS FILE to change the icon — components/Icon reads the folder.
+       Do not put stroke-width on a shape: the component sets it. -->
+  <path d="M5.5 4v16"/>
+  <path d="M10 12h8"/>
+  <path d="M14.6 8.6L18 12l-3.4 3.4"/>
+</svg>

@@ -162,7 +162,12 @@ export function BranchItem({ name, current, remote, currentBranch, onCheckout, o
               click.cancel()
               if (checkedOutIn && onOpenItsWorktree) onOpenItsWorktree(); else onCheckout()
             },
-            pull: onPull, push: onPush, publish: onPublish, fetch: onFetch,
+            // `onPull` is the checked-out branch's pull; `onPullBranch` is the
+            // fast-forward for one you are not standing on (#280). To the eye
+            // they are the same act — bring this branch up to date — so the
+            // row draws one icon and calls whichever it was given.
+            pull: onPull ?? onPullBranch,
+            push: onPush, publish: onPublish, fetch: onFetch,
           }} />
         {/* Hover affordance for the whole menu rather than the lone delete
             cross it replaces — right-click was the only way in before, which

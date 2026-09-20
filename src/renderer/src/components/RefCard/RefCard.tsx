@@ -457,10 +457,10 @@ export default function RefCard(props: RefCardProps) {
               // Only the rows that apply, and the heading only when one does.
               const rows = React.Children.toArray(<>
                 {target.kind === 'head' && !isCurrent && !worktree && props.onSwitch && (
-                  <Step icon="arrowSwitch" label={t('refcard.step.switch', target.name)} button={t('refcard.switch')} onClick={() => props.onSwitch!(target.name)} />
+                  <Step icon="switchBranch" label={t('refcard.step.switch', target.name)} button={t('refcard.switch')} onClick={() => props.onSwitch!(target.name)} />
                 )}
                 {isRemote && props.onSwitch && (
-                  <Step icon="arrowSwitch" label={t('refcard.step.switch', target.name)} button={t('refcard.switch')} onClick={() => props.onSwitch!(target.name)} />
+                  <Step icon="switchBranch" label={t('refcard.step.switch', target.name)} button={t('refcard.switch')} onClick={() => props.onSwitch!(target.name)} />
                 )}
                 {worktree && <div className="refcard-step refcard-step--fact"><Icon name="worktree" size={14} className="refcard-step-icon" /><span className="refcard-step-label">{t('refcard.inWorktree', worktree)}</span></div>}
                 {!isTag && pr && props.onOpenPR && (
@@ -484,7 +484,7 @@ export default function RefCard(props: RefCardProps) {
                   <Step icon="newBranch" label={t('refcard.step.branchFromTag', target.name)} button={t('refcard.createBranch')} onClick={() => props.onCreateBranchAt!(tag?.commit ?? target.hash)} />
                 )}
                 {isTag && props.onCheckoutTag && (
-                  <Step icon="arrowSwitch" label={t('refcard.step.checkoutTag', target.name)} button={t('refcard.switch')} onClick={() => props.onCheckoutTag!(target.name)} />
+                  <Step icon="switchBranch" label={t('refcard.step.checkoutTag', target.name)} button={t('refcard.switch')} onClick={() => props.onCheckoutTag!(target.name)} />
                 )}
                 {isTag && props.onPushTag && !(onRemote !== 'asking' && onRemote.pushed === true) && (
                   <Step icon="push" label={t('refcard.step.pushTag', target.name)} button={t('refcard.pushTag')} onClick={() => props.onPushTag!(target.name)} />

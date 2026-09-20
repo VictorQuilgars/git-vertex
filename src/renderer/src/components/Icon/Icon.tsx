@@ -41,7 +41,6 @@ import activity from './icons/activity.svg'
 import agent from './icons/agent.svg'
 import ai from './icons/ai.svg'
 import arrowRight from './icons/arrowRight.svg'
-import arrowSwitch from './icons/arrowSwitch.svg'
 import bell from './icons/bell.svg'
 import blame from './icons/blame.svg'
 import book from './icons/book.svg'
@@ -107,6 +106,7 @@ import sliders from './icons/sliders.svg'
 import sort from './icons/sort.svg'
 import staging from './icons/staging.svg'
 import stash from './icons/stash.svg'
+import switchBranch from './icons/switchBranch.svg'
 import tag from './icons/tag.svg'
 import terminal from './icons/terminal.svg'
 import trash from './icons/trash.svg'
@@ -115,7 +115,7 @@ import worktree from './icons/worktree.svg'
 import wrench from './icons/wrench.svg'
 
 const SOURCE: Record<string, string> = {
-  activity, agent, ai, arrowRight, arrowSwitch, bell, blame, book, branch,
+  activity, agent, ai, arrowRight, bell, blame, book, branch,
   caretDown, check, chevronDown, chevronLeft, chevronRight, clock, cloud,
   commandPalette, comment, commit, compare, conflict, copy, device, diff,
   download, editor, externalLink, eye, eyeOff, folder, gear, gitflow,
@@ -123,7 +123,7 @@ const SOURCE: Record<string, string> = {
   layoutRight, layoutRightOff, link, list, listTree, mail,
   merge, newBranch, node, panel, pencil, person, play, plus, pop,
   pullRequest, push, rebase, redo, reflog, refresh, repo, rocket, search,
-  shield, sliders, sort, staging, stash, tag, terminal, trash, undo,
+  shield, sliders, sort, staging, stash, switchBranch, tag, terminal, trash, undo,
   worktree, wrench,
 }
 

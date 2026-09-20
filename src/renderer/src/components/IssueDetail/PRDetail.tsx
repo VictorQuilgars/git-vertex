@@ -347,7 +347,7 @@ export default function PRDetail({ repo, number, onClose, onChanged, onCode }: {
               <Icon name="diff" size={14} />
             </button>
             <button className="idv-tool" title={t('gh.pr.switchTo')} onClick={() => onCode('switch')}>
-              <Icon name="arrowSwitch" size={14} />
+              <Icon name="switchBranch" size={14} />
             </button>
             <button className="idv-tool" title={t('gh.pr.openInWorktree')} onClick={() => onCode('worktree')}>
               <Icon name="worktree" size={14} />
@@ -393,7 +393,7 @@ export default function PRDetail({ repo, number, onClose, onChanged, onCode }: {
               </span>
               <span className="idv-refs">
                 <code>{pr.headRef}</code>
-                <Icon name="arrowSwitch" size={10} />
+                <Icon name="arrowRight" size={10} />
                 <code>{pr.baseRef}</code>
               </span>
               <span className="idv-byline">

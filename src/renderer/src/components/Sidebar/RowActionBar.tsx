@@ -11,9 +11,13 @@ import type { RowActionId } from './rowActions'
 const LOOK: Record<RowActionId, { icon: IconName; key: string; danger?: boolean }> = {
   pull: { icon: 'download', key: 'sb.row.pull' },
   push: { icon: 'push', key: 'sb.row.push' },
-  publish: { icon: 'cloud', key: 'sb.row.publish' },
+  // Publishing IS a push — `push --set-upstream`. The cloud said "the
+  // remote", which is the section's own mark, not an act. The two never
+  // appear on one row (a branch has an upstream or it has not), so one
+  // arrow for both reads as the same gesture rather than as two.
+  publish: { icon: 'push', key: 'sb.row.publish' },
   fetch: { icon: 'refresh', key: 'sb.row.fetch' },
-  switch: { icon: 'arrowSwitch', key: 'sb.row.switch' },
+  switch: { icon: 'switchBranch', key: 'sb.row.switch' },
   open: { icon: 'externalLink', key: 'sb.row.open' },
   apply: { icon: 'download', key: 'sb.row.apply' },
   pop: { icon: 'pop', key: 'sb.row.pop' },
