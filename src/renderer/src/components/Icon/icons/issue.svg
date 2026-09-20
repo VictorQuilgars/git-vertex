@@ -1,11 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
      stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
   <!-- issue — Git Vertex icon set. Grid 24, stroke 1.7, round caps.
-       Nodes are open rings, arrival points filled: the mark's own vocabulary.
+       A ring around a filled node, which is the shape every forge draws an
+       open issue as. It used to be a ring around a stroke and a dot — a "!"
+       in a circle — which is `info` to the pixel: side by side on a row, the
+       two could not be told apart, and one of them is a button.
+       Nodes are filled discs here, so this one is in NODED (Icon.tsx): under
+       13px the disc falls below three device pixels and smudges.
        EDIT THIS FILE to change the icon — components/Icon reads the folder.
        Do not put stroke-width on a shape: the component sets it, growing it
        as the icon shrinks so a 1.7 stroke never falls under a pixel. -->
   <circle cx="12" cy="12" r="7.5"/>
-  <path d="M12 8v4.5"/>
-  <circle cx="12" cy="15.8" r="1" fill="currentColor" stroke="none"/>
+  <circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none"/>
 </svg>

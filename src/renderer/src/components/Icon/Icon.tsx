@@ -45,6 +45,7 @@ import bell from './icons/bell.svg'
 import blame from './icons/blame.svg'
 import book from './icons/book.svg'
 import branch from './icons/branch.svg'
+import card from './icons/card.svg'
 import caretDown from './icons/caretDown.svg'
 import check from './icons/check.svg'
 import chevronDown from './icons/chevronDown.svg'
@@ -116,7 +117,7 @@ import wrench from './icons/wrench.svg'
 
 const SOURCE: Record<string, string> = {
   activity, agent, ai, arrowRight, bell, blame, book, branch,
-  caretDown, check, chevronDown, chevronLeft, chevronRight, clock, cloud,
+  card, caretDown, check, chevronDown, chevronLeft, chevronRight, clock, cloud,
   commandPalette, comment, commit, compare, conflict, copy, device, diff,
   download, editor, externalLink, eye, eyeOff, folder, gear, gitflow,
   history, home, hunk, info, ink, issue, kebab, layoutBottom, layoutBottomOff,
@@ -183,6 +184,8 @@ const DENSE = new Set<string>(['hunk', 'commandPalette'])
 const NODED = new Set<string>([
   'branch', 'newBranch', 'merge', 'rebase', 'pullRequest',
   'worktree', 'gitflow', 'reflog', 'blame',
+  // A ring around a filled node — the forge's open-issue mark.
+  'issue',
 ])
 
 /**

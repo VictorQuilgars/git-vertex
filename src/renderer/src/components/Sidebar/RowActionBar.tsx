@@ -18,7 +18,7 @@ const LOOK: Record<RowActionId, { icon: IconName; key: string; danger?: boolean 
   publish: { icon: 'push', key: 'sb.row.publish' },
   fetch: { icon: 'refresh', key: 'sb.row.fetch' },
   switch: { icon: 'switchBranch', key: 'sb.row.switch' },
-  card: { icon: 'info', key: 'sb.row.card' },
+  card: { icon: 'card', key: 'sb.row.card' },
   open: { icon: 'externalLink', key: 'sb.row.open' },
   apply: { icon: 'download', key: 'sb.row.apply' },
   pop: { icon: 'pop', key: 'sb.row.pop' },
