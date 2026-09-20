@@ -352,6 +352,8 @@ const fr = {
   'builder.seed.conflict': 'Conflits',
   'builder.seed.lane': (n: number) => `Lane ${n}`,
   'notifs.openJournal': "Relire cette erreur dans le journal du dépôt",
+  'toast.details': 'Afficher les détails',
+  'toast.hideDetails': 'Masquer les détails',
   'notifs.openJournalShort': 'Journal',
 
   // CommitGraph
@@ -2609,6 +2611,8 @@ const en: typeof fr = {
   'builder.seed.conflict': 'Conflicts',
   'builder.seed.lane': (n: number) => `Lane ${n}`,
   'notifs.openJournal': 'Read this error again in the repository journal',
+  'toast.details': 'Show details',
+  'toast.hideDetails': 'Hide details',
   'notifs.openJournalShort': 'Journal',
 
   // CommitGraph

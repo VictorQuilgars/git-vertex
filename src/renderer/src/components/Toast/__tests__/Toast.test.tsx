@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ToastProvider, useToast, TOAST_TIMEOUT, TOAST_ACTION_TIMEOUT, TOAST_STACK_MAX } from '../Toast'
 import { installMockGitAPI, renderWithProviders } from '../../../__tests__/test-utils'
@@ -17,6 +17,7 @@ function Harness() {
       <button onClick={() => toast.success('Branch created')}>ok</button>
       <button onClick={() => toast.error('Push refused')}>bad</button>
       <button onClick={() => toast.info('Fetching')}>note</button>
+      <button onClick={() => toast.error('Push refused\nfatal: remote rejected the update')}>long-error</button>
       <button onClick={() => toast.success('Committed', { label: 'Undo', onClick: () => {} })}>act</button>
       <button onClick={() => toast.error('Held', undefined, false)}>bad-timed</button>
     </div>
@@ -56,11 +57,12 @@ describe('a chip appears, and says which outcome it is', () => {
 
   // No aria-live anywhere in the renderer was the finding. The container has
   // to exist before the message lands in it, or nothing is announced.
-  test('the stack is a live region that is there before the message', () => {
+  test('the stack is a live region that is there before the message', async () => {
     const { container } = draw()
     const stack = container.querySelector('.chip-stack')
     expect(stack).toBeInTheDocument()
     expect(stack).toHaveAttribute('aria-live', 'polite')
+    await act(async () => {})
   })
 
   test('the type is on the chip, so the icon can carry the colour', async () => {
@@ -208,5 +210,63 @@ describe('the rule: a mutating action confirms', () => {
     expect(chip.closest('.chip')).toHaveClass('chip--error')
     elapse(TOAST_ACTION_TIMEOUT * 10)
     expect(screen.getByText('index.lock exists')).toBeInTheDocument()
+  })
+})
+
+
+describe('reading and interacting with notifications', () => {
+  test('hover pauses the remaining time instead of restarting it', async () => {
+    draw()
+    await click('ok')
+    elapse(3000)
+    const chip = screen.getByRole('status')
+    fireEvent.mouseEnter(chip)
+    elapse(10000)
+    expect(chip).toBeInTheDocument()
+    fireEvent.mouseLeave(chip)
+    elapse(999)
+    expect(chip).toBeInTheDocument()
+    elapse(2)
+    expect(chip).not.toBeInTheDocument()
+  })
+
+  test('leaving with the pointer does not expire a keyboard-focused action', async () => {
+    draw()
+    await click('act')
+    const chip = screen.getByRole('status')
+    fireEvent.mouseEnter(chip)
+    act(() => screen.getByText('Undo').focus())
+    fireEvent.mouseLeave(chip)
+    elapse(TOAST_ACTION_TIMEOUT * 2)
+    expect(chip).toBeInTheDocument()
+    act(() => screen.getByText('ok').focus())
+    elapse(TOAST_ACTION_TIMEOUT + 1)
+    expect(chip).not.toBeInTheDocument()
+  })
+
+  test('repeated feedback remains paused while being read', async () => {
+    draw()
+    await click('ok')
+    const chip = screen.getByRole('status')
+    fireEvent.mouseEnter(chip)
+    await click('ok')
+    elapse(TOAST_TIMEOUT * 2)
+    expect(screen.getByText('×2')).toBeInTheDocument()
+    fireEvent.mouseLeave(chip)
+    elapse(TOAST_TIMEOUT + 1)
+    expect(chip).not.toBeInTheDocument()
+  })
+
+  test('long errors expose their complete output on demand', async () => {
+    draw()
+    await click('long-error')
+    const details = document.querySelector('details')!
+    expect(details.open).toBe(false)
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    await user.click(details.querySelector('summary')!)
+    expect(details.open).toBe(true)
+    expect(details.querySelector('.chip-output')).toHaveTextContent('fatal: remote rejected the update')
+    elapse(TOAST_ACTION_TIMEOUT * 2)
+    expect(details).toBeInTheDocument()
   })
 })

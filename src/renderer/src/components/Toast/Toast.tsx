@@ -4,46 +4,9 @@ import { Icon } from '../Icon/Icon'
 import { useLang } from '../../i18n/LanguageContext'
 import { useJournal } from '../../contexts/JournalContext'
 
-/**
- * The chip that confirms an action — #127.
- *
- * It is the only feedback most git operations give, so three things are load
- * bearing and each one is a decision, not an accident:
- *
- * - **A chip, not a card.** One line, a real icon in the colour of the
- *   outcome, on the ordinary raised surface. The whole surface used to be
- *   tinted per type, which made every confirmation shout as loudly as every
- *   failure. Only the icon carries the colour now.
- * - **An error does not expire, and it is not the only copy.** A success is
- *   over the moment it is read and goes on a timer; a failure is something the
- *   user has to act on, and a message that vanishes on its own is one they may
- *   never have read. Four fit here, and the fifth used to evict the first for
- *   good — so an error chip now carries a link to its entry in the repository's
- *   journal (#193), which keeps the whole session. The link is drawn only where
- *   a journal is mounted: the VS Code panel has no bell.
- * - **It is announced.** The stack is a live region, so a screen reader says
- *   what happened; errors carry `role="alert"` so they interrupt rather than
- *   wait their turn.
- *
- * Placement is in Toast.css and is also a decision: bottom CENTRE, because
- * bottom-right is where the Commit button lives — the confirmation of what
- * you just did used to cover the control you reach for next.
- *
- * ── THE RULE, written once so it stops being decided per handler ──
- *
- *   A MUTATING action confirms. Something changed — on disk, in the index,
- *   on the remote, in a setting — and the only proof the user gets is this
- *   chip. Its failure says so too, and does not expire.
- *
- *   NAVIGATION does not. Opening a repository, a modal, a diff, a browser or
- *   a terminal is its own confirmation: the screen is already different. A
- *   chip there is noise that pushes a real one off the stack.
- *
- * The awkward cases are the ones where a mutation is ALSO self-evident — a
- * row leaving a list it was just removed from. Those follow navigation: what
- * the user can see, the chip does not need to say. `RightPanel.handle()` is
- * where the staging area applies this, and App.tsx notes the calls where the
- * answer went the other way.
+/** Action feedback stays centred, clear of the commit controls. Successes
+ * expire; errors and decisions stay until dismissed. Long output is available
+ * on demand, and interacting with a notification pauses its countdown.
  */
 
 interface ToastAction {
@@ -101,6 +64,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([])
   const counter = useRef(0)
   const timers = useRef(new Map<number, ReturnType<typeof setTimeout>>())
+  const clocks = useRef(new Map<number, { remaining: number; started: number; paused: Set<string> }>())
   // The list, decided outside React's updater. Collapsing a repeat and
   // capping the stack both have to read what is already up, and a state
   // updater is not the place to read from: it may run twice, and it may run
@@ -113,6 +77,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     timers.current.forEach((timer, id) => {
       if (!kept.has(id)) { clearTimeout(timer); timers.current.delete(id) }
     })
+    clocks.current.forEach((_, id) => { if (!kept.has(id)) clocks.current.delete(id) })
     list.current = next
     setToasts(next)
   }, [])
@@ -133,12 +98,37 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const arm = useCallback((id: number, actions: ToastAction[] | undefined, sticky: boolean) => {
     const existing = timers.current.get(id)
     if (existing) { clearTimeout(existing); timers.current.delete(id) }
+    const paused = clocks.current.get(id)?.paused ?? new Set<string>()
+    clocks.current.delete(id)
     if (sticky) return
+    clocks.current.set(id, {
+      remaining: actions?.length ? TOAST_ACTION_TIMEOUT : TOAST_TIMEOUT,
+      started: Date.now(), paused,
+    })
+    if (paused.size) return
     timers.current.set(id, setTimeout(() => {
       timers.current.delete(id)
       drop(id)
     }, actions?.length ? TOAST_ACTION_TIMEOUT : TOAST_TIMEOUT))
   }, [drop])
+
+  const pause = (id: number, reason: string) => {
+    const clock = clocks.current.get(id)
+    if (!clock) return
+    if (!clock.paused.size) {
+      clock.remaining = Math.max(0, clock.remaining - (Date.now() - clock.started))
+      clearTimeout(timers.current.get(id))
+      timers.current.delete(id)
+    }
+    clock.paused.add(reason)
+  }
+
+  const resume = (id: number, reason: string) => {
+    const clock = clocks.current.get(id)
+    if (!clock || !clock.paused.delete(reason) || clock.paused.size) return
+    clock.started = Date.now()
+    timers.current.set(id, setTimeout(() => drop(id), clock.remaining))
+  }
 
   const addToast = useCallback((
     message: string, type: ToastItem['type'], action?: ToastArg, sticky?: boolean,
@@ -157,7 +147,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     const id = repeat ? last.id : ++counter.current
 
     const grown = repeat
-      ? [...list.current.slice(0, -1), { ...last, count: last.count + 1 }]
+      ? [...list.current.slice(0, -1), { ...last, sticky: stays, count: last.count + 1 }]
       : [...list.current, { id, message, type, actions, sticky: stays, count: 1 }]
     const next = grown.length > TOAST_STACK_MAX
       ? grown.slice(grown.length - TOAST_STACK_MAX)
@@ -185,29 +175,50 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       <div className="chip-stack" aria-live="polite" aria-atomic="false">
         {toasts.map(t => (
           <div key={t.id} className={`chip chip--${t.type}`}
+            onMouseEnter={() => pause(t.id, 'pointer')}
+            onMouseLeave={() => resume(t.id, 'pointer')}
+            onFocusCapture={() => pause(t.id, 'focus')}
+            onBlurCapture={event => {
+              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) resume(t.id, 'focus')
+            }}
             // An error interrupts; the rest waits its turn. Nested on purpose
             // — the item's own role is what a reader uses for that node.
             role={t.type === 'error' ? 'alert' : 'status'}>
             <span className="chip-icon"><Icon name={ICONS[t.type]} size={16} /></span>
-            <span className="chip-msg">{t.message}</span>
-            {t.count > 1 && <span className="chip-count">×{t.count}</span>}
-            {/* Not a ToastAction: an action would make this chip un-collapsible
-                (a chip carrying one is never merged with its repeat), and ten
-                identical failures would then bury the window they report on. */}
-            {t.type === 'error' && journal.enabled && (
-              <button
-                className="chip-journal"
-                title={tr('notifs.openJournal')}
-                onClick={() => journal.setOpen(true)}
-              >{tr('notifs.openJournalShort')}</button>
-            )}
-            {t.actions?.map((a, i) => (
-              <button
-                key={i}
-                className="chip-action"
-                onClick={() => { drop(t.id); a.onClick() }}
-              >{a.label}</button>
-            ))}
+            <div className="chip-body">
+              {t.message.length > 180 || t.message.includes('\n') ? (
+                <>
+                  <span className="chip-msg chip-msg--preview">{t.message.split('\n')[0]}</span>
+                  <details className="chip-details">
+                    <summary>
+                      <span className="chip-details-show">{tr('toast.details')}</span>
+                      <span className="chip-details-hide">{tr('toast.hideDetails')}</span>
+                    </summary>
+                    <div className="chip-output">{t.message}</div>
+                  </details>
+                </>
+              ) : <span className="chip-msg">{t.message}</span>}
+              <div className="chip-actions">
+                {t.count > 1 && <span className="chip-count">×{t.count}</span>}
+                {/* Not a ToastAction: an action would make this chip un-collapsible
+                    (a chip carrying one is never merged with its repeat), and ten
+                    identical failures would then bury the window they report on. */}
+                {t.type === 'error' && journal.enabled && (
+                  <button
+                    className="chip-journal"
+                    title={tr('notifs.openJournal')}
+                    onClick={() => journal.setOpen(true)}
+                  >{tr('notifs.openJournalShort')}</button>
+                )}
+                {t.actions?.map((a, i) => (
+                  <button
+                    key={i}
+                    className="chip-action"
+                    onClick={() => { drop(t.id); a.onClick() }}
+                  >{a.label}</button>
+                ))}
+              </div>
+            </div>
             <button
               className="chip-dismiss"
               title={tr('common.dismiss')}
