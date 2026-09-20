@@ -61,7 +61,7 @@ async function main() {
   try {
     if (args.scenario) {
       const scenario = require(path.resolve(args.scenario))
-      await scenario(vs)
+      await scenario({ ...vs, repo })
     } else if (args.eval) {
       const value = await vs.panel.eval(args.eval)
       console.log(typeof value === 'string' ? value : JSON.stringify(value, null, 2))

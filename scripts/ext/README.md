@@ -76,14 +76,36 @@ three calls, bound to the panel's frame here and to the window there.
 
 | File | What it reads |
 |---|---|
-| `branch-rows.js` | every branch row's state and the acts it offers, checked against the rules |
 | `host-answers.js` | every read the panel makes, actually made — no `not-implemented`, no throw |
+| `commands.js` | every command declared unconditionally for the palette is in the palette |
+| `branch-rows.js` | every branch row's state and the acts it offers, checked against the rules |
+| `branch-create.js` | a branch made from the panel, found by **git**, and shown on a row |
 
 `host-answers.js` is the one `hostParity.test.ts` cannot be. That test reads
 the sources and sees a method that is MISSING; a host that answers
 `not-implemented: x` at runtime passes it, because the method is there to be
 found. CLAUDE.md names the worse case: a method that exists on both sides with
 a poorer signature "succeeds while doing something else".
+
+## Running them all
+
+```bash
+npm run ext:test                    # the four, in one editor
+npm run ext:test -- --only commands
+npm run ext:test -- --keep          # leave the editor open on a failure
+```
+
+**In CI on every pull request**, not only the ones touching `vscode-extension/`:
+the side bar and the graph live in `src/renderer` and are compiled into both
+products, so the change that breaks the panel usually does not touch this
+directory at all. A harness that does not run rots, and this repository has
+the receipt — `scripts/e2e/compact-panel.cjs` sat broken on `main` from #243
+until somebody happened to run it.
+
+The runner re-runs itself under `xvfb` on a display-less Linux, and
+`@vscode/test-electron` (already a dependency of the extension) downloads the
+editor and caches it under `.vscode-test/`. The workflow installs `xvfb` and
+nothing else.
 
 ## The twin
 

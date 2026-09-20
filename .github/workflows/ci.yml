@@ -108,6 +108,23 @@ jobs:
       - name: Display-free tests (host parity, panel surface)
         run: npm run test:nodisplay
         working-directory: vscode-extension
+      # And the other half of the same question, asked of a REAL editor: those
+      # two guards read the sources and can only see a method that is MISSING,
+      # while a host answering `not-implemented: x` at runtime passes them —
+      # the method is there to be found. These scenarios launch VS Code with
+      # the extension, open the panel, and make every read the panel makes.
+      #
+      # On every pull request, not only on the ones touching vscode-extension/:
+      # the side bar and the graph live in src/renderer and are compiled into
+      # BOTH products, so the change that breaks the panel usually does not
+      # touch this directory at all.
+      #
+      # xvfb is the runner's only cost — the script re-runs itself under it,
+      # and @vscode/test-electron (already a dependency here) downloads the
+      # editor and caches it.
+      - run: sudo apt-get update && sudo apt-get install -y xvfb
+      - name: Extension scenarios (a real VS Code)
+        run: npm run ext:test
 
   cli:
     name: CLI typecheck

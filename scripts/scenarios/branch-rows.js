@@ -14,17 +14,13 @@
 // two drivers hand over the same three calls — `eval`, `until`, `click` — the
 // panel's bound to the extension's frame, the desktop's to its window.
 'use strict'
+const { openView } = require('./lib/views')
 
 module.exports = async function branchRows(ctx) {
   const panel = ctx.panel ?? ctx.page
-  // The panel shows one view at a time, chosen from the rail; the desktop
-  // stacks every section and has no rail at all. Clicking it when it is there
-  // is all the difference between the two products this scenario has to know.
-  await panel.eval(`(() => {
-    const b = [...document.querySelectorAll('.gv-rail-btn')].find(x => x.getAttribute('aria-label') === 'Branches')
-    if (b) b.click()
-    return !!b
-  })()`)
+  // One view at a time in the panel, every section at once on the desktop —
+  // and in a short panel the view is behind "More…". lib/views knows all three.
+  await openView(panel, 'Branches')
   await panel.until('document.querySelectorAll(".sb-branch-item").length > 0', { what: 'the branch rows' })
 
   const rows = await panel.eval(`JSON.stringify([...document.querySelectorAll('.sb-branch-item')].map(row => ({

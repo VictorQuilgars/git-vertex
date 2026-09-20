@@ -58,17 +58,34 @@ function getJson(url) {
   })
 }
 
-/** Where VS Code is, on this machine. Insiders counts; a `code` on PATH is a shim, not the binary. */
-function findVSCode() {
+/**
+ * Where VS Code is.
+ *
+ * An installed one first — it is the editor the product is actually used in,
+ * and it costs nothing. A CI runner has none, so the extension's own
+ * `@vscode/test-electron` downloads one and caches it under `.vscode-test/`;
+ * that is the same dependency `npm test` in the extension already uses, so
+ * this adds nothing to install. `GV_VSCODE` overrides both.
+ *
+ * A `code` on PATH is deliberately not used: it is a shell shim that hands
+ * over and exits, leaving nothing to drive or to stop.
+ */
+async function findVSCode() {
+  if (process.env.GV_VSCODE) return process.env.GV_VSCODE
   const candidates = process.platform === 'darwin'
     ? ['/Applications/Visual Studio Code.app/Contents/MacOS/Code',
        '/Applications/Visual Studio Code - Insiders.app/Contents/MacOS/Code - Insiders']
     : ['/usr/share/code/code', '/usr/bin/code', '/snap/bin/code']
   const found = candidates.find(p => fs.existsSync(p))
-  if (!found) {
-    throw new Error(`no VS Code found. Looked in:\n  ${candidates.join('\n  ')}\nSet GV_VSCODE to the binary.`)
+  if (found) return found
+  try {
+    const { downloadAndUnzipVSCode } = require(path.join(EXTENSION, 'node_modules', '@vscode', 'test-electron'))
+    console.log('· no VS Code installed, downloading one (cached under .vscode-test)')
+    return await downloadAndUnzipVSCode()
+  } catch (e) {
+    throw new Error(`no VS Code found and none could be downloaded (${e.message}).\n`
+      + `Looked in:\n  ${candidates.join('\n  ')}\nSet GV_VSCODE to a binary.`)
   }
-  return process.env.GV_VSCODE || found
 }
 
 /**
@@ -243,7 +260,7 @@ async function openPanel({ repo, keepProfile = false, maximize = false } = {}) {
   const extensions = fs.mkdtempSync(path.join(os.tmpdir(), 'gv-vsx-'))
   const logFile = path.join(profile, 'vscode.log')
   const log = fs.openSync(logFile, 'w')
-  const child = spawn(findVSCode(), [
+  const child = spawn(await findVSCode(), [
     `--user-data-dir=${profile}`,
     `--extensions-dir=${extensions}`,
     `--extensionDevelopmentPath=${EXTENSION}`,
