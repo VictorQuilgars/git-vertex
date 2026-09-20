@@ -16,7 +16,7 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.36.0': `## What's new in 1.36.0
 
 ### 🪄 Resolve every conflict with the model
 - **Resolve all with AI**, on the conflicts panel, runs the model over every conflicted file at once instead of one resolver at a time. Each result is staged and marked **AI** with its explanation: **Review** it, or **Undo** it back to the conflict. Nothing is committed until you do.
