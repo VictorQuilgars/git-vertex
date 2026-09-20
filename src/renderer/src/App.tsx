@@ -395,6 +395,24 @@ export default function App() {
   // beside the two side panes — computed from the panes the user actually has
   // (see utils/layout.ts), so a wide right pane counts as much as a narrow window.
   const windowWidth = useWindowWidth()
+  /**
+   * A reference's card, asked for from a side bar row rather than from the
+   * chip on its tip's graph row.
+   *
+   * The ORDER is the whole of it: `useRefCard` drops a card whose reference
+   * is not the selected commit, so the tip is selected first and the card
+   * opened in the same handler — React batches both, and the effect that
+   * would have closed it sees them agreeing. A tip that is not on the page
+   * yet is reached the way everything else reaches one, and the card is not
+   * forced open over a selection that has not landed.
+   */
+  const openRefCard = async (ref: string, kind: 'head' | 'remote' | 'tag') => {
+    const { hash } = await window.gitAPI.resolveCommit(ref)
+    const onPage = hash ? commits.find(c => c.hash === hash) : undefined
+    if (!onPage) { void revealRef(ref); return }
+    setSelectedCommit(onPage)
+    refCard.toggle({ kind, name: ref, hash: onPage.hash })
+  }
   // A request's code, from the sheet — the same hook the side bar's rows use.
   const pullRequestCode = usePullRequestCode({
     t, showToast,
@@ -726,6 +744,7 @@ export default function App() {
               onFilterAuthor={(author) => setSearchQuery(authorQuery(author))}
               authorFilter={authorOfQuery(searchQuery)}
               onReveal={ref => { void revealRef(ref) }}
+              onOpenCard={(ref, kind) => { void openRefCard(ref, kind) }}
               onCompareStash={(ref, against) => openViewTab(against === 'working'
                 ? { view: 'compare', a: ref, b: null, axis: 'endpoints', label: `${ref} … working tree` }
                 : { view: 'compare', a: 'HEAD', b: ref, axis: 'endpoints', label: `HEAD … ${ref}` })}

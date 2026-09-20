@@ -23,7 +23,7 @@ const BRANCHES = [
   { name: 'remotes/origin/cut-loose', current: false, remote: true, commit: 'eee5', label: 'gone' },
 ]
 
-function draw(api: Record<string, any> = {}) {
+function draw(props: Record<string, any> = {}, api: Record<string, any> = {}) {
   installMockGitAPI({
     getRemotes: jest.fn().mockResolvedValue({ remotes: [{ name: 'origin', fetchUrl: 'git@github.com:o/r.git', pushUrl: '' }] }),
     getReflog: jest.fn().mockResolvedValue({ entries: [] }),
@@ -33,7 +33,7 @@ function draw(api: Record<string, any> = {}) {
     pullBranch: jest.fn().mockResolvedValue({ success: true, moved: 3 }),
     ...api,
   })
-  const props: Record<string, any> = {
+  const defaults: Record<string, any> = {
     repoPath: '/repo', repoName: 'repo', currentBranch: 'main', view: 'branches',
     branches: BRANCHES, recentRepos: [], stashes: [], tags: [],
     soloBranch: null, visibility: emptyVisibility(),
@@ -46,9 +46,10 @@ function draw(api: Record<string, any> = {}) {
     'onDropStash', 'onRefreshStashes', 'onCreateTag', 'onDeleteTag', 'onCheckoutTag', 'onGoTo',
     'onPushTag', 'onDeleteRemoteTag', 'onSelectCommit', 'onCompareBranch',
     'onToggleSolo', 'onToggleHide', 'onReveal', 'onPull', 'onRefresh',
-  ]) props[k] = jest.fn()
-  renderWithProviders(<Sidebar {...(props as any)} />)
-  return props
+  ]) defaults[k] = jest.fn()
+  Object.assign(defaults, props)
+  renderWithProviders(<Sidebar {...(defaults as any)} />)
+  return defaults
 }
 
 /**
@@ -108,5 +109,32 @@ describe('what a branch row offers', () => {
     draw()
     await screen.findAllByText('cut-loose')
     expect(actsOn('cut-loose')).toEqual(['Switch'])
+  })
+})
+
+describe("a row opens its reference's card", () => {
+  test('a branch row asks for the card of the branch it names', async () => {
+    const onOpenCard = jest.fn()
+    draw({ onOpenCard })
+    await screen.findAllByText('behind-one')
+    await userEvent.click(localRow('behind-one').querySelector('.sb-row-action[title="Show card"]')!)
+    expect(onOpenCard).toHaveBeenCalledWith('behind-one', 'head')
+  })
+
+  test('a remote row names it the way the graph chip does, without `remotes/`', async () => {
+    const onOpenCard = jest.fn()
+    draw({ onOpenCard })
+    await screen.findAllByText('behind-one')
+    const remote = screen.getAllByText('behind-one')
+      .map(n => n.closest('.sb-branch-item'))
+      .find((el): el is HTMLElement => !!el && el.classList.contains('remote'))!
+    await userEvent.click(remote.querySelector('.sb-row-action[title="Show card"]')!)
+    expect(onOpenCard).toHaveBeenCalledWith('origin/behind-one', 'remote')
+  })
+
+  test('a host that has no card to open is not given a button for one', async () => {
+    draw()
+    await screen.findAllByText('behind-one')
+    expect(localRow('behind-one').querySelector('.sb-row-action[title="Show card"]')).toBeNull()
   })
 })

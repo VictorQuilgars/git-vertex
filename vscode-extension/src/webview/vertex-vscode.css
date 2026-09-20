@@ -29,10 +29,20 @@
 /* The desktop App.css sets `.app { height: 100vh }`. In the panel webview the
    available height is the viewport, so 100vh works, but force overflow hidden. */
 .gv-app.app { overflow: hidden; }
-/* A short panel is flush whatever the layout setting says: the cards' gap is
-   sixteen pixels of a two-hundred-pixel panel, and the staging pane has a
-   better use for them. The same three values the flush layout carries. */
-.gv-app--short { --pane-gap: 0px; --pane-radius: 0px; --pane-edge: 1px; }
+/* A short panel used to be FLUSH whatever the layout setting said, and that
+   was deciding for somebody who had already decided. What was true in it is
+   the arithmetic: the gap is 8px above and 8px below, sixteen of a
+   two-hundred-pixel panel, and measured here the file list fell to 49px
+   against the 52 it needs to be a list at all.
+   So the SURROUND goes back to the panes: the frame around the outside, which
+   is the part that only floats the block in the window. Dropping it returns
+   16px of height — the file list measured 49px against the 52 it needs — and
+   16px of width, which is what the two-column staging layout needs to hold at
+   740px. What the eye reads as blocks is untouched: the gap BETWEEN the panes
+   (the resize handle carries it), their rounded corners, the frame colour and
+   the rail's own surface. Someone who wants none of it has the setting for
+   it — Flush — at any height. */
+.gv-app--short .app-body { padding: 0; }
 
 /* ── Activity rail ───────────────────────────────────────────── */
 /* The left card (#240): the rail, and the view it opens beside it. One block —

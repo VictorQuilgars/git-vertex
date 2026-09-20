@@ -12,37 +12,37 @@ describe('a branch row', () => {
     expect(local({ behind: 3 })).not.toContain('push')
     expect(local({ ahead: 2 })).toContain('push')
     expect(local({ ahead: 2 })).not.toContain('pull')
-    expect(local()).toEqual(['switch'])
+    expect(local()).toEqual(['card', 'switch'])
   })
 
   test('diverged pulls — a push would be refused, so it is not what is offered', () => {
-    expect(local({ ahead: 2, behind: 3 })).toEqual(['switch', 'pull'])
+    expect(local({ ahead: 2, behind: 3 })).toEqual(['card', 'switch', 'pull'])
   })
 
   test('a branch the remote has never seen publishes', () => {
-    expect(local({ publishedAs: undefined })).toEqual(['switch', 'publish'])
+    expect(local({ publishedAs: undefined })).toEqual(['card', 'switch', 'publish'])
     // Even when it is ahead: there is no upstream for "ahead" to mean anything
     // against, and publishing is what sets one.
-    expect(local({ publishedAs: undefined, ahead: 4 })).toEqual(['switch', 'publish'])
+    expect(local({ publishedAs: undefined, ahead: 4 })).toEqual(['card', 'switch', 'publish'])
   })
 
   test('an upstream that is gone offers no sync: there is nothing to sync with', () => {
-    expect(local({ gone: true, behind: 3 })).toEqual(['switch'])
+    expect(local({ gone: true, behind: 3 })).toEqual(['card', 'switch'])
   })
 
   test('the checked-out branch is not offered a switch to itself', () => {
-    expect(branchRowActions({ current: true, publishedAs: 'origin/main', behind: 1 })).toEqual(['pull'])
-    expect(branchRowActions({ current: true, publishedAs: 'origin/main' })).toEqual([])
+    expect(branchRowActions({ current: true, publishedAs: 'origin/main', behind: 1 })).toEqual(['card', 'pull'])
+    expect(branchRowActions({ current: true, publishedAs: 'origin/main' })).toEqual(['card'])
   })
 
   test('a remote branch lands and fetches, whatever its counts say', () => {
-    expect(branchRowActions({ current: false, remote: true, ahead: 9, behind: 9 })).toEqual(['switch', 'fetch'])
+    expect(branchRowActions({ current: false, remote: true, ahead: 9, behind: 9 })).toEqual(['card', 'switch', 'fetch'])
   })
 })
 
 test('the other rows offer what is ever done to them', () => {
   expect(stashRowActions()).toEqual(['apply', 'pop', 'delete'])
-  expect(tagRowActions()).toEqual(['switch'])
+  expect(tagRowActions()).toEqual(['card', 'switch'])
   expect(remoteRowActions()).toEqual(['fetch', 'open'])
   expect(worktreeRowActions({ active: false })).toEqual(['open'])
   // The one on screen is already open.

@@ -7,7 +7,7 @@ import type { TagEntry } from '../types'
 import type { SidebarState } from '../useSidebar'
 
 export function TagsSection({ s }: { s: SidebarState }) {
-  const { onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag, onToggleHideTag, onReveal, single, t, tagHidden, familyMenu, showAll, filteredTags, layoutFor, layoutToggle, toggleFolder, openFolders } = s
+  const { onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag, onToggleHideTag, onReveal, onOpenCard, single, t, tagHidden, familyMenu, showAll, filteredTags, layoutFor, layoutToggle, toggleFolder, openFolders } = s
   const names = filteredTags.map(tg => tg.name)
   const asTree = layoutFor('tags', names) === 'tree'
   return (
@@ -22,6 +22,7 @@ export function TagsSection({ s }: { s: SidebarState }) {
                 <TagItem key={tag.name} tag={tag} displayAs={displayAs}
                   onGoTo={() => onGoTo(tag.name)}
                   onReveal={onReveal && (() => onReveal(tag.name))}
+                  onOpenCard={onOpenCard && (() => onOpenCard(tag.name, 'tag'))}
                   onCheckoutCommit={() => onCheckoutTag(tag.name)}
                   onDelete={() => onDeleteTag(tag.name)}
                   onPush={() => onPushTag(tag.name)} onDeleteRemote={() => onDeleteRemoteTag(tag.name)}

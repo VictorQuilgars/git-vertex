@@ -14,7 +14,7 @@
 /** The acts a row can put on its own line. `open` is "take me to it". */
 export type RowActionId =
   | 'pull' | 'push' | 'publish' | 'fetch'
-  | 'switch' | 'open'
+  | 'switch' | 'open' | 'card'
   | 'apply' | 'pop' | 'delete'
 
 export interface BranchRowState {
@@ -43,8 +43,11 @@ export interface BranchRowState {
  */
 export function branchRowActions(state: BranchRowState): RowActionId[] {
   const { current, remote, ahead = 0, behind = 0, gone = false, publishedAs } = state
-  if (remote) return ['switch', 'fetch']
-  const out: RowActionId[] = []
+  // The card comes first: it is what the row is ABOUT, and reading precedes
+  // acting. It was reachable only from the chip on the tip's graph row, which
+  // meant finding that row before you could read what the branch is.
+  if (remote) return ['card', 'switch', 'fetch']
+  const out: RowActionId[] = ['card']
   if (!current) out.push('switch')
   if (gone) return out
   if (!publishedAs) out.push('publish')
@@ -63,7 +66,7 @@ export function stashRowActions(): RowActionId[] {
  * a branch at that commit — not the menu's detaching checkout.
  */
 export function tagRowActions(): RowActionId[] {
-  return ['switch']
+  return ['card', 'switch']
 }
 
 /** A remote row: re-read it, or open its URL. */

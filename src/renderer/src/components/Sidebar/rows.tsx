@@ -99,7 +99,7 @@ export function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, 
 }
 
 // ── Tag item ──────────────────────────────────────────────────────
-export function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDeleteRemote, onReveal, hidden, onToggleHide, displayAs }: {
+export function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDeleteRemote, onReveal, onOpenCard, hidden, onToggleHide, displayAs }: {
   tag: TagEntry
   /** Last path segment, when the tree already spells the folders (#276). */
   displayAs?: string
@@ -107,6 +107,8 @@ export function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDel
   onGoTo?: () => void
   /** One click: take the graph to the commit this tag points at (#275). */
   onReveal?: () => void
+  /** Open this tag's card — what the chip on its graph row opens. */
+  onOpenCard?: () => void
   /** Menu only: check out the COMMIT the tag points at, detaching HEAD. */
   onCheckoutCommit?: () => void
   onDelete: () => void; onPush: () => void; onDeleteRemote: () => void
@@ -151,7 +153,10 @@ export function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDel
         <span className="sb-tag-name">{displayAs ?? tag.name}</span>
         {hidden && <span className="sb-row-flag" title={t('sb.hidden.flag')}>⊘</span>}
         <RowActionBar actions={tagRowActions()} t={t} label={tag.name}
-          handlers={{ switch: onGoTo && (() => { click.cancel(); onGoTo() }) }} />
+          handlers={{
+            card: onOpenCard && (() => { click.cancel(); onOpenCard() }),
+            switch: onGoTo && (() => { click.cancel(); onGoTo() }),
+          }} />
         <code className="sb-tag-hash">{tag.hash}</code>
       </div>
       {ctx && (

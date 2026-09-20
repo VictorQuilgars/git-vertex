@@ -205,6 +205,15 @@ export interface SidebarProps {
    * reacting by doing nothing.
    */
   onReveal?: (ref: string) => void
+  /**
+   * Open a reference's CARD — the one a chip opens from the tip's graph row.
+   *
+   * The host does it, and must do it in this order: select the tip, then open
+   * the card. `useRefCard` closes a card whose reference is not the selected
+   * commit, so a card opened before the selection lands closes itself on the
+   * next render. Omitted ⇒ the rows do not offer it.
+   */
+  onOpenCard?: (ref: string, kind: 'head' | 'remote' | 'tag') => void
   // ── #280: what a branch needs, without standing on it ──
   /**
    * Rebase the checked-out branch onto the branch it tracks.

@@ -61,6 +61,8 @@ export interface BranchItemProps {
   onChangelog?: () => void
   /** One click: take the graph to this branch's tip (#275). */
   onReveal?: () => void
+  /** Open this branch's card — what the chip on its tip's graph row opens. */
+  onOpenCard?: () => void
   /** Publish an unpublished branch — the sync act its state calls for (#274). */
   onPublish?: () => void
   /** Fetch this remote branch's own remote (#274). */
@@ -81,7 +83,7 @@ export interface BranchItemProps {
   onCreateWorktreeFor?: () => void
 }
 
-export function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, hidden, favorite, issue, onPull, onToggleSolo, onToggleHide, onToggleFavorite, onOpenOnRemote, onAssociateIssue, onExplain, onChangelog, onReveal, onPublish, onFetch, onPullBranch, onChangeUpstream, onRebaseOntoUpstream, onSquashFixups, onHideRemote, onCompareUpstream, tip, tipActions, checkedOutIn, onOpenItsWorktree, onCreateWorktreeFor, pr, onCreatePR, publishedAs, onCopyLink, onDeleteBoth, ahead = 0, behind = 0, gone = false, showRemotePrefix = false, displayAs }: BranchItemProps) {
+export function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, hidden, favorite, issue, onPull, onToggleSolo, onToggleHide, onToggleFavorite, onOpenOnRemote, onAssociateIssue, onExplain, onChangelog, onReveal, onOpenCard, onPublish, onFetch, onPullBranch, onChangeUpstream, onRebaseOntoUpstream, onSquashFixups, onHideRemote, onCompareUpstream, tip, tipActions, checkedOutIn, onOpenItsWorktree, onCreateWorktreeFor, pr, onCreatePR, publishedAs, onCopyLink, onDeleteBoth, ahead = 0, behind = 0, gone = false, showRemotePrefix = false, displayAs }: BranchItemProps) {
   const [hover, setHover] = useState(false)
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const { t } = useLang()
@@ -166,6 +168,7 @@ export function BranchItem({ name, current, remote, currentBranch, onCheckout, o
             // fast-forward for one you are not standing on (#280). To the eye
             // they are the same act — bring this branch up to date — so the
             // row draws one icon and calls whichever it was given.
+            card: onOpenCard,
             pull: onPull ?? onPullBranch,
             push: onPush, publish: onPublish, fetch: onFetch,
           }} />

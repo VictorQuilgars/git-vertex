@@ -987,6 +987,25 @@ function VertexApp() {
     window.gitAPI.onRevealCommit(cb)
     return () => window.gitAPI.offRevealCommit(cb)
   }, [])
+  /**
+   * A reference's card, asked for from a side bar row rather than from the
+   * chip on its tip's graph row.
+   *
+   * The ORDER is the whole of it: `useRefCard` drops a card whose reference
+   * is not the selected commit, so the tip is selected first and the card
+   * opened in the same handler — React batches both, and the effect that
+   * would have closed it sees them agreeing. A tip that is not on the page
+   * yet is reached the way everything else reaches one, and the card is not
+   * forced open over a selection that has not landed.
+   */
+  const openRefCard = useCallback(async (ref: string, kind: 'head' | 'remote' | 'tag') => {
+    let hash = ''
+    try { hash = String((await window.gitAPI.resolveCommit(ref))?.hash ?? '') } catch { /* not a ref */ }
+    const onPage = hash ? commits.find(c => c.hash === hash) : undefined
+    if (!onPage) { void revealCommit(ref); return }
+    setSelectedCommit(onPage)
+    refCard.toggle({ kind, name: ref, hash: onPage.hash })
+  }, [commits, revealCommit, refCard])
   // The panel's settings page, asked for from outside (the Welcome page, the palette).
   useEffect(() => {
     const cb = () => setSettingsOpen(true)
@@ -1239,12 +1258,14 @@ function VertexApp() {
     return Number.isFinite(saved) && saved > 0 ? saved : 0
   })
   const effDetailsH = clampDetailsHeight(detailsH || Math.round(bodyH * 0.5), bodyH)
-  // A short panel — the bottom panel at its usual height — goes edge to
-  // edge: the frame's gap above and below the cards is height the staging
-  // pane needs more than the eye does. From the window, not the body: the
-  // body's height depends on the gap, and the two must not chase each other.
+  // A short panel — the bottom panel at its usual height. It no longer forces
+  // the flush layout on a setting that says otherwise; it gives the staging
+  // pane back the gap's height (the CSS drops the body's vertical padding,
+  // and the cards keep everything else), puts the search behind a button and
+  // the minimap away. From the window, not the body: the body's height
+  // depends on the gap, and the two must not chase each other.
   const short = viewport.h < 340
-  const paneGap = layout.narrow && !short ? 8 : 0
+  const paneGap = layout.narrow ? 8 : 0
 
   // Compact widths are separate from the user's tall-panel layout. Zero means
   // use the initial proportion; window resizing only clamps, never overwrites it.
@@ -1482,6 +1503,7 @@ function VertexApp() {
             onFilterAuthor={(author) => setSearchQuery(authorQuery(author))}
             authorFilter={authorOfQuery(searchQuery)}
             onReveal={(ref: string) => { void revealCommit(ref) }}
+            onOpenCard={(ref: string, kind: 'head' | 'remote' | 'tag') => { void openRefCard(ref, kind) }}
             onCompareStash={(ref: string, against: 'HEAD' | 'working') => {
               if (against === 'working') void window.gitAPI.openCompareWorkingTab(ref)
               else void window.gitAPI.openCompare('HEAD', ref, 'endpoints')
