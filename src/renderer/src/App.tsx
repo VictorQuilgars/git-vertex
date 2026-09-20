@@ -88,7 +88,7 @@ export default function App() {
   // the repository on screen (#193). The panel's open state lives with the
   // journal so an error chip can link straight to its own entry.
   // A branch's or a tag's card, opened by a click on its chip in the graph (#258).
-  const refCard = useRefCard(selectedCommit?.hash ?? null)
+  const refCard = useRefCard(selectedCommit?.hash ?? null, branches, tags)
   const journal = useJournal()
   const notifsOpen = journal.open
   const setNotifsOpen = journal.setOpen
