@@ -1,5 +1,7 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import RefCard from '../RefCard'
+import { LanguageProvider } from '../../../i18n/LanguageContext'
+import { SettingsProvider } from '../../../contexts/SettingsContext'
 import { installMockGitAPI, renderWithProviders } from '../../../__tests__/test-utils'
 
 // A chip's card: the facts for a local branch, a remote-only branch and an
@@ -26,8 +28,8 @@ function draw(target: any, api: Record<string, jest.Mock> = {}, over: Record<str
     'onCompare', 'onMerge', 'onRebase', 'onOpenOnRemote', 'onDelete', 'onDeleteRemote', 'onOpenPR', 'onCreatePR',
     'onPushTag', 'onDeleteTag', 'onCheckoutTag', 'onCreateBranchAt'].map(k => [k, jest.fn()]))
   const props = { target, branches, currentBranch: 'feature/login', defaultBranch: 'main', ...handlers, ...over }
-  renderWithProviders(<RefCard {...(props as any)} />)
-  return props as Record<string, jest.Mock> & typeof props
+  const view = renderWithProviders(<RefCard {...(props as any)} />)
+  return { ...props, rerenderCard: (overrides: Record<string, unknown>) => view.rerender(<LanguageProvider><SettingsProvider><RefCard {...({ ...props, ...overrides } as any)} /></SettingsProvider></LanguageProvider>) } as Record<string, jest.Mock> & typeof props
 }
 const buttons = () => Array.from(document.querySelectorAll('.refcard-btn')).map(b => b.textContent)
 const steps = () => Array.from(document.querySelectorAll('.refcard-step-label')).map(s => s.textContent)
@@ -80,6 +82,43 @@ describe('a local branch', () => {
     expect(p.onPushBranch).toHaveBeenCalledWith('spike')
     fireEvent.click(screen.getByText('Switch'))
     expect(p.onSwitch).toHaveBeenCalledWith('spike')
+  })
+
+  test('publishing the current branch establishes tracking and the open card follows refreshed facts', async () => {
+    const unpublished = branches.map(b => b.name === 'feature/login'
+      ? { ...b, upstream: undefined, ahead: 0, behind: 0 } : b)
+    const p = draw({ kind: 'head', name: 'feature/login', hash: H('f') }, {}, { branches: unpublished })
+    fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
+    expect(p.onPushBranch).toHaveBeenCalledWith('feature/login')
+    expect(p.onPush).not.toHaveBeenCalled()
+
+    // Publishing changes config, not the tip: a refresh must update this same card.
+    p.rerenderCard({ branches: unpublished.map(b => b.name === 'feature/login'
+      ? { ...b, upstream: 'origin/feature/login' } : b) })
+    await waitFor(() => expect(screen.queryByText('Unpublished')).not.toBeInTheDocument())
+    expect(screen.queryByRole('button', { name: 'Publish' })).not.toBeInTheDocument()
+    expect(document.querySelector('.refcard-token')).toHaveTextContent('origin/feature/login')
+    await waitFor(() => expect(screen.getByText('No Conflicts')).toBeInTheDocument())
+  })
+
+  test('republishing the current branch also uses the tracking-aware action', async () => {
+    const p = draw({ kind: 'head', name: 'feature/login', hash: H('f') }, {}, {
+      branches: branches.map(b => b.name === 'feature/login' ? { ...b, gone: true } : b),
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
+    expect(p.onPushBranch).toHaveBeenCalledWith('feature/login')
+    expect(p.onPush).not.toHaveBeenCalled()
+    await waitFor(() => expect(screen.getByText('No Conflicts')).toBeInTheDocument())
+  })
+
+  test('an ordinary push on a tracked current branch keeps its configured destination', async () => {
+    const p = draw({ kind: 'head', name: 'feature/login', hash: H('f') }, {}, {
+      branches: branches.map(b => b.name === 'feature/login' ? { ...b, behind: 0 } : b),
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Push' }))
+    expect(p.onPush).toHaveBeenCalledTimes(1)
+    expect(p.onPushBranch).not.toHaveBeenCalled()
+    await waitFor(() => expect(screen.getByText('No Conflicts')).toBeInTheDocument())
   })
 
   test('merged into its target: safe to delete, and deleting is the card\'s own button', async () => {
