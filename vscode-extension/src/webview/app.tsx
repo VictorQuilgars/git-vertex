@@ -1282,7 +1282,29 @@ function VertexApp() {
     hideDetails(false)
     detailsSubject()
   }
+  /**
+   * Whether the staging pane is showing its HOME card rather than files.
+   *
+   * `null` until it has said so: the pane decides it, because an amend and a
+   * half-written message both keep the files on screen with a clean tree,
+   * and neither is knowable from here. Until the first answer, the change
+   * count is the best guess — which is right in the ordinary case, so the
+   * layout does not jump on the way in.
+   */
+  const [stagingEmpty, setStagingEmpty] = useState<boolean | null>(null)
+  const workingIsEmpty = stagingEmpty ?? wipCount === 0
+  /**
+   * The compact working layout: the staging pane in a row beside the graph,
+   * widened into two columns, with a switch that hides the graph.
+   *
+   * It is for the FILES — a list and a commit form, which is two things and
+   * wants the width. On a clean tree the same pane shows one card of next
+   * steps, and all three were being offered for it: a column at 73% of the
+   * panel holding one card, and a *Hide graph* button that gave the rest of
+   * the window to it (#298).
+   */
   const compactWorking = showRight && selectedCommit?.hash === '__WIP__' && !conflictMode
+    && !workingIsEmpty
     && compactWorkingHolds(bodySize.h, graphHidden)
   const availableWidth = Math.max(0, bodyW - layout.railWidth - (activeView && !overlaySide ? sideW + 3 : 0))
   const compactColumns = compactWorking && availableWidth >= 692
@@ -1665,6 +1687,7 @@ function VertexApp() {
                 showConfirm={showConfirm}
                 currentBranch={currentBranch}
                 wipCount={wipCount}
+                onEmptyState={setStagingEmpty}
                 onViewWip={() => setSelectedCommit(prev => prev?.hash === '__WIP__' ? null : WIP_NODE)}
                 onSelectCommit={(hash) => {
                   const found = commits.find(c => c.hash === hash || c.hash.startsWith(hash))

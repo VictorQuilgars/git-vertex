@@ -28,6 +28,8 @@ export interface RightPanelProps {
   currentBranch?: string
   wipCount?: number
   onViewWip?: () => void
+  /** The staging pane switched between its files and the home card (#298). */
+  onEmptyState?: (empty: boolean) => void
   conflictFiles?: string[]
   // path → unmerged state. Absent/empty ⇒ the host does not report it and no
   // kind is shown, rather than every file being labelled "both modified".
@@ -73,7 +75,7 @@ export interface RightPanelProps {
 }
 
 export default function RightPanel({
-  repoPath, selectedCommit, onCommitSuccess, showToast, showConfirm, onSelectCommit, currentBranch, wipCount, onViewWip,
+  repoPath, selectedCommit, onCommitSuccess, showToast, showConfirm, onSelectCommit, currentBranch, wipCount, onViewWip, onEmptyState,
   conflictFiles, conflictKinds, conflictMode, onConflictFinish, onConflictAbort, onOpenResolver, onOpenFileDiff, onOpenStagingEditor, githubRepo,
   onOpenFileOnRemote, onCopyFileLink, onRestoreFile, onOpenFileHistory, onCompareWorking,
   onRewordMessage, commitProposal, onCommitProposalConsumed, onExplainWorking, onSplitCommits,
@@ -139,6 +141,7 @@ export default function RightPanel({
           embedded={embedded}
           branchStrip={branchStrip}
           emptyState={emptyState}
+          onEmptyState={onEmptyState}
         />
       ) : hasCommit ? (
         <CommitDetail
