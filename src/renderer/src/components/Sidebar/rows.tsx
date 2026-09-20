@@ -291,8 +291,9 @@ export function SubmoduleItem({
 }
 
 // ── Worktree item ─────────────────────────────────────────────────
-export function WorktreeItem({ wt, agents = [], active = false, onOpen, onRemove, onReveal, onOpenTerminal, onRevealInFileManager, onToggleLock, onCopyChanges }: {
+export function WorktreeItem({ wt, agents = [], active = false, onOpen, onRemove, onReveal, onOpenTerminal, onRevealInFileManager, onToggleLock, onCopyChanges, branchMenuItems = [] }: {
   wt: WorktreeEntry
+  branchMenuItems?: MenuItemDef[]
   // Running AI agents whose cwd is inside this worktree
   agents?: AgentEntry[]
   /** The worktree this window is showing — it has nothing to open. */
@@ -334,6 +335,9 @@ export function WorktreeItem({ wt, agents = [], active = false, onOpen, onRemove
       { separator: true as const },
       { label: t('sb.wt.remove'), action: onRemove, danger: true },
     ] : []),
+    // What the branch checked out here can do, after what the worktree can
+    // (#286). A detached worktree contributes none, and gets no separator.
+    ...(branchMenuItems.length ? [{ separator: true as const }, ...branchMenuItems] : []),
   ]
   // De-duplicate agent names ("2× Claude Code" reads better than twice the badge)
   const agentSummary = [...new Map(agents.map(a => [a.name, agents.filter(x => x.name === a.name).length])).entries()]

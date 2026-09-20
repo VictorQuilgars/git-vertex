@@ -2,6 +2,11 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🌳 A worktree row carries its branch's menu
+- Right-click a worktree: **everything its branch can do** is there, after the worktree's own entries — push, upstream, merge, rebase, rename, compare, the pull request, graph display. Syncing or renaming the branch a worktree held used to mean finding it again in Branches. A **detached** worktree keeps its worktree entries alone.
+`,
   '1.38.0': `## What's new in 1.38.0
 
 ### 🪄 Resolve every conflict with the model
