@@ -1,4 +1,4 @@
-import { branchOf, mergeTargetOf, mergeVerdict, splitRemoteRef, upstreamFacts } from '../ref-card-model'
+import { branchOf, mergeTargetOf, mergeVerdict, refGone, splitRemoteRef, upstreamFacts } from '../ref-card-model'
 
 // What a branch's card concludes — tested as sentences' inputs, without a DOM.
 
@@ -64,5 +64,40 @@ describe('finding the row a chip stands for', () => {
   })
   test('origin/feature/x is feature/x on origin', () => {
     expect(splitRemoteRef('origin/feature/x')).toEqual({ remote: 'origin', branch: 'feature/x' })
+  })
+})
+
+describe('a reference that has been deleted', () => {
+  const rows = [
+    { name: 'main', remote: false }, { name: 'feature/x', remote: false },
+    { name: 'remotes/origin/feature/x', remote: true },
+  ] as any[]
+  const tags = [{ name: 'v1.0.0' }]
+
+  test('a branch still listed is not gone, at either end', () => {
+    expect(refGone({ kind: 'head', name: 'feature/x', hash: 'h' }, rows, tags)).toBe(false)
+    expect(refGone({ kind: 'remote', name: 'origin/feature/x', hash: 'h' }, rows, tags)).toBe(false)
+    expect(refGone({ kind: 'tag', name: 'v1.0.0', hash: 'h' }, rows, tags)).toBe(false)
+  })
+
+  test('a branch deleted at one end is gone at that end alone', () => {
+    // Deleting the remote branch leaves the local one: its card stays, and
+    // says unpublished. It is the local delete that ends the card.
+    const localOnly = rows.filter(b => !b.remote)
+    expect(refGone({ kind: 'remote', name: 'origin/feature/x', hash: 'h' }, localOnly, tags)).toBe(true)
+    expect(refGone({ kind: 'head', name: 'feature/x', hash: 'h' }, localOnly, tags)).toBe(false)
+  })
+
+  test('a deleted branch and a deleted tag are gone', () => {
+    const left = [rows[0]]
+    expect(refGone({ kind: 'head', name: 'feature/x', hash: 'h' }, left, tags)).toBe(true)
+    expect(refGone({ kind: 'tag', name: 'v1.0.0', hash: 'h' }, left, [])).toBe(true)
+  })
+
+  test('no branches at all is a repository still loading, not an answer', () => {
+    // The gap between a delete and the refresh that follows it: the lists are
+    // empty for a render or two, and nothing may be concluded from that.
+    expect(refGone({ kind: 'head', name: 'feature/x', hash: 'h' }, [], [])).toBe(false)
+    expect(refGone({ kind: 'tag', name: 'v1.0.0', hash: 'h' }, [], [])).toBe(false)
   })
 })

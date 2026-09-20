@@ -137,8 +137,6 @@ function VertexApp() {
   // right pane at all — which read as a broken panel, and for a clean tree it
   // meant the staging pane could not be reached.
   const [selectedCommit, setSelectedCommit] = useState<CommitNode | null>(WIP_NODE)
-  // A branch's or a tag's card, opened by a click on its chip in the graph.
-  const refCard = useRefCard(selectedCommit?.hash ?? null)
   const [wipCount, setWipCount] = useState(0)
   const [conflictFiles, setConflictFiles] = useState<string[]>([])
   // path → unmerged state, so the panel can tell a modify/delete from a content
@@ -156,6 +154,10 @@ function VertexApp() {
   const [stashCount, setStashCount] = useState(0)
   const [stashes, setStashes] = useState<{ index: number; message: string }[]>([])
   const [tags, setTags] = useState<{ name: string; hash: string }[]>([])
+  // A branch's or a tag's card, opened by a click on its chip in the graph.
+  // It reads the refs, so it is declared below them: a card whose reference
+  // has been deleted closes rather than going on offering acts on it.
+  const refCard = useRefCard(selectedCommit?.hash ?? null, branches, tags)
   const [soloBranch, setSoloBranch] = useState<string | null>(null)
   // Hidden refs — branches, tags, remotes, the stash. Same model and same
   // query builder as the desktop host: the two used to carry a copy each of

@@ -6,6 +6,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 🌳 A worktree row carries its branch's menu
 - Right-click a worktree: **everything its branch can do** is there, after the worktree's own entries — push, upstream, merge, rebase, rename, compare, the pull request, graph display. Syncing or renaming the branch a worktree held used to mean finding it again in Branches. A **detached** worktree keeps its worktree entries alone.
+
+### 🏷 A card goes when its reference does
+- A reference's card **closes when the branch or tag it names is deleted**. Deleting a branch from the card's own Delete button left the card on screen with every button live — Switch, Merge, Rebase, Delete again — on a branch git no longer had.
 `,
   '1.38.0': `## What's new in 1.38.0
 

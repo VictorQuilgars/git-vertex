@@ -79,3 +79,26 @@ export function branchOf(target: RefTarget, branches: readonly BranchInfo[]): Br
   const listed = target.kind === 'remote' ? `remotes/${target.name}` : target.name
   return branches.find(b => b.name === listed && b.remote === (target.kind === 'remote'))
 }
+
+/**
+ * Has the reference this card is about been deleted?
+ *
+ * A card outlived its reference: deleting a branch from the card's own Delete
+ * button leaves the selection exactly where it was, so nothing closed the card
+ * and every button on it stayed live — Switch, Merge, Rebase, Delete again —
+ * on a branch git no longer has.
+ *
+ * Only answered once the repository's refs have arrived: an empty `branches`
+ * is a repository still loading, not one without a single branch, and a card
+ * must not be closed by the gap between a delete and the refresh that follows
+ * it. A repository that really has no branch has no chip to open a card from.
+ */
+export function refGone(
+  target: RefTarget,
+  branches: readonly BranchInfo[],
+  tags: readonly { name: string }[]
+): boolean {
+  if (branches.length === 0) return false
+  if (target.kind === 'tag') return !tags.some(t => t.name === target.name)
+  return !branchOf(target, branches)
+}
