@@ -1490,6 +1490,30 @@ export class GitService {
     }
   }
 
+  /**
+   * Bring a branch up to its upstream without switching to it (#280). The
+   * behaviour — and each of the three refusals — is git-core's, shared with
+   * the panel.
+   */
+  async pullBranch(branch: string): Promise<core.FastForwardResult> {
+    return core.fastForwardBranch(this.run, branch)
+  }
+
+  /** Every remote-tracking branch — what *Change upstream…* picks from (#280). */
+  async listRemoteBranches(): Promise<{ branches: string[] }> {
+    return { branches: await core.remoteBranchNames(this.run) }
+  }
+
+  /** Fold the `fixup!` / `squash!` commits over a base into their targets (#280). */
+  async squashFixups(base: string): Promise<core.SquashFixupsResult> {
+    return core.squashFixups(this.run, base)
+  }
+
+  /** What squashing would fold, so a surface can say so before running it. */
+  async listFixups(base: string): Promise<{ commits: { hash: string; subject: string }[] }> {
+    return { commits: await core.fixupCommits(this.run, base) }
+  }
+
   // Set the upstream of a local branch. Defaults to <remote>/<branch> using the
   // repo's default remote, so repos whose remote isn't named "origin" — or that
   // have several — still work. An explicit `upstream` overrides all.
@@ -2669,32 +2693,39 @@ exit 0
 
   // ── Worktrees ───────────────────────────────────────────────
 
-  async listWorktrees(): Promise<{ worktrees: { path: string; branch: string; head: string; isMain: boolean; locked: boolean }[] }> {
+  async listWorktrees(opts: { facts?: boolean } = {}): Promise<{ worktrees: core.WorktreeState[] }> {
+    return core.worktrees(this.run, opts)
+  }
+
+  /**
+   * Bring a pull request's head into a local branch, fork or not (#290), and
+   * optionally land on it. Fetching without checking out is what reviewing
+   * needs: the objects, not the working tree.
+   */
+  async fetchPullRequest(number: number, opts: { checkout?: boolean; remote?: string } = {}): Promise<core.FetchPullRequestResult> {
+    const remote = opts.remote ?? (await this.getDefaultRemote()).remote
+    if (!remote) return { success: false, error: 'No remote configured' }
+    return core.fetchPullRequestHead(this.run, remote, number, { checkout: opts.checkout })
+  }
+
+  /** Carry what is uncommitted in one worktree into another (#285). */
+  async copyWorktreeChanges(from: string, to: string, label: string): Promise<core.CopyChangesResult> {
+    return core.copyChangesToWorktree(this.run, from, to, label)
+  }
+
+  /** Lock a worktree so git will not prune or move it, with an optional reason (#285). */
+  async lockWorktree(path: string, reason?: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const result = await this.git.raw(['worktree', 'list', '--porcelain'])
-      const worktrees: { path: string; branch: string; head: string; isMain: boolean; locked: boolean }[] = []
-      let cur: { path: string; branch: string; head: string; locked: boolean } | null = null
-      for (const line of result.split('\n')) {
-        if (line.startsWith('worktree ')) {
-          if (cur) worktrees.push({ ...cur, isMain: false })
-          cur = { path: line.slice(9).trim(), branch: '', head: '', locked: false }
-        } else if (cur && line.startsWith('HEAD ')) {
-          cur.head = line.slice(5).trim().slice(0, 7)
-        } else if (cur && line.startsWith('branch ')) {
-          cur.branch = line.slice(7).trim().replace('refs/heads/', '')
-        } else if (cur && line.trim() === 'detached') {
-          cur.branch = '(detached)'
-        } else if (cur && line.startsWith('locked')) {
-          cur.locked = true
-        }
-      }
-      if (cur) worktrees.push({ ...cur, isMain: false })
-      // The first entry is the main working tree
-      if (worktrees.length > 0) worktrees[0].isMain = true
-      return { worktrees }
-    } catch (e) {
-      return { worktrees: [] }
-    }
+      await this.git.raw(reason ? ['worktree', 'lock', '--reason', reason, path] : ['worktree', 'lock', path])
+      return { success: true }
+    } catch (e: any) { return { success: false, error: e.message ?? String(e) } }
+  }
+
+  async unlockWorktree(path: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.raw(['worktree', 'unlock', path])
+      return { success: true }
+    } catch (e: any) { return { success: false, error: e.message ?? String(e) } }
   }
 
   async addWorktree(path: string, ref: string, newBranch?: string): Promise<{ success: boolean; error?: string }> {

@@ -220,6 +220,12 @@ function portalTo(slot: HTMLElement | undefined, node: React.ReactElement) {
 /** What a row can be, to the branch that is checked out. */
 type MarkerRole = 'head' | 'upstream' | 'target'
 /** The bar's width; the band starts where it ends. */
+/**
+ * How long the period band stays after the last scroll event. Long enough to
+ * still be there between two flicks of a trackpad, short enough that it is
+ * gone by the time the eye goes back to reading the rows under it.
+ */
+const BAND_LINGER_MS = 900
 const MARKER_BAR_W = 3
 /** The lane band's height — and so the role band's and the bar's, which continue it. */
 const LANE_BAND_H = 24
@@ -585,7 +591,21 @@ export default function CommitGraph(props: CommitGraphProps) {
     }
     setLastRow(a)
   }, [rowTops])
+  /**
+   * Whether the graph is being scrolled right now — what the period band is
+   * shown for.
+   *
+   * The band answers "where am I in time" while the rows are moving. Standing
+   * still it answered a question nobody had asked, over the top row's own
+   * date and sha, and read as a chip belonging to that row rather than to the
+   * graph. So it comes with the movement and goes with it.
+   */
+  const [scrolling, setScrolling] = useState(false)
+  const scrollIdle = useRef<ReturnType<typeof setTimeout> | null>(null)
   const onBodyScroll = useCallback(() => {
+    setScrolling(true)
+    if (scrollIdle.current) clearTimeout(scrollIdle.current)
+    scrollIdle.current = setTimeout(() => { scrollIdle.current = null; setScrolling(false) }, BAND_LINGER_MS)
     if (scrollRaf.current) return
     scrollRaf.current = requestAnimationFrame(() => {
       scrollRaf.current = 0
@@ -594,7 +614,10 @@ export default function CommitGraph(props: CommitGraphProps) {
   }, [measureRows])
   // A reload or a resize moves what is on screen without a scroll.
   useEffect(() => { measureRows() }, [measureRows, containerW, bodyH])
-  useEffect(() => () => { if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current) }, [])
+  useEffect(() => () => {
+    if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current)
+    if (scrollIdle.current) clearTimeout(scrollIdle.current)
+  }, [])
   // ── The rows that are drawn (graph-window.ts) ──
   // Everything above works on `displayLayout`, every commit loaded; only what
   // is near the viewport becomes elements. Before the body has a height there
@@ -1313,7 +1336,9 @@ export default function CommitGraph(props: CommitGraphProps) {
       {/* ── Body ── */}
       <div className="cg-body" ref={bodyRef} onScroll={onBodyScroll}>
         {bandLabel && (
-          <div className="cg-period-band" aria-hidden="true"><span className="cg-period-pill">{bandLabel}</span></div>
+          <div className={`cg-period-band${scrolling ? ' cg-period-band--on' : ''}`} aria-hidden="true">
+            <span className="cg-period-pill">{bandLabel}</span>
+          </div>
         )}
         {/* As tall as every row loaded, holding only the rows near the viewport
             (graph-window.ts). `data-rows` is the count a script can wait on now

@@ -168,6 +168,12 @@ declare global {
     savePatchFile: (content: string, suggestedName: string) => Promise<{ success: boolean; canceled?: boolean; path?: string; error?: string }>
     deleteRemoteBranch: (branch: string) => Promise<R>
     setUpstream: (branch: string, upstream?: string) => Promise<R>
+    /** Fast-forward a branch from its upstream without switching to it (#280). */
+    pullBranch: (branch: string) => Promise<R & { upToDate?: boolean; moved?: number; upstream?: string }>
+    /** Every remote-tracking branch — what *Change upstream…* picks from. */
+    listRemoteBranches: () => Promise<{ branches: string[] }>
+    squashFixups: (base: string) => Promise<R & { squashed?: number }>
+    listFixups: (base: string) => Promise<{ commits: { hash: string; subject: string }[] }>
     moveBranchTo: (branch: string, hash: string) => Promise<R>
     rebaseBranchOnto: (branch: string, hash: string) => Promise<R>
     mergeCommitInto: (branch: string, hash: string) => Promise<R>
@@ -287,7 +293,21 @@ declare global {
     gitflowInit: () => Promise<R>
     gitflowStart: (type: 'feature' | 'release' | 'hotfix', name: string) => Promise<R>
     gitflowFinish: (type: 'feature' | 'release' | 'hotfix', name: string, tagName?: string) => Promise<R>
-    listWorktrees: () => Promise<{ worktrees: { path: string; branch: string; head: string; isMain: boolean; locked: boolean }[] }>
+    /**
+     * The worktrees. `facts: true` asks each one where it stands — dirty,
+     * ahead/behind — which costs two git calls per worktree, so the plain
+     * list stays the default (#285).
+     */
+    listWorktrees: (opts?: { facts?: boolean }) => Promise<{ worktrees: {
+      path: string; branch: string; head: string; isMain: boolean; locked: boolean
+      lockReason?: string; prunable?: boolean; dirty?: boolean; ahead?: number; behind?: number
+    }[] }>
+    lockWorktree: (path: string, reason?: string) => Promise<R>
+    unlockWorktree: (path: string) => Promise<R>
+    /** Stash in one worktree, apply in another — the stash is kept either way. */
+    copyWorktreeChanges: (from: string, to: string, label: string) => Promise<R & { leftInStash?: boolean }>
+    /** A pull request's head as a local branch, fork included (#290). */
+    fetchPullRequest: (number: number, opts?: { checkout?: boolean; remote?: string }) => Promise<R & { branch?: string; diverged?: boolean }>
     addWorktree: (path: string, ref: string, newBranch?: string) => Promise<R>
     removeWorktree: (path: string, force?: boolean) => Promise<R>
     selectDirectory: (title?: string) => Promise<{ path: string | null }>
@@ -456,7 +476,10 @@ declare global {
     openExternal: (url: string) => Promise<R>
     openInEditor: (filepath: string) => Promise<R>
     openPathInEditor: (dir: string) => Promise<R>
-    openTerminal: () => Promise<R>
+    /** A terminal at a path — the repository on screen when none is given. */
+    openTerminal: (at?: string) => Promise<R>
+    /** Show a folder or a file in the system's file manager. */
+    revealInFileManager: (at: string) => Promise<R>
     isFullscreen: () => Promise<boolean>
     onFullscreenChanged: (cb: (fs: boolean) => void) => () => void
 

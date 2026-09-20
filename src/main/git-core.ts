@@ -817,3 +817,386 @@ export async function contributors(
     return { contributors: [] }
   }
 }
+
+// ── Keeping a branch up to date, without standing on it ─────────
+//
+// The panel could only pull the branch it was standing on, and only ever set
+// an upstream of `<default remote>/<same name>`: bringing a second branch
+// forward meant switching to it, pulling, and switching back (#280). These
+// are the operations that answer "what does this branch need", and they are
+// here because both products offer them from the same shared rows.
+
+/** What `git rev-list --left-right --count a...b` says, read as a pair. */
+export function parseAheadBehind(raw: string): { ahead: number; behind: number } {
+  const [ahead, behind] = raw.trim().split(/\s+/).map(Number)
+  return { ahead: Number.isFinite(ahead) ? ahead : 0, behind: Number.isFinite(behind) ? behind : 0 }
+}
+
+/** The branch a local branch tracks, or null when it tracks nothing. */
+export async function upstreamOf(run: GitRunner, branch: string): Promise<string | null> {
+  const bad = assertRef(branch, 'branch')
+  if (bad) return null
+  try {
+    const out = (await run(['rev-parse', '--abbrev-ref', '--symbolic-full-name', `${branch}@{upstream}`])).trim()
+    return out || null
+  } catch { return null }
+}
+
+/**
+ * How far a branch is from its upstream — ahead is what the branch has that
+ * the upstream lacks, which is the way round every other count in this app
+ * reads.
+ */
+export async function aheadBehindUpstream(
+  run: GitRunner, branch: string, upstream: string,
+): Promise<{ ahead: number; behind: number }> {
+  try {
+    return parseAheadBehind(await run(['rev-list', '--left-right', '--count', `${branch}...${upstream}`]))
+  } catch { return { ahead: 0, behind: 0 } }
+}
+
+export interface FastForwardResult {
+  success: boolean
+  /** Nothing to do — it was already level with its upstream. */
+  upToDate?: boolean
+  /** How many commits it moved. */
+  moved?: number
+  upstream?: string
+  error?: string
+}
+
+/**
+ * Bring a branch up to its upstream without switching to it — and refuse,
+ * with the reason, when that cannot be done as a fast-forward.
+ *
+ * Three refusals, each its own sentence, because they call for different
+ * things: no upstream at all (publish it, or pick one), diverged (rebase or
+ * merge — a decision, not a button), and already level (nothing to do, which
+ * is a success and says so rather than reporting an error).
+ *
+ * The move itself is `git fetch . <upstream>:<branch>`, which updates a ref
+ * git is not standing on and refuses on its own if the update would not be a
+ * fast-forward — belt and braces with the check above. The branch the caller
+ * IS standing on cannot be moved that way, so it is merged `--ff-only`
+ * instead, which touches the working tree and therefore stays git's decision
+ * to refuse when the tree is dirty.
+ */
+export async function fastForwardBranch(run: GitRunner, branch: string): Promise<FastForwardResult> {
+  const bad = assertRef(branch, 'branch')
+  if (bad) return { success: false, error: bad }
+  const upstream = await upstreamOf(run, branch)
+  if (!upstream) return { success: false, error: `${branch} tracks no branch` }
+  const { ahead, behind } = await aheadBehindUpstream(run, branch, upstream)
+  if (behind === 0 && ahead === 0) return { success: true, upToDate: true, upstream, moved: 0 }
+  if (ahead > 0) {
+    return {
+      success: false, upstream,
+      error: behind > 0
+        ? `${branch} has diverged from ${upstream} (${ahead} ahead, ${behind} behind) — rebase or merge it`
+        : `${branch} is ${ahead} ahead of ${upstream}, with nothing to pull`,
+    }
+  }
+  let current = ''
+  try { current = (await run(['symbolic-ref', '--quiet', '--short', 'HEAD'])).trim() } catch { /* detached */ }
+  try {
+    if (current === branch) await run(['merge', '--ff-only', upstream])
+    else await run(['fetch', '.', `${upstream}:${branch}`])
+    return { success: true, moved: behind, upstream }
+  } catch (e) {
+    return { success: false, upstream, error: reason(e) }
+  }
+}
+
+/** Every remote-tracking branch, as `origin/main` — what an upstream is picked from. */
+export async function remoteBranchNames(run: GitRunner): Promise<string[]> {
+  try {
+    const raw = await run(['for-each-ref', '--format=%(refname:short)', 'refs/remotes'])
+    // `origin/HEAD` is a symbolic ref to the remote's default branch, not a
+    // branch anybody tracks: offering it as an upstream sets a moving target.
+    return raw.split('\n').map(s => s.trim()).filter(s => s && !/\/HEAD$/.test(s))
+  } catch { return [] }
+}
+
+/** The `fixup!` / `squash!` commits over a base, newest first — what squashing would fold. */
+export async function fixupCommits(run: GitRunner, base: string): Promise<{ hash: string; subject: string }[]> {
+  const bad = assertRef(base, 'base')
+  if (bad) return []
+  try {
+    const raw = await run(['log', '--format=%H%x1f%s', `${base}..HEAD`])
+    return raw.split('\n').map(line => line.trim()).filter(Boolean).map(line => {
+      const [hash, subject] = line.split('\x1f')
+      return { hash, subject: subject ?? '' }
+    }).filter(c => /^(fixup|squash)!/.test(c.subject))
+  } catch { return [] }
+}
+
+export interface SquashFixupsResult {
+  success: boolean
+  /** How many fixup/squash commits were folded in. */
+  squashed?: number
+  error?: string
+}
+
+/**
+ * Fold every `fixup!` / `squash!` commit into the commit it names.
+ *
+ * `against` is the branch the work is measured from — its upstream, or the
+ * branch it will merge into — and what is rebased onto is the **fork point**
+ * with it, never the branch itself: `rebase -i --autosquash origin/main`
+ * would tidy the fixups AND drag the branch onto whatever origin/main has
+ * grown since, which is a second, unasked-for operation with its own
+ * conflicts. The merge base leaves every commit where it is and only folds.
+ *
+ * It refuses when there are no fixups, and that matters: a rebase rewrites
+ * every hash it walks over, so "tidy nothing" would still cost the branch its
+ * identity, break anybody who had fetched it, and leave the user wondering
+ * what the button did.
+ *
+ * `sequence.editor=:` is what makes an interactive rebase non-interactive —
+ * passed as `-c` rather than through the environment, because the one thing a
+ * host gives this file is a runner that takes arguments.
+ */
+export async function squashFixups(run: GitRunner, against: string): Promise<SquashFixupsResult> {
+  const bad = assertRef(against, 'base')
+  if (bad) return { success: false, error: bad }
+  let base = ''
+  try { base = (await run(['merge-base', 'HEAD', against])).trim() } catch { /* unrelated, or no such ref */ }
+  if (!/^[0-9a-f]{7,40}$/.test(base)) return { success: false, error: `Nothing in common with ${against}` }
+  const fixups = await fixupCommits(run, base)
+  if (!fixups.length) return { success: false, error: `No fixup! or squash! commits since ${against}` }
+  try {
+    await run(['-c', 'sequence.editor=:', 'rebase', '-i', '--autosquash', '--autostash', base])
+    return { success: true, squashed: fixups.length }
+  } catch (e) {
+    return { success: false, error: reason(e) }
+  }
+}
+
+// ── The worktrees, and where each one stands ────────────────────
+//
+// The list was parsed identically in both services, word for word, and both
+// threw away everything but the path, the branch, the head and whether it was
+// the main one: `locked` was read and never used, and nothing said whether a
+// worktree was dirty or how far its branch had drifted (#285). The parse is
+// here now, and the facts it could not know — the ones that need a second
+// command per worktree — are asked for beside it.
+
+export interface WorktreeRow {
+  path: string
+  /** The branch it holds, or `(detached)`. */
+  branch: string
+  /** Its HEAD, short. */
+  head: string
+  isMain: boolean
+  locked: boolean
+  /** Why it is locked, when git was given a reason. */
+  lockReason?: string
+  /** Its directory is gone — git will drop it on the next prune. */
+  prunable?: boolean
+}
+
+/**
+ * `git worktree list --porcelain`.
+ *
+ * The first entry is the main working tree: git prints them in that order and
+ * says nothing else about it, so position is the only thing to read it from.
+ */
+export function parseWorktrees(raw: string): WorktreeRow[] {
+  const out: WorktreeRow[] = []
+  let cur: WorktreeRow | null = null
+  const push = () => { if (cur) out.push(cur) }
+  for (const line of raw.split('\n')) {
+    if (line.startsWith('worktree ')) {
+      push()
+      cur = { path: line.slice(9).trim(), branch: '', head: '', isMain: false, locked: false }
+    } else if (!cur) {
+      continue
+    } else if (line.startsWith('HEAD ')) {
+      cur.head = line.slice(5).trim().slice(0, 7)
+    } else if (line.startsWith('branch ')) {
+      cur.branch = line.slice(7).trim().replace('refs/heads/', '')
+    } else if (line.trim() === 'detached') {
+      cur.branch = '(detached)'
+    } else if (line.startsWith('locked')) {
+      cur.locked = true
+      // `locked` alone, or `locked <reason>` — the reason is what a row can say.
+      const reason = line.slice(6).trim()
+      if (reason) cur.lockReason = reason
+    } else if (line.trim() === 'prunable' || line.startsWith('prunable ')) {
+      cur.prunable = true
+    }
+  }
+  push()
+  if (out.length) out[0].isMain = true
+  return out
+}
+
+/** A worktree with what only a second command can say about it. */
+export interface WorktreeState extends WorktreeRow {
+  /** It has changes — staged, unstaged or untracked. */
+  dirty?: boolean
+  /** Where its branch stands against its upstream. */
+  ahead?: number
+  behind?: number
+}
+
+/**
+ * The worktrees, each with the facts its row shows (#285).
+ *
+ * `git status` and `rev-list` are run **inside** each worktree — `-C <path>`
+ * — because a worktree's changes are its own and the repository this service
+ * points at cannot see them. That is two commands per worktree, so `facts`
+ * exists: the list alone is one command, and a caller that only needs names
+ * does not pay for the rest.
+ */
+export async function worktrees(
+  run: GitRunner, opts: { facts?: boolean } = {},
+): Promise<{ worktrees: WorktreeState[] }> {
+  let rows: WorktreeRow[] = []
+  try { rows = parseWorktrees(await run(['worktree', 'list', '--porcelain'])) } catch { return { worktrees: [] } }
+  if (!opts.facts) return { worktrees: rows }
+  const out: WorktreeState[] = []
+  for (const row of rows) {
+    const state: WorktreeState = { ...row }
+    // A worktree whose directory is gone answers nothing, and asking twice
+    // for every refresh is two failures per row.
+    if (!row.prunable) {
+      try {
+        state.dirty = (await run(['-C', row.path, 'status', '--porcelain'])).trim().length > 0
+      } catch { /* unreadable — say nothing rather than "clean" */ }
+      if (row.branch && row.branch !== '(detached)') {
+        try {
+          const counts = parseAheadBehind(
+            await run(['-C', row.path, 'rev-list', '--left-right', '--count', `${row.branch}...${row.branch}@{upstream}`]))
+          state.ahead = counts.ahead
+          state.behind = counts.behind
+        } catch { /* tracks nothing: no counts, which is not zero */ }
+      }
+    }
+    out.push(state)
+  }
+  return { worktrees: out }
+}
+
+/** Which worktree holds a branch, if any — what *Open its worktree* resolves. */
+export function worktreeOfBranch(rows: readonly WorktreeRow[], branch: string): WorktreeRow | null {
+  const name = branch.replace(/^refs\/heads\//, '')
+  return rows.find(w => w.branch === name) ?? null
+}
+
+export interface CopyChangesResult {
+  success: boolean
+  /** The work is in the stash list and was NOT applied — it is not lost. */
+  leftInStash?: boolean
+  error?: string
+}
+
+/**
+ * Carry what is uncommitted in one worktree into another (#285).
+ *
+ * git's own tool for this is the stash, and the stash is the repository's,
+ * not a worktree's: taken in `from`, it can be applied in `to`. What matters
+ * is what happens when the apply fails — a conflict, a file in the way — and
+ * the answer is that **the stash is kept**. Dropping the only copy of
+ * somebody's uncommitted work because the second half of a two-step operation
+ * went wrong is not a risk to take on their behalf, so the refusal says the
+ * work is waiting in the stash rather than pretending nothing happened.
+ *
+ * `apply`, never `pop`, for the same reason.
+ */
+export async function copyChangesToWorktree(
+  run: GitRunner, from: string, to: string, label: string,
+): Promise<CopyChangesResult> {
+  if (from === to) return { success: false, error: 'That is the same worktree' }
+  try {
+    const status = (await run(['-C', from, 'status', '--porcelain'])).trim()
+    if (!status) return { success: false, error: 'Nothing to copy — that worktree is clean' }
+  } catch (e) { return { success: false, error: reason(e) } }
+  try {
+    // --include-untracked: a new file is part of the work being carried over,
+    // and leaving it behind would copy half of it.
+    await run(['-C', from, 'stash', 'push', '--include-untracked', '-m', label])
+  } catch (e) { return { success: false, error: reason(e) } }
+  try {
+    await run(['-C', to, 'stash', 'apply', 'stash@{0}'])
+    return { success: true, leftInStash: true }
+  } catch (e) {
+    return { success: false, leftInStash: true, error: reason(e) }
+  }
+}
+
+// ── A pull request, as refs ─────────────────────────────────────
+//
+// A request whose head is a branch of this repository could be checked out
+// from Branches › REMOTE, once somebody worked out which remote branch it
+// was; one from a FORK could not be checked out at all, because its head is
+// in a repository this clone has no remote for (#290).
+//
+// GitHub publishes every request's head under the repository's own refs —
+// `refs/pull/<n>/head` — fork or not, which is the one refspec that answers
+// both cases. It is read-only: pushing back to it is not a thing, and a
+// branch made from it is an ordinary local branch with no upstream.
+
+/** The local branch a request is fetched into. Predictable, and never a name a person picked. */
+export function pullRequestBranch(number: number): string {
+  return `pr/${number}`
+}
+
+/**
+ * `refs/pull/<n>/head:<local>` — what `git fetch <remote> …` is given.
+ *
+ * `+` is deliberately absent: a forced update would rewrite a local branch
+ * somebody may have committed on. A request that was force-pushed therefore
+ * fails to fetch rather than silently taking the work with it, and the
+ * caller says so.
+ */
+export function pullRequestRefspec(number: number, local = pullRequestBranch(number)): string {
+  return `refs/pull/${number}/head:${local}`
+}
+
+export interface FetchPullRequestResult {
+  success: boolean
+  /** The local branch it landed on. */
+  branch?: string
+  /** It was already there and could not be moved — see the refspec above. */
+  diverged?: boolean
+  error?: string
+}
+
+/**
+ * Fetch a request's head into a local branch, fork or not.
+ *
+ * Fetching is separated from checking out on purpose: reviewing a request —
+ * its files, a comparison — needs the objects and not the working tree, and
+ * asking somebody to switch branches to read a diff is how a review costs a
+ * stash.
+ */
+export async function fetchPullRequestHead(
+  run: GitRunner, remote: string, number: number,
+  opts: { checkout?: boolean; local?: string } = {},
+): Promise<FetchPullRequestResult> {
+  const local = opts.local ?? pullRequestBranch(number)
+  if (!Number.isInteger(number) || number <= 0) return { success: false, error: `${number} is not a pull request number` }
+  const bad = assertRef(remote, 'remote') ?? assertRef(local, 'branch')
+  if (bad) return { success: false, error: bad }
+  try {
+    await run(['fetch', remote, pullRequestRefspec(number, local)])
+  } catch (e) {
+    const why = reason(e)
+    // git's own words for "that would not be a fast-forward" — the branch is
+    // there and holds something else, which is a decision, not a retry.
+    if (/non-fast-forward|rejected/i.test(why)) {
+      return { success: false, branch: local, diverged: true, error: `${local} already exists and has moved — delete it, or rename it, first` }
+    }
+    return { success: false, error: why }
+  }
+  if (!opts.checkout) return { success: true, branch: local }
+  try {
+    await run(['checkout', local])
+    return { success: true, branch: local }
+  } catch (e) {
+    // The head IS fetched and waiting on its branch — name it, rather than
+    // reporting the whole thing as a failure with nothing to show for it.
+    return { success: false, branch: local, error: reason(e) }
+  }
+}

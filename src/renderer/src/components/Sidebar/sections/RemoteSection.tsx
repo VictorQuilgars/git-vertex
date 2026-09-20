@@ -4,13 +4,17 @@ import { buildBranchTree } from '../branchTree'
 import { Section } from '../Section'
 import { BranchTree } from '../tree'
 import { BranchItem } from '../BranchItem'
+import { remoteOf } from '../../ContextMenu/branchMenu'
 import type { SidebarState } from '../useSidebar'
 
 export function RemoteSection({ s }: { s: SidebarState }) {
-  const { currentBranch, onDeleteRemoteBranch, onExplainBranch, onBranchChangelog, onGoTo, soloBranch, onToggleSolo, onToggleHide, isFavorite, onToggleFavorite, onOpenBranchOnRemote, prIntentFor, onCreatePR, onCopyBranchLink, single, branchHidden, familyMenu, toggleFolder, openFolders, filtering, showAll, remoteBranches } = s
+  const { currentBranch, onReveal, onOpenCard, onMergeBranch, onRebaseOnto, onCompareBranch, onToggleHideRemote, tipActions, onDeleteRemoteBranch, onExplainBranch, onBranchChangelog, onGoTo, soloBranch, onToggleSolo, onToggleHide, isFavorite, onToggleFavorite, onOpenBranchOnRemote, prIntentFor, onCreatePR, onCopyBranchLink, single, branchHidden, familyMenu, toggleFolder, openFolders, showAll, remoteBranches, layoutFor, layoutToggle, handleFetchRemote } = s
+  const names = remoteBranches.map(b => b.name.replace(/^remotes\//, ''))
+  const asTree = layoutFor('remote', names) === 'tree'
   return (
     <Section id="remote" title="REMOTE" icon="cloud" count={remoteBranches.length} defaultOpen={single}
               menuItems={familyMenu('remotes')}
+              layout={layoutToggle('remote', names)}
               hiddenCount={remoteBranches.filter(branchHidden).length}
               onShowAll={showAll('remotes')}>
               {(() => {
@@ -27,7 +31,21 @@ export function RemoteSection({ s }: { s: SidebarState }) {
                     remote={true}
                     currentBranch={currentBranch}
                     onCheckout={() => onGoTo(b.name)}
+                    onReveal={onReveal && (() => onReveal(b.name))}
+                    // The card names a remote branch as the graph's chip does:
+                    // `origin/x`, without the `remotes/` git prints.
+                    onOpenCard={onOpenCard && (() => onOpenCard(b.name.replace(/^remotes\//, ''), 'remote'))}
+                    onFetch={() => handleFetchRemote(b.name.replace(/^remotes\//, '').split('/')[0])}
                     onDeleteRemote={() => onDeleteRemoteBranch(b.name)}
+                    // A remote-only branch could be neither merged nor rebased
+                    // onto, and had no Compare at all (#282). git takes
+                    // `remotes/origin/x` as a ref like any other.
+                    onMerge={() => onMergeBranch(b.name)}
+                    onRebaseOnto={() => onRebaseOnto(b.name)}
+                    onCompare={() => onCompareBranch(b.name)}
+                    onHideRemote={onToggleHideRemote && (() => onToggleHideRemote(remoteOf(b.name)))}
+                    tip={{ ref: b.name, hash: b.commit, subject: b.label }}
+                    tipActions={tipActions}
                     soloed={soloBranch === b.name}
                     hidden={branchHidden(b)}
                     onToggleSolo={() => onToggleSolo(b.name)}
@@ -43,7 +61,7 @@ export function RemoteSection({ s }: { s: SidebarState }) {
                     onCopyLink={onCopyBranchLink && (() => onCopyBranchLink(b.name))}
                   />
               )
-              if (filtering) return remoteBranches.map(b => leaf(b))
+              if (!asTree) return remoteBranches.map(b => leaf(b))
               const nodes = buildBranchTree(remoteBranches, b => b.name.replace(/^remotes\//, ''))
               return <BranchTree nodes={nodes} open={openFolders(nodes)} onToggle={toggleFolder}
                 renderLeaf={(b, label) => leaf(b, label)} />

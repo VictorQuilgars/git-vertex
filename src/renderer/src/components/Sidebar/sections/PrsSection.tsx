@@ -21,7 +21,7 @@ export function askForPRGroup(group: PRGroupKey): void {
 }
 
 export function PrsSection({ s }: { s: SidebarState }) {
-  const { githubPRs, onOpenGithubItem, onShowGithubDetail, githubDetailOpen, githubLogin, githubRepo, onRefreshGithub, onStartPR, githubRefreshing, githubRefreshTick, githubPollTick, single, t, prsQuery, setPrsQuery, ghFilters, setFilterEditor, mutateFilters, currentBranch } = s
+  const { githubPRs, onOpenGithubItem, handlePullRequestCode, onShowGithubDetail, githubDetailOpen, githubLogin, githubRepo, onRefreshGithub, onStartPR, githubRefreshing, githubRefreshTick, githubPollTick, single, t, prsQuery, setPrsQuery, ghFilters, setFilterEditor, mutateFilters, currentBranch } = s
   const repoKey = githubRepo ? `${githubRepo.owner}/${githubRepo.repo}` : null
   const [groupBy, setGroupBy] = useState<'account' | 'need'>(() => {
     try { return localStorage.getItem(GROUP_BY_KEY) === 'need' ? 'need' : 'account' } catch { return 'account' }
@@ -110,6 +110,12 @@ export function PrsSection({ s }: { s: SidebarState }) {
                   <GithubRow key={pr.number} item={{ ...pr, kind: 'pr' }}
                     hoverCard={!githubDetailOpen}
                     onOpen={url => onOpenGithubItem?.(url)}
+                    prActions={{
+                      onSwitchTo: () => handlePullRequestCode(pr, 'switch'),
+                      onOpenInWorktree: () => handlePullRequestCode(pr, 'worktree'),
+                      onViewChanges: () => handlePullRequestCode(pr, 'changes'),
+                      onCompare: () => handlePullRequestCode(pr, 'compare'),
+                    }}
                     onDetail={onShowGithubDetail ? () => onShowGithubDetail(pr, 'pr') : undefined} />
                 )
                 // The account groups exist only with an identity: with nobody

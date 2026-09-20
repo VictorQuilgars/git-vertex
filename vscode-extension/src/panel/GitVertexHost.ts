@@ -673,8 +673,17 @@ export class GitVertexHost implements vscode.Disposable {
         return { success: true }
       }
       case 'openTerminal': {
-        const term = vscode.window.createTerminal({ cwd: this._repoPath })
+        // A path may be given — a worktree's, from its row (#285); without
+        // one it is the repository this panel is open on.
+        const term = vscode.window.createTerminal({ cwd: args[0] || this._repoPath })
         term.show()
+        return { success: true }
+      }
+      case 'revealInFileManager': {
+        if (!args[0]) return { success: false, error: 'No path' }
+        // VS Code's own command, which is the file manager on every platform
+        // it runs on — an Electron `shell` call has no equivalent here.
+        await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(args[0]))
         return { success: true }
       }
       case 'openDiff': return this._openDiff(args[0])

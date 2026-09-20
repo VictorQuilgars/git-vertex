@@ -63,7 +63,37 @@ app.whenReady().then(async () => {
   try {
     await win.loadFile(path.join(dir, 'index.html'))
     await new Promise(resolve => setTimeout(resolve, 750))
-    await assertCompact()
+    const wide = await assertCompact()
+    // ── A short panel keeps the layout the SETTING asked for ──
+    // It used to force Flush below 340px, whatever had been picked: the gap
+    // costs 16px of a 200px panel. But Layout is a setting, and Flush is what
+    // to pick to get those pixels back — deciding it for somebody who has
+    // already decided is not the panel's business.
+    const frame = await evalJS(`(() => {
+      const s = getComputedStyle(document.querySelector('.gv-app'));
+      return { layout: document.documentElement.dataset.layout, gap: s.getPropertyValue('--pane-gap').trim(), radius: s.getPropertyValue('--pane-radius').trim() };
+    })()`)
+    assert.equal(frame.layout, 'blocks', 'the fixture picks no layout, so it is the default: blocks')
+    assert.equal(frame.gap, '8px', `a short panel dropped the cards' gap: ${JSON.stringify(frame)}`)
+    assert.equal(frame.radius, '8px', `a short panel squared the cards off: ${JSON.stringify(frame)}`)
+    // ── The two columns are for the FILES, not for the home card ──
+    // A clean tree shows one card of next steps in the same pane. It was
+    // getting the whole compact treatment: a column at 73% of the panel to
+    // hold it, and a *Hide graph* button offering the rest of the window.
+    assert(wide.text.includes('Hide graph'), 'the graph toggle belongs to the files layout')
+    await evalJS(`window.fixtureOverrides={getWorkingChanges:{staged:[],unstaged:[],untracked:[]}};window.dispatchEvent(new MessageEvent('message',{data:{type:'event',name:'workingChanged'}}))`)
+    await settle(); await settle()
+    const home = await geometry()
+    assert(home.text.includes('NEXT STEPS') || home.text.includes('Next steps'), 'the home card should be showing on a clean tree')
+    assert(!home.row, 'the home is one card — it must not be laid out in two columns')
+    assert(home.right.w < home.width * 0.6 && home.right.w < wide.right.w - 40,
+      `the home kept the files' width: ${home.right.w} of ${home.width}, files had ${wide.right.w}`)
+    assert(!home.text.includes('Hide graph'), 'nothing to give the window to: no graph toggle over the home')
+    assert(home.graph && home.graph.w > 100, 'the graph keeps its place beside the home')
+    await evalJS(`window.fixtureOverrides={};window.dispatchEvent(new MessageEvent('message',{data:{type:'event',name:'workingChanged'}}))`)
+    await settle(); await settle()
+    const back = await assertCompact()
+    assert(Math.abs(back.right.w - wide.right.w) < 2, `the files' width did not come back: ${back.right.w} vs ${wide.right.w}`)
     await evalJS("document.querySelectorAll('.stx-row input')[1].click()")
     await settle()
     assert(await evalJS("testCalls.includes('stage')"), 'staging checkbox lost its action')
@@ -196,7 +226,7 @@ app.whenReady().then(async () => {
     await assertCompact()
     fs.writeFileSync(path.join(dir,'compact.png'), (await win.webContents.capturePage()).toPNG())
     assert.equal(errors.length,0,errors.join('\n'))
-    console.log('PASS compact panel: layout, pointer and keyboard resizing, persistence, narrow/tall fallback, graph toggle that holds, a toolbar that fits, options, side-bar column')
+    console.log('PASS compact panel: layout, the cards it keeps, the home card kept out of it, pointer and keyboard resizing, persistence, narrow/tall fallback, graph toggle that holds, a toolbar that fits, options, side-bar column')
     console.log('Screenshots: '+['compact','sidebar','sidebar-overlay','sidebar-short'].map(n=>path.join(dir,n+'.png')).join(' '))
   } catch (error) {
     console.error(error)

@@ -69,7 +69,7 @@ export function LabelChip({ label }: { label: GithubLabel }) {
   )
 }
 
-export default function GithubRow({ item, onOpen, onDetail, onCreateBranch, hoverCard = true }: {
+export default function GithubRow({ item, onOpen, onDetail, onCreateBranch, prActions, hoverCard = true }: {
   item: GithubRowItem
   onOpen?: (url: string) => void
   /** Open the in-app detail (§3 bis). Present ⇒ a click goes here, not to a
@@ -84,15 +84,35 @@ export default function GithubRow({ item, onOpen, onDetail, onCreateBranch, hove
    * does not offer to. Never offered on a pull request.
    */
   onCreateBranch?: () => void
+  /**
+   * What can be done with a pull request's code (#290). Each is optional and
+   * a missing one drops its row, the menu's rule — and the whole object is
+   * absent on an issue, which has no head to fetch.
+   */
+  prActions?: {
+    onSwitchTo?: () => void
+    onOpenInWorktree?: () => void
+    onViewChanges?: () => void
+    onCompare?: () => void
+  }
 }) {
   const { t } = useLang()
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const menued = item.kind === 'issue' && !!onCreateBranch
   // The row's actions, one list for its two openings: the kebab that appears
   // on hover, and the right-click. Every entry has a real handler behind it.
+  // A request's code, where before there was only its page: the head is
+  // fetched from `refs/pull/<n>/head`, which a fork's request has too (#290).
+  const code = item.kind === 'pr' ? prActions : undefined
   const menuItems = [
     ...(onDetail ? [{ label: t(item.kind === 'pr' ? 'gh.pr.view' : 'gh.issue.view'), action: onDetail }] : []),
+    ...(code?.onViewChanges ? [{ label: t('gh.pr.viewChanges'), action: code.onViewChanges }] : []),
     ...(menued ? [{ label: t('gh.issue.createBranch'), action: onCreateBranch! }] : []),
+    ...(code?.onSwitchTo || code?.onOpenInWorktree || code?.onCompare ? [{ separator: true } as any] : []),
+    ...(code?.onSwitchTo ? [{ label: t('gh.pr.switchTo'), action: code.onSwitchTo }] : []),
+    ...(code?.onOpenInWorktree ? [{ label: t('gh.pr.openInWorktree'), action: code.onOpenInWorktree }] : []),
+    ...(code?.onCompare ? [{ label: t('gh.pr.compare'), action: code.onCompare }] : []),
+    ...(code?.onSwitchTo || code?.onOpenInWorktree || code?.onCompare ? [{ separator: true } as any] : []),
     { label: t('gh.panel.copyLink'), action: () => navigator.clipboard.writeText(item.url) },
     ...(onOpen ? [{ label: t('gh.panel.openIn'), action: () => onOpen(item.url) }] : []),
   ]

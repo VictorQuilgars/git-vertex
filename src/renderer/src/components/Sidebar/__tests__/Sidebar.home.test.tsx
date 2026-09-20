@@ -77,10 +77,13 @@ describe('the home card', () => {
       mergeTarget: { name: 'develop', ahead: 1, behind: 3 },
     })
     await waitFor(() => expect(screen.getByText('3 commits behind develop · 1 ahead')).toBeInTheDocument())
-    const publish = screen.getByTitle(/publish/i)
+    // The rows have a Publish of their own now (#274) — this is the home
+    // card's, which names the branch and the remote it would publish to.
+    const publish = screen.getByTitle('Publish main to origin')
     fireEvent.click(publish)
     expect(onPublish).toHaveBeenCalled()
-    expect(screen.queryByTitle(/^push/i)).not.toBeInTheDocument()
+    // On the CARD: the branch rows below it carry their own acts (#274).
+    expect(document.querySelector('.sb-ov-action[title^="Push"]')).toBeNull()
     expect(document.querySelectorAll('.sb-ov-start')).toHaveLength(1)   // the one start the host offered
   })
 

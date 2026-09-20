@@ -17,11 +17,41 @@ function freePort() {
   })
 }
 
-/** `out/main/index.js` is what runs; build it when it is missing or asked for. */
+/** The newest mtime under a directory — what says whether a build is behind its sources. */
+function newestUnder(dir) {
+  let newest = 0
+  const walk = at => {
+    for (const entry of fs.readdirSync(at, { withFileTypes: true })) {
+      if (entry.name === 'node_modules' || entry.name.startsWith('.')) continue
+      const full = path.join(at, entry.name)
+      if (entry.isDirectory()) walk(full)
+      else newest = Math.max(newest, fs.statSync(full).mtimeMs)
+    }
+  }
+  try { walk(dir) } catch { /* not there */ }
+  return newest
+}
+
+/**
+ * `out/main/index.js` is what runs; build it when it is missing, asked for, or
+ * BEHIND THE SOURCES.
+ *
+ * The last one is not a nicety. A driver run against a stale `out/` shows the
+ * product as it was, and the conclusion drawn from it is about code that is no
+ * longer there: the shared scenario reported "no row offers a card" on the
+ * desktop, six minutes after the sources grew the button, and it read exactly
+ * like a parity bug against the panel.
+ */
 function ensureBuilt({ build }) {
   const main = path.join(ROOT, 'out', 'main', 'index.js')
-  if (!build && fs.existsSync(main)) return
-  console.log(build ? '· building (--build)' : '· no build found, building')
+  const built = fs.existsSync(main) ? fs.statSync(main).mtimeMs : 0
+  const sources = built && Math.max(
+    newestUnder(path.join(ROOT, 'src')),
+    newestUnder(path.join(ROOT, 'resources')),
+  )
+  const stale = built > 0 && sources > built
+  if (!build && built && !stale) return
+  console.log(build ? '· building (--build)' : stale ? '· the build is older than the sources, rebuilding' : '· no build found, building')
   const r = spawnSync('npm', ['run', 'build'], { cwd: ROOT, stdio: 'inherit' })
   if (r.status !== 0) throw new Error('npm run build failed')
 }

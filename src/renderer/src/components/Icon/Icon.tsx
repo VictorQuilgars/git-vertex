@@ -41,11 +41,11 @@ import activity from './icons/activity.svg'
 import agent from './icons/agent.svg'
 import ai from './icons/ai.svg'
 import arrowRight from './icons/arrowRight.svg'
-import arrowSwitch from './icons/arrowSwitch.svg'
 import bell from './icons/bell.svg'
 import blame from './icons/blame.svg'
 import book from './icons/book.svg'
 import branch from './icons/branch.svg'
+import card from './icons/card.svg'
 import caretDown from './icons/caretDown.svg'
 import check from './icons/check.svg'
 import chevronDown from './icons/chevronDown.svg'
@@ -107,6 +107,7 @@ import sliders from './icons/sliders.svg'
 import sort from './icons/sort.svg'
 import staging from './icons/staging.svg'
 import stash from './icons/stash.svg'
+import switchBranch from './icons/switchBranch.svg'
 import tag from './icons/tag.svg'
 import terminal from './icons/terminal.svg'
 import trash from './icons/trash.svg'
@@ -115,15 +116,15 @@ import worktree from './icons/worktree.svg'
 import wrench from './icons/wrench.svg'
 
 const SOURCE: Record<string, string> = {
-  activity, agent, ai, arrowRight, arrowSwitch, bell, blame, book, branch,
-  caretDown, check, chevronDown, chevronLeft, chevronRight, clock, cloud,
+  activity, agent, ai, arrowRight, bell, blame, book, branch,
+  card, caretDown, check, chevronDown, chevronLeft, chevronRight, clock, cloud,
   commandPalette, comment, commit, compare, conflict, copy, device, diff,
   download, editor, externalLink, eye, eyeOff, folder, gear, gitflow,
   history, home, hunk, info, ink, issue, kebab, layoutBottom, layoutBottomOff,
   layoutRight, layoutRightOff, link, list, listTree, mail,
   merge, newBranch, node, panel, pencil, person, play, plus, pop,
   pullRequest, push, rebase, redo, reflog, refresh, repo, rocket, search,
-  shield, sliders, sort, staging, stash, tag, terminal, trash, undo,
+  shield, sliders, sort, staging, stash, switchBranch, tag, terminal, trash, undo,
   worktree, wrench,
 }
 
@@ -183,6 +184,8 @@ const DENSE = new Set<string>(['hunk', 'commandPalette'])
 const NODED = new Set<string>([
   'branch', 'newBranch', 'merge', 'rebase', 'pullRequest',
   'worktree', 'gitflow', 'reflog', 'blame',
+  // A ring around a filled node — the forge's open-issue mark.
+  'issue',
 ])
 
 /**

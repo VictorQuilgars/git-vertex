@@ -32,6 +32,7 @@ import type { ConflictKind, StashScope } from '../../../src/renderer/src/types'
 import Sidebar, { SidebarView, type GithubListItem } from '../../../src/renderer/src/components/Sidebar/Sidebar'
 import IssueDetail from '../../../src/renderer/src/components/IssueDetail/IssueDetail'
 import PRDetail from '../../../src/renderer/src/components/IssueDetail/PRDetail'
+import { usePullRequestCode } from '../../../src/renderer/src/hooks/usePullRequestCode'
 import ActivityRail from './ActivityRail'
 import InteractiveRebase from '../../../src/renderer/src/components/InteractiveRebase/InteractiveRebase'
 import StagingEditor from '../../../src/renderer/src/components/StagingEditor/StagingEditor'
@@ -934,6 +935,12 @@ function VertexApp() {
     seenRepoRef.current = repoPath
   }, [repoPath])
 
+  // A request's code, from the sheet — the same hook the side bar's rows use.
+  const pullRequestCode = usePullRequestCode({
+    t, showToast,
+    onCompare: (base: string, head: string, axis: 'diverged' | 'endpoints') => { void window.gitAPI.openCompare(base, head, axis) },
+    onSwitched: () => { void loadRepoData() },
+  })
   const handleSelectCommitByHash = useCallback((hash: string) => {
     const found = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
     if (found) setSelectedCommit(found)
@@ -980,6 +987,25 @@ function VertexApp() {
     window.gitAPI.onRevealCommit(cb)
     return () => window.gitAPI.offRevealCommit(cb)
   }, [])
+  /**
+   * A reference's card, asked for from a side bar row rather than from the
+   * chip on its tip's graph row.
+   *
+   * The ORDER is the whole of it: `useRefCard` drops a card whose reference
+   * is not the selected commit, so the tip is selected first and the card
+   * opened in the same handler — React batches both, and the effect that
+   * would have closed it sees them agreeing. A tip that is not on the page
+   * yet is reached the way everything else reaches one, and the card is not
+   * forced open over a selection that has not landed.
+   */
+  const openRefCard = useCallback(async (ref: string, kind: 'head' | 'remote' | 'tag') => {
+    let hash = ''
+    try { hash = String((await window.gitAPI.resolveCommit(ref))?.hash ?? '') } catch { /* not a ref */ }
+    const onPage = hash ? commits.find(c => c.hash === hash) : undefined
+    if (!onPage) { void revealCommit(ref); return }
+    setSelectedCommit(onPage)
+    refCard.toggle({ kind, name: ref, hash: onPage.hash })
+  }, [commits, revealCommit, refCard])
   // The panel's settings page, asked for from outside (the Welcome page, the palette).
   useEffect(() => {
     const cb = () => setSettingsOpen(true)
@@ -1232,12 +1258,14 @@ function VertexApp() {
     return Number.isFinite(saved) && saved > 0 ? saved : 0
   })
   const effDetailsH = clampDetailsHeight(detailsH || Math.round(bodyH * 0.5), bodyH)
-  // A short panel — the bottom panel at its usual height — goes edge to
-  // edge: the frame's gap above and below the cards is height the staging
-  // pane needs more than the eye does. From the window, not the body: the
-  // body's height depends on the gap, and the two must not chase each other.
+  // A short panel — the bottom panel at its usual height. It no longer forces
+  // the flush layout on a setting that says otherwise; it gives the staging
+  // pane back the gap's height (the CSS drops the body's vertical padding,
+  // and the cards keep everything else), puts the search behind a button and
+  // the minimap away. From the window, not the body: the body's height
+  // depends on the gap, and the two must not chase each other.
   const short = viewport.h < 340
-  const paneGap = layout.narrow && !short ? 8 : 0
+  const paneGap = layout.narrow ? 8 : 0
 
   // Compact widths are separate from the user's tall-panel layout. Zero means
   // use the initial proportion; window resizing only clamps, never overwrites it.
@@ -1275,7 +1303,29 @@ function VertexApp() {
     hideDetails(false)
     detailsSubject()
   }
+  /**
+   * Whether the staging pane is showing its HOME card rather than files.
+   *
+   * `null` until it has said so: the pane decides it, because an amend and a
+   * half-written message both keep the files on screen with a clean tree,
+   * and neither is knowable from here. Until the first answer, the change
+   * count is the best guess — which is right in the ordinary case, so the
+   * layout does not jump on the way in.
+   */
+  const [stagingEmpty, setStagingEmpty] = useState<boolean | null>(null)
+  const workingIsEmpty = stagingEmpty ?? wipCount === 0
+  /**
+   * The compact working layout: the staging pane in a row beside the graph,
+   * widened into two columns, with a switch that hides the graph.
+   *
+   * It is for the FILES — a list and a commit form, which is two things and
+   * wants the width. On a clean tree the same pane shows one card of next
+   * steps, and all three were being offered for it: a column at 73% of the
+   * panel holding one card, and a *Hide graph* button that gave the rest of
+   * the window to it.
+   */
   const compactWorking = showRight && selectedCommit?.hash === '__WIP__' && !conflictMode
+    && !workingIsEmpty
     && compactWorkingHolds(bodySize.h, graphHidden)
   const availableWidth = Math.max(0, bodyW - layout.railWidth - (activeView && !overlaySide ? sideW + 3 : 0))
   const compactColumns = compactWorking && availableWidth >= 692
@@ -1452,6 +1502,29 @@ function VertexApp() {
             onSelectCommit={handleSelectCommitByHash}
             onFilterAuthor={(author) => setSearchQuery(authorQuery(author))}
             authorFilter={authorOfQuery(searchQuery)}
+            onReveal={(ref: string) => { void revealCommit(ref) }}
+            onOpenCard={(ref: string, kind: 'head' | 'remote' | 'tag') => { void openRefCard(ref, kind) }}
+            onCompareStash={(ref: string, against: 'HEAD' | 'working') => {
+              if (against === 'working') void window.gitAPI.openCompareWorkingTab(ref)
+              else void window.gitAPI.openCompare('HEAD', ref, 'endpoints')
+            }}
+            onSelectStashForCompare={setCompareBaseHash}
+            onRebaseOntoUpstream={(upstream: string) => { void handleRebaseCurrentOnto(upstream) }}
+            onCompareUpstream={(name: string, upstream: string) => { void window.gitAPI.openCompare(upstream, name) }}
+            tipActions={{
+              onCreateBranchAt: handleCreateBranchAt,
+              onCreateTag: handleCreateTag,
+              onCreateWorktreeAt: handleCreateWorktreeAt,
+              onReset: handleReset,
+              onCompareWorking: (hash: string) => { void window.gitAPI.openCompareWorkingTab(hash) },
+              onSelectForCompare: setCompareBaseHash,
+              onCompareWithSelected: (hash: string) => { if (compareBaseHash) void window.gitAPI.openCompare(compareBaseHash, hash) },
+              onCopyFullHash: async (ref: string) => {
+                const { hash } = await window.gitAPI.resolveCommit(ref)
+                if (hash) void navigator.clipboard.writeText(hash)
+              },
+              compareBaseHash,
+            }}
             home={emptyState}
             mergeTarget={mergeTarget}
             launchpad={launchpad}
@@ -1469,6 +1542,9 @@ function VertexApp() {
             githubIssues={githubIssues}
             onStartBranchFromIssue={handleCreateBranchFromIssue}
             onOpenGithubItem={(url) => window.gitAPI.openExternal(url)}
+            onComparePullRequest={(base: string, head: string, axis: 'diverged' | 'endpoints') => {
+              void window.gitAPI.openCompare(base, head, axis)
+            }}
             issueFor={branchMeta.issueFor}
             onToggleFavorite={branchMeta.toggleFavorite}
             onOpenBranchOnRemote={handleOpenBranchOnRemote}
@@ -1502,6 +1578,7 @@ function VertexApp() {
                 number={issueDetail.item.number}
                 onClose={() => setIssueDetail(null)}
                 onChanged={() => { if (githubRepo) void loadGhLists(githubRepo) }}
+                onCode={(what) => { void pullRequestCode(issueDetail.item, what) }}
               />
             ) : (
               <IssueDetail
@@ -1632,6 +1709,7 @@ function VertexApp() {
                 showConfirm={showConfirm}
                 currentBranch={currentBranch}
                 wipCount={wipCount}
+                onEmptyState={setStagingEmpty}
                 onViewWip={() => setSelectedCommit(prev => prev?.hash === '__WIP__' ? null : WIP_NODE)}
                 onSelectCommit={(hash) => {
                   const found = commits.find(c => c.hash === hash || c.hash.startsWith(hash))

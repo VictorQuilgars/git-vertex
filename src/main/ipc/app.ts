@@ -299,9 +299,11 @@ export function registerAppHandlers(): void {
   // Open the system terminal at the repository root. Uses the configured
   // `externalTerminal` app (e.g. "iTerm", "Warp") if set, otherwise falls back
   // to the OS default terminal.
-  handle('app:open-terminal', async () => {
+  // A path may be given — a worktree's, from its row (#285). Without one it is
+  // the repository on screen, which is every caller that existed before.
+  handle('app:open-terminal', async (_event, at?: string) => {
     if (!state.gitService) return { success: false, error: 'No repo open' }
-    const cwd = state.gitService.repoPath
+    const cwd = at || state.gitService.repoPath
     try {
       const { spawn } = await import('child_process')
       const customTerminal = (readSettings().externalTerminal ?? '').trim()
@@ -312,6 +314,22 @@ export function registerAppHandlers(): void {
       return { success: true }
     } catch (e: any) {
       return { success: false, error: e.message }
+    }
+  })
+
+  /** Show a folder — or a file — where it lives, in the system's file manager (#285). */
+  handle('app:reveal-in-file-manager', async (_event, at: string) => {
+    try {
+      const { shell } = await import('electron')
+      const fs = await import('fs')
+      // showItemInFolder opens the PARENT and selects the item, which is what
+      // "reveal" means for a file; for a folder it would open the folder above
+      // it, so a directory is opened as itself.
+      if (fs.statSync(at).isDirectory()) await shell.openPath(at)
+      else shell.showItemInFolder(at)
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message ?? String(e) }
     }
   })
 

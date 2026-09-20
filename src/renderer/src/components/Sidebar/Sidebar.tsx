@@ -31,7 +31,7 @@ export type { SidebarView, GithubListItem } from './types'
 
 export default function Sidebar(props: SidebarProps) {
   const s = useSidebar(props)
-  const { repoPath, recentRepos, stashes, wipCount, wipSelected, onViewWip, onOpenRepo, onClone, onSetRepo, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onTab, githubPRs, githubIssues, githubRepo, view, single, showAI, show, submodules, t, stashMenu, setStashMenu, ghFilters, filterEditor, setFilterEditor, mutateFilters, stashScopeItems, handleRenameStash, branchFilter, setBranchFilter, stashesHidden, familyMenu, rootRef, filterDraft, setFilterDraft, showAll, remoteBranches } = s
+  const { repoPath, recentRepos, filteredStashes, onReveal, wipCount, wipSelected, onViewWip, onOpenRepo, onClone, onSetRepo, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onTab, githubPRs, githubIssues, githubRepo, view, single, showAI, show, submodules, t, stashMenu, setStashMenu, ghFilters, filterEditor, setFilterEditor, mutateFilters, stashScopeItems, handleRenameStash, branchFilter, setBranchFilter, stashesHidden, familyMenu, rootRef, filterDraft, setFilterDraft, showAll, remoteBranches, filterView, filterPlaceholder, onCompareStash, onSelectStashForCompare, handleCopyStashSha, handleCopyStashPatch } = s
   return (
     // `--single`: the VS Code panel, one view at a time — an open section's +
     // stays on screen there (Sidebar.css).
@@ -94,11 +94,14 @@ export default function Sidebar(props: SidebarProps) {
         </div>
       )}
 
-      {/* ── Branch filter ── (branches view only in single mode) */}
-      {repoPath && show('branches') && (
+      {/* ── The filter ──
+          One field, and whatever list is on screen answers it (#276). In the
+          panel the rail has already chosen one view, so the placeholder names
+          it; on the desktop every section is stacked and it narrows them all. */}
+      {repoPath && filterView && (
         <div className="sb-search">
           <Icon name="search" size={12} />
-          <input type="text" placeholder={t('sb.filterBranches')}
+          <input type="text" placeholder={filterPlaceholder} aria-label={filterPlaceholder}
             value={branchFilter} onChange={e => setBranchFilter(e.target.value)} />
           {branchFilter && <button className="sb-filter-clear" title={t('common.clearFilter')} onClick={() => setBranchFilter('')}>×</button>}
         </div>
@@ -205,7 +208,7 @@ export default function Sidebar(props: SidebarProps) {
             id="stash"
             title="STASH"
             icon="stash"
-            count={stashes.length}
+            count={filteredStashes.length}
             defaultOpen={single}
             onAdd={e => {
               const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
@@ -213,12 +216,12 @@ export default function Sidebar(props: SidebarProps) {
             }}
             addLabel={t('sb.stash.create')}
             menuItems={familyMenu('stashes')}
-            hiddenCount={stashesHidden ? stashes.length : 0}
+            hiddenCount={stashesHidden ? filteredStashes.length : 0}
             onShowAll={showAll('stashes')}
           >
-            {stashes.length === 0
+            {filteredStashes.length === 0
               ? <div className="sb-empty">{t('sb.noStash')}</div>
-              : stashes.map(s => (
+              : filteredStashes.map(s => (
                   <StashItem
                     key={s.index}
                     stash={s}
@@ -228,6 +231,12 @@ export default function Sidebar(props: SidebarProps) {
                     onPreview={onPreviewStash ? () => onPreviewStash(s.index, s.message) : undefined}
                     onExplain={onExplainStash ? () => onExplainStash(s.index, s.message) : undefined}
                     onRename={() => handleRenameStash(s.index, s.message)}
+                    onReveal={onReveal && (() => onReveal(`stash@{${s.index}}`))}
+                    onCompareHead={onCompareStash && (() => onCompareStash(`stash@{${s.index}}`, 'HEAD'))}
+                    onCompareWorking={onCompareStash && (() => onCompareStash(`stash@{${s.index}}`, 'working'))}
+                    onSelectForCompare={onSelectStashForCompare && (() => onSelectStashForCompare(`stash@{${s.index}}`))}
+                    onCopySha={() => handleCopyStashSha(s.index)}
+                    onCopyPatch={() => handleCopyStashPatch(s.index)}
                     hidden={stashesHidden}
                   />
                 ))

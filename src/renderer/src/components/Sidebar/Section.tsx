@@ -106,7 +106,7 @@ function useRevealed(id: string, onReveal: RevealFn): void {
 }
 
 // ── Collapse section ─────────────────────────────────────────────
-export function Section({ id, title, icon, brand, count, children, defaultOpen = true, onAdd, addLabel, menuItems, hiddenCount, onShowAll, onRefresh, refreshing, onFold }: {
+export function Section({ id, title, icon, brand, count, children, defaultOpen = true, onAdd, addLabel, menuItems, hiddenCount, onShowAll, onRefresh, refreshing, onFold, layout }: {
   /** Stable across repositories — the key the section's height is kept under. */
   id: string
   title: string
@@ -156,6 +156,12 @@ export function Section({ id, title, icon, brand, count, children, defaultOpen =
   // nothing on screen to say so is how you end up mistrusting the graph.
   hiddenCount?: number
   onShowAll?: () => void
+  /**
+   * List or tree, for a section whose names hold slashes (#276). Omitted ⇒ no
+   * toggle, which is every section whose rows are not paths: a tree over
+   * three flat names is the same list with an indent in front of it.
+   */
+  layout?: { mode: 'list' | 'tree'; onToggle: () => void }
 }) {
   const [open, setOpen] = useState(defaultOpen)
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
@@ -200,6 +206,13 @@ export function Section({ id, title, icon, brand, count, children, defaultOpen =
               title={t('sb.gh.refresh')} disabled={refreshing}
               onClick={e => { e.stopPropagation(); onRefresh() }}>
               <Icon name="refresh" size={12} />
+            </button>
+          )}
+          {layout && (
+            <button className="sb-add-btn sb-on-hover" title={t(layout.mode === 'tree' ? 'sb.layout.asList' : 'sb.layout.asTree')}
+              aria-pressed={layout.mode === 'tree'}
+              onClick={e => { e.stopPropagation(); layout.onToggle() }}>
+              <Icon name={layout.mode === 'tree' ? 'listTree' : 'list'} size={12} />
             </button>
           )}
           {onAdd && (

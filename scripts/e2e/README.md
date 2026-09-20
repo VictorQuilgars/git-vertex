@@ -1,4 +1,20 @@
-# End-to-end suite
+# End-to-end suite, and the driver beside it
+
+`npm run app:drive` opens the app on a repository and lets you ask it one
+question — the twin of `npm run ext:drive`, which does it for the VS Code
+panel. It is for looking; the suite below is for guarding.
+
+```bash
+npm run app:drive -- --demo --shot app.png
+npm run app:drive -- --repo /path/to/repo --eval 'document.querySelectorAll(".cg-row").length'
+npm run app:drive -- --repo … --scenario scripts/scenarios/branch-rows.js   # shared with the panel
+npm run app:drive -- --repo … --keep                                        # leave it open
+```
+
+It rebuilds when `out/` is older than `src/`: a driver run against a stale
+build shows the product as it was, and the conclusion drawn from it is about
+code that is no longer there.
+
 
 The built desktop app, driven over the Chrome DevTools Protocol on a throwaway
 profile, through the journeys the September 2026 audit reproduced by hand — and

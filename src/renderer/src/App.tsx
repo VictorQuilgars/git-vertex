@@ -60,6 +60,7 @@ import { useAppTabs } from './app/useAppTabs'
 import { useAppUpdates } from './app/useAppUpdates'
 import { useAppActions } from './app/useAppActions'
 import { useAppSearch } from './app/useAppSearch'
+import { usePullRequestCode } from './hooks/usePullRequestCode'
 import './App.css'
 
 // Kept on this module for the tests and hosts that import them from here.
@@ -394,6 +395,30 @@ export default function App() {
   // beside the two side panes — computed from the panes the user actually has
   // (see utils/layout.ts), so a wide right pane counts as much as a narrow window.
   const windowWidth = useWindowWidth()
+  /**
+   * A reference's card, asked for from a side bar row rather than from the
+   * chip on its tip's graph row.
+   *
+   * The ORDER is the whole of it: `useRefCard` drops a card whose reference
+   * is not the selected commit, so the tip is selected first and the card
+   * opened in the same handler — React batches both, and the effect that
+   * would have closed it sees them agreeing. A tip that is not on the page
+   * yet is reached the way everything else reaches one, and the card is not
+   * forced open over a selection that has not landed.
+   */
+  const openRefCard = async (ref: string, kind: 'head' | 'remote' | 'tag') => {
+    const { hash } = await window.gitAPI.resolveCommit(ref)
+    const onPage = hash ? commits.find(c => c.hash === hash) : undefined
+    if (!onPage) { void revealRef(ref); return }
+    setSelectedCommit(onPage)
+    refCard.toggle({ kind, name: ref, hash: onPage.hash })
+  }
+  // A request's code, from the sheet — the same hook the side bar's rows use.
+  const pullRequestCode = usePullRequestCode({
+    t, showToast,
+    onCompare: (base, head, axis) => openViewTab({ view: 'compare', a: base, b: head, axis, label: `${base} … ${head}` }),
+    onSwitched: () => { void loadRepoData() },
+  })
   const compactDetails = !!selectedCommit && !conflictResolverFile && !rebaseHash && !viewTab && !issueDetail
     && detailsTakeCenter(windowWidth, repoPath ? sidebarW : 0, rightW)
   // The minimap's block, above the three panes; the graph draws into it.
@@ -644,6 +669,7 @@ export default function App() {
               githubIssues={githubIssues}
               onStartBranchFromIssue={handleCreateBranchFromIssue}
               onShowGithubDetail={(item, kind) => setIssueDetail({ kind, item })}
+              onComparePullRequest={(base, head, axis) => openViewTab({ view: 'compare', a: base, b: head, axis, label: `${base} … ${head}` })}
               githubDetailOpen={!!issueDetail}
               githubLogin={githubLogin}
               githubRepo={githubOwnerRepo}
@@ -717,6 +743,28 @@ export default function App() {
               }}
               onFilterAuthor={(author) => setSearchQuery(authorQuery(author))}
               authorFilter={authorOfQuery(searchQuery)}
+              onReveal={ref => { void revealRef(ref) }}
+              onOpenCard={(ref, kind) => { void openRefCard(ref, kind) }}
+              onCompareStash={(ref, against) => openViewTab(against === 'working'
+                ? { view: 'compare', a: ref, b: null, axis: 'endpoints', label: `${ref} … working tree` }
+                : { view: 'compare', a: 'HEAD', b: ref, axis: 'endpoints', label: `HEAD … ${ref}` })}
+              onSelectStashForCompare={setCompareBaseHash}
+              onRebaseOntoUpstream={upstream => { void handleRebaseOnto(upstream) }}
+              onCompareUpstream={(name, upstream) => openViewTab({ view: 'compare', a: upstream, b: name, axis: 'diverged', label: `${upstream} … ${name}` })}
+              tipActions={{
+                onCreateBranchAt: handleCreateBranchAt,
+                onCreateTag: handleCreateTagAtCommit,
+                onCreateWorktreeAt: handleCreateWorktreeAt,
+                onReset: handleReset,
+                onCompareWorking: hash => openViewTab({ view: 'compare', a: hash, b: null, axis: 'endpoints', label: `${hash.slice(0, 7)} … working tree` }),
+                onSelectForCompare: setCompareBaseHash,
+                onCompareWithSelected: hash => compareBaseHash && openViewTab({ view: 'compare', a: compareBaseHash, b: hash, axis: 'endpoints', label: `${compareBaseHash.slice(0, 7)} … ${hash.slice(0, 7)}` }),
+                onCopyFullHash: async ref => {
+                  const { hash } = await window.gitAPI.resolveCommit(ref)
+                  if (hash) void navigator.clipboard.writeText(hash)
+                },
+                compareBaseHash,
+              }}
               onCompareBranch={(name) => openViewTab({ view: 'compare', a: currentBranch, b: name, axis: 'diverged', label: `${currentBranch} … ${name}` })}
               soloBranch={soloBranch}
               visibility={visibility}
@@ -940,6 +988,7 @@ export default function App() {
               number={issueDetail.item.number}
               onClose={() => setIssueDetail(null)}
               onChanged={() => { if (githubOwnerRepo) void loadGithubLists(githubOwnerRepo) }}
+              onCode={what => { void pullRequestCode(issueDetail.item, what) }}
             />
             ) : (
             <IssueDetail

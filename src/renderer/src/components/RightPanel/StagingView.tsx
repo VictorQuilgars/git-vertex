@@ -119,7 +119,7 @@ export function CheckTreeRow({ node, depth, ctx }: { node: TreeNode; depth: numb
   )
 }
 
-export function StagingView({ repoPath, onCommitSuccess, showToast, showConfirm, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff, onOpenStagingEditor, commitProposal, onProposalConsumed, onExplainWorking, onSplitCommits, embedded, branchStrip, emptyState }: {
+export function StagingView({ repoPath, onCommitSuccess, showToast, showConfirm, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff, onOpenStagingEditor, commitProposal, onProposalConsumed, onExplainWorking, onSplitCommits, embedded, branchStrip, emptyState, onEmptyState }: {
   repoPath?: string
   onCommitSuccess: () => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
@@ -149,6 +149,11 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, showConfirm,
    * ⇒ the pane says nothing, as it always did. Desktop leaves it out.
    */
   emptyState?: { state: NextStepsState; actions: NextStepsActions }
+  /**
+   * Called whenever this pane switches between its files and the home card.
+   * The panel lays itself out around the answer; the desktop leaves it out.
+   */
+  onEmptyState?: (empty: boolean) => void
 }) {
   const { t } = useLang()
   const isConflict = !!conflictMode
@@ -454,6 +459,16 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, showConfirm,
   // of suggestions would take it off the screen without deleting it, which is
   // the worst of both.
   const showEmptyState = !!(emptyState && loaded && !isConflict && totalChanged === 0 && !amend && !message.trim())
+  /**
+   * Said out loud, because a host lays itself out around it.
+   *
+   * Whether this pane shows the files or the home is decided HERE — it takes
+   * an amend and a half-written message into account, and neither is
+   * knowable from outside. The VS Code panel widens the details into two
+   * columns for the staging pane, which has two things to show; over the
+   * home it was widening a column to hold one card.
+   */
+  useEffect(() => { onEmptyState?.(showEmptyState) }, [showEmptyState, onEmptyState])
   const canCommit = changes.staged.length > 0 || amend
 
   const toggleTree = () => setTreeMode(v => { localStorage.setItem('st-tree-mode', String(!v)); return !v })

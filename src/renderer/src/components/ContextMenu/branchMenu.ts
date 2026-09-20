@@ -28,6 +28,14 @@ export interface BranchMenuTarget {
   // pushed — the label promises a push only when that is true.
   pr?: { head: string; headLabel: string; baseLabel: string | null; needsPush: boolean }
   /**
+   * The worktree this branch is checked out in, when it is one this window is
+   * not showing (#285). git refuses to switch to a branch another worktree
+   * holds, so the row that offered *Switch* offered a refusal: it opens that
+   * worktree instead, and creating a second one for the same branch is what
+   * the row below it is for.
+   */
+  checkedOutIn?: { path: string; name: string }
+  /**
    * How the remote names this branch (`origin/main`), or absent when it has
    * never been pushed. Decides whether the remote half of the delete group and
    * the branch link are offered at all.
@@ -48,6 +56,28 @@ export interface BranchMenuState {
 export interface BranchMenuActions {
   onCheckout?: () => void
   onPull?: () => void
+  /**
+   * Pull a branch you are NOT standing on — a fast-forward from its upstream,
+   * refused when it has diverged (#280). Separate from `onPull` because the
+   * two are different operations with different refusals, and a row that read
+   * *Pull* on both would promise the tree-touching one on a branch that is
+   * not checked out.
+   */
+  onPullBranch?: () => void
+  /** Point this branch at any remote branch, not `<default>/<same name>` (#280). */
+  onChangeUpstream?: () => void
+  /** Rebase this branch onto the branch it tracks (#280). */
+  onRebaseOntoUpstream?: () => void
+  /** Fold this branch's `fixup!` / `squash!` commits into their targets (#280). */
+  onSquashFixups?: () => void
+  /** Take this remote's branches out of the graph, from one of its rows (#282). */
+  onHideRemote?: () => void
+  /** What this branch is against the branch it tracks (#281). */
+  onCompareUpstream?: () => void
+  /** Open the worktree that holds it, where *Switch* would be refused (#285). */
+  onOpenItsWorktree?: () => void
+  /** Make a worktree for this branch, named after it (#285). */
+  onCreateWorktreeFor?: () => void
   onPush?: () => void
   onMerge?: () => void
   onRebaseOnto?: () => void
@@ -74,6 +104,12 @@ export interface BranchMenuActions {
   onDeleteRemote?: () => void
   /** Deletes the local branch and its published counterpart in one go. */
   onDeleteBoth?: () => void
+}
+
+/** `remotes/origin/feat/x` → `origin`; anything else is given back whole. */
+export function remoteOf(ref: string): string {
+  const m = /^remotes\/([^/]+)\//.exec(ref)
+  return m ? m[1] : ref.split('/')[0]
 }
 
 /** Loose `t` signature so callers can pass `useLang().t` without coupling. */
@@ -125,7 +161,16 @@ export function buildBranchMenu(
 
   // ── Navigate ──
   const navigate: MenuItemDef[] = []
-  if (!current && actions.onCheckout) navigate.push({ label: t('sb.branch.checkout'), action: actions.onCheckout })
+  if (!current && target.checkedOutIn && actions.onOpenItsWorktree) {
+    navigate.push({ label: t('sb.wt.openIts', target.checkedOutIn.name), action: actions.onOpenItsWorktree })
+  } else if (!current && actions.onCheckout) {
+    navigate.push({ label: t('sb.branch.checkout'), action: actions.onCheckout })
+  }
+  // A second worktree for this branch, named after it, without being asked
+  // for a name — the one thing the Worktrees `+` could not do (#285).
+  if (actions.onCreateWorktreeFor) {
+    navigate.push({ label: t('sb.wt.createFor', target.display), action: actions.onCreateWorktreeFor })
+  }
   sections.push(navigate)
 
   // ── Sync — only meaningful on the branch you are actually on ──
@@ -135,8 +180,17 @@ export function buildBranchMenu(
   // row here that did not answer "what can I do to this branch".
   const sync: MenuItemDef[] = []
   if (current && actions.onPull) sync.push({ label: t('sb.branch.pull'), action: actions.onPull })
+  // A branch you are not standing on is brought forward without switching to
+  // it (#280) — and it is only offered where there is an upstream to bring it
+  // forward FROM, which is what `publishedAs` stands for here.
+  if (!current && !remote && target.publishedAs && actions.onPullBranch) {
+    sync.push({ label: t('sb.branch.pullNamed', target.display), action: actions.onPullBranch })
+  }
   if (!remote && actions.onPush) sync.push({ label: t('sb.branch.push'), action: actions.onPush })
   if (!remote && actions.onSetUpstream) sync.push({ label: t('sb.branch.setUpstream'), action: actions.onSetUpstream })
+  // Picking the upstream, rather than being given `<default remote>/<same
+  // name>` and no say in it.
+  if (!remote && actions.onChangeUpstream) sync.push({ label: t('sb.branch.changeUpstream'), action: actions.onChangeUpstream })
   // A pull request starts with a push when GitHub has not received the branch
   // yet — the composer does it, and the row says so. It only says so when it is
   // TRUE: a branch already up there was still being offered "Push X and start a
@@ -167,6 +221,12 @@ export function buildBranchMenu(
   if (!current) {
     if (actions.onMerge) integrate.push({ label: t('sb.branch.mergeInto', state.currentBranch), action: actions.onMerge })
     if (actions.onRebaseOnto) integrate.push({ label: t('sb.branch.rebaseOnto', state.currentBranch), action: actions.onRebaseOnto })
+  }
+  // Two things done to the branch you are standing on, and only to it: both
+  // rewrite its commits, which is something you do to your own work (#280).
+  if (current) {
+    if (actions.onRebaseOntoUpstream) integrate.push({ label: t('sb.branch.rebaseOntoUpstream'), action: actions.onRebaseOntoUpstream })
+    if (actions.onSquashFixups) integrate.push({ label: t('sb.branch.squashFixups'), action: actions.onSquashFixups })
   }
   sections.push(integrate)
 
@@ -229,6 +289,9 @@ export function buildBranchMenu(
   if (!current && actions.onCompare) {
     compares.push({ label: t('sb.branch.compareWith', state.currentBranch), action: actions.onCompare })
   }
+  if (actions.onCompareUpstream && target.publishedAs) {
+    compares.push({ label: t('sb.branch.compareUpstream', target.publishedAs), action: actions.onCompareUpstream })
+  }
   compares.push(...(extras.compare ?? []))
   if (compares.length) inspect.push({ label: t('sb.branch.compareMenu'), submenu: compares })
   if (extras.exports?.length) inspect.push({ label: t('graph.menu.patchMenu'), submenu: extras.exports })
@@ -274,6 +337,11 @@ export function buildBranchMenu(
       action: actions.onToggleHide,
       checked: !!state.hidden,
     })
+  }
+  // Hiding the whole remote was on the Remotes row alone, which is a view
+  // away from the branch that made you want it (#282).
+  if (remote && actions.onHideRemote) {
+    toggles.push({ label: t('sb.branch.hideRemote', remoteOf(target.name)), action: actions.onHideRemote })
   }
   // A branch that is soloed, hidden or starred says so on the parent row, or
   // folding them away would hide the fact that they are on. Only when one is —

@@ -78,7 +78,15 @@ export interface RemoteEntry { name: string; fetchUrl: string; pushUrl: string }
 
 export interface SubmoduleEntry { path: string; url: string; status: 'ok' | 'dirty' | 'uninitialized' }
 
-export interface WorktreeEntry { path: string; branch: string; head: string; isMain: boolean; locked: boolean }
+export interface WorktreeEntry {
+  path: string; branch: string; head: string; isMain: boolean; locked: boolean
+  /** Why it is locked, when git was given a reason (#285). */
+  lockReason?: string
+  /** Its directory is gone — git will drop it on the next prune. */
+  prunable?: boolean
+  /** Where it stands: its own changes, and its branch against its upstream. */
+  dirty?: boolean; ahead?: number; behind?: number
+}
 
 export interface AgentEntry { pid: number; name: string; cwd: string }
 
@@ -119,6 +127,15 @@ export interface SidebarProps {
   onPreviewStash?: (index: number, message: string) => void
   /** Reads the stash aloud (#70 P1). Absent ⇒ no row, the menu's rule. */
   onExplainStash?: (index: number, message: string) => void
+  /**
+   * A stash as one end of a comparison (#287) — given its own ref, so an
+   * older stash is reached exactly like the newest. The host opens whatever
+   * it opens comparisons in, and names it: `stash@{2}` is what a title can
+   * say, where the stash's own message is a sentence.
+   */
+  onCompareStash?: (ref: string, against: 'HEAD' | 'working') => void
+  /** Hold a stash as the base of a later comparison, like a graph row. */
+  onSelectStashForCompare?: (ref: string) => void
   /** The same, for a branch — and the changelog of what it carries (#70 P1). */
   onExplainBranch?: (name: string) => void
   onBranchChangelog?: (name: string) => void
@@ -177,6 +194,48 @@ export interface SidebarProps {
   onPushTag: (name: string) => void
   onDeleteRemoteTag: (name: string) => void
   onSelectCommit: (hash: string) => void
+  /**
+   * Take the graph to what this row is about — a branch, a tag, a stash, a
+   * worktree's HEAD (#275). One click, where a click did nothing: the ref is
+   * resolved by the host and the page grown to reach it when the commit is
+   * not loaded, the way the graph's `/` finder reaches a tip three pages
+   * down. The double-click keeps its own meaning.
+   *
+   * Omitted ⇒ the rows do not react to a single click at all, rather than
+   * reacting by doing nothing.
+   */
+  onReveal?: (ref: string) => void
+  /**
+   * Open a reference's CARD — the one a chip opens from the tip's graph row.
+   *
+   * The host does it, and must do it in this order: select the tip, then open
+   * the card. `useRefCard` closes a card whose reference is not the selected
+   * commit, so a card opened before the selection lands closes itself on the
+   * next render. Omitted ⇒ the rows do not offer it.
+   */
+  onOpenCard?: (ref: string, kind: 'head' | 'remote' | 'tag') => void
+  // ── #280: what a branch needs, without standing on it ──
+  /**
+   * Rebase the checked-out branch onto the branch it tracks.
+   *
+   * The other three acts of #280 — the fast-forward, the upstream picker, the
+   * autosquash — are not props: they are `window.gitAPI` calls with a prompt
+   * and a toast around them, and they live in `useSidebar` beside the stash
+   * rename and the remote prune, so both products get them from one place.
+   * This one is a prop because a rebase can conflict, and what happens then is
+   * the host's business — the desktop has a resolver, the panel has its own.
+   */
+  onRebaseOntoUpstream?: (upstream: string) => void
+  /** Fold the checked-out branch's `fixup!` / `squash!` commits in. */
+  onSquashFixups?: (base: string) => void
+  /** A branch against the branch it tracks (#281). */
+  onCompareUpstream?: (name: string, upstream: string) => void
+  /**
+   * What the tip commit's own actions do (#281) — the same handlers the graph
+   * row uses, so a branch row's *Create tag from here* is the graph's entry,
+   * not a second implementation of it. Omitted ⇒ the rows are not offered.
+   */
+  tipActions?: import('../ContextMenu/branchTipMenu').BranchTipActions
   onCompareBranch: (branchName: string) => void
   soloBranch: string | null
   /**
@@ -267,6 +326,16 @@ export interface SidebarProps {
    */
   githubPRs?: GithubListItem[]
   githubIssues?: GithubListItem[]
+  /**
+   * A comparison the host opens, for a pull request that has been fetched
+   * (#290). `diverged` is what the request itself shows — what the head did
+   * since the two parted — and `endpoints` is the two trees as they stand.
+   *
+   * The fetching, the switching and the worktree are the side bar's own: they
+   * are `window.gitAPI` calls with a prompt and a toast, like the stash
+   * rename beside them. Opening a view is not.
+   */
+  onComparePullRequest?: (base: string, head: string, axis: 'diverged' | 'endpoints') => void
   /** Start work on an issue: create the branch it suggests and link the two.
       Omitted ⇒ no context menu on the issue rows. */
   onStartBranchFromIssue?: (issue: { number: number; title: string; url: string }) => void

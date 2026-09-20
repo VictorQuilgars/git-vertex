@@ -5,6 +5,8 @@ import { BranchInfo } from '../../types'
 import { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { loadGhFilters, saveGhFilters, type GhSavedFilter, type GhFilterStore } from './ghFilters'
 import { folderPaths, type BranchNode } from './branchTree'
+import { readLayout, writeLayout, hasPaths, matchesFilter, type SbLayout, type SbLayoutView } from './sidebarLayout'
+import { usePullRequestCode } from '../../hooks/usePullRequestCode'
 import { isRefHidden, type RefFamily } from '../../utils/graphVisibility'
 import { useLang } from '../../i18n/LanguageContext'
 import { type SidebarView, type ReflogEntry, type Contributor, type ChangelogEntry, type NoteEntry, type RemoteEntry, type SubmoduleEntry, type WorktreeEntry, type AgentEntry, type SidebarProps } from './types'
@@ -17,15 +19,17 @@ export function useSidebar(props: SidebarProps) {
   onCheckout, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch,
   onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream,
   onCreateStash, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onRefreshStashes,
+  onCompareStash, onSelectStashForCompare,
   onExplainBranch, onBranchChangelog, onOpenChangelog, onOpenExplanation, onOpenNote,
   onShowCommits,
   subjectFor, tab = 'list', onTab, memoryToken,
   onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag,
-  onSelectCommit, onCompareBranch,
+  onSelectCommit, onCompareBranch, onReveal, onOpenCard,
+  onRebaseOntoUpstream, onCompareUpstream, tipActions,
   soloBranch, visibility, onToggleSolo, onToggleHide,
   onToggleHideTag, onToggleHideRemote, onSetFamilyHidden,
   onPull,
-  githubPRs, githubIssues, onOpenGithubItem, onStartBranchFromIssue, onShowGithubDetail, githubDetailOpen, githubLogin, githubRepo,
+  githubPRs, githubIssues, onOpenGithubItem, onComparePullRequest, onStartBranchFromIssue, onShowGithubDetail, githubDetailOpen, githubLogin, githubRepo,
   isFavorite, issueFor, onToggleFavorite,
   onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR,
   showAllBranches, onToggleAllBranches,
@@ -93,7 +97,10 @@ export function useSidebar(props: SidebarProps) {
       .catch((e: unknown) => console.warn('[sidebar] aiNoteList failed:', e))
   }, [])
   const loadWorktrees = useCallback(() => {
-    window.gitAPI.listWorktrees().then(r => setWorktrees(r.worktrees ?? []))
+    // `facts` is two more git calls per worktree — the dirty flag and the
+    // tracking counts a row shows (#285). A repository has a handful of
+    // worktrees, not a page of them, so it is asked for every time.
+    window.gitAPI.listWorktrees({ facts: true }).then(r => setWorktrees(r.worktrees ?? []))
     loadAgents()
   }, [loadAgents])
   useEffect(() => {
@@ -127,6 +134,68 @@ export function useSidebar(props: SidebarProps) {
     const r = await window.gitAPI.addWorktree(dir.path, ref || '')
     if (r.success) { showToast(t('toast.worktreeCreated', dir.path.split('/').pop() ?? '')); loadWorktrees() }
     else showToast(t('toast.err', r.error ?? ''), 'err')
+  }
+  /**
+   * The worktree a branch is checked out in, when it is not the one on screen
+   * (#285) — git refuses to switch to a branch another worktree holds, and
+   * the row used to offer exactly that.
+   */
+  const worktreeOf = (branch: string) => {
+    const held = worktrees.find(w => w.branch === branch && w.path !== repoPath)
+    return held ? { path: held.path, name: held.path.split('/').pop() || held.path } : undefined
+  }
+  /** A worktree for this branch, named after it — no name to type (#285). */
+  const handleCreateWorktreeFor = async (branch: string) => {
+    const dir = await window.gitAPI.selectDirectory(t('worktree.selectDir'))
+    if (!dir.path) return
+    const r = await window.gitAPI.addWorktree(dir.path, branch)
+    if (r.success) { showToast(t('toast.worktreeCreated', dir.path.split('/').pop() ?? '')); loadWorktrees() }
+    else showToast(t('toast.err', r.error ?? ''), 'err')
+  }
+  // The four acts on a request's code live in one hook, because the sheet
+  // that also offers them is mounted by the host, outside this panel (#290).
+  const handlePullRequestCode = usePullRequestCode({
+    t, showToast, defaultRemote, onCompare: onComparePullRequest,
+    onSwitched: () => onRefresh?.(), onWorktreeAdded: loadWorktrees,
+  })
+  /** A terminal, and the file manager, at a worktree rather than at the repo (#285). */
+  const handleWorktreeTerminal = async (path: string) => {
+    const r = await (window.gitAPI as any).openTerminal?.(path)
+    if (r && r.success === false) showToast(t('toast.err', r.error ?? ''), 'err')
+  }
+  const handleWorktreeReveal = async (path: string) => {
+    const r = await (window.gitAPI as any).revealInFileManager?.(path)
+    if (r && r.success === false) showToast(t('toast.err', r.error ?? ''), 'err')
+  }
+  const handleToggleWorktreeLock = async (wt: WorktreeEntry) => {
+    const r = wt.locked
+      ? await window.gitAPI.unlockWorktree(wt.path)
+      : await window.gitAPI.lockWorktree(wt.path, (await showPrompt(t('sb.wt.lockReasonPrompt'), '')) ?? undefined)
+    if (r.success) { showToast(wt.locked ? t('sb.wt.unlocked') : t('sb.wt.locked')); loadWorktrees() }
+    else showToast(t('toast.err', r.error ?? ''), 'err')
+  }
+  /**
+   * Carry what is uncommitted here into another worktree (#285).
+   *
+   * A stash is what git gives for this: it is taken here, applied there, and
+   * left in the list either way — applying can conflict, and dropping the one
+   * copy of the work before knowing it landed is not a risk to take on the
+   * user's behalf.
+   */
+  const handleCopyChangesTo = async (from: WorktreeEntry) => {
+    const others = worktrees.filter(w => w.path !== from.path && !w.prunable)
+    if (!others.length) { showToast(t('sb.wt.copyNoTarget'), 'err'); return }
+    const target = await showPrompt(
+      `${t('sb.wt.copyPrompt')}\n\n${others.map(w => w.path).join('\n')}`, others[0].path)
+    if (!target) return
+    const to = others.find(w => w.path === target.trim())
+    if (!to) { showToast(t('sb.wt.copyNoSuchTarget', target.trim()), 'err'); return }
+    const r = await window.gitAPI.copyWorktreeChanges(from.path, to.path, t('sb.wt.copyStashLabel', to.path))
+    if (r.success) showToast(t('sb.wt.copied', to.path.split('/').pop() ?? to.path))
+    // The stash is kept whatever happens — the refusal says where the work is.
+    else showToast(r.leftInStash ? t('sb.wt.copyLeftInStash', r.error ?? '') : t('toast.err', r.error ?? ''), 'err')
+    loadWorktrees()
+    onRefreshStashes()
   }
   const handleRemoveWorktree = async (path: string) => {
     const ok = await showConfirm(t('sb.wt.removeConfirm', path), true)
@@ -283,6 +352,61 @@ export function useSidebar(props: SidebarProps) {
     else showToast(t('toast.err', d.error ?? ''), 'err')
     onRefresh?.()
   }
+  /**
+   * Bring a branch you are not standing on up to its upstream (#280).
+   *
+   * The refusal is git-core's sentence — diverged, tracks nothing, ahead with
+   * nothing to pull — and it is shown as it came: "could not pull" tells
+   * nobody what to do next, and each of those three calls for something
+   * different.
+   */
+  const handlePullBranchRow = async (name: string) => {
+    const r = await window.gitAPI.pullBranch(name)
+    if (!r.success) { showToast(t('toast.err', r.error ?? ''), 'err'); return }
+    showToast(r.upToDate ? t('sb.branch.pullUpToDate', name) : t('sb.branch.pulledNamed', name, r.moved ?? 0))
+    onRefresh?.()
+  }
+  /**
+   * Point a branch at any remote branch (#280) — `Set Upstream` always set
+   * `<default remote>/<same name>`, which is the only upstream it could ever
+   * give you. The remote branches are listed in the prompt rather than left
+   * to be typed from memory.
+   */
+  const handleChangeUpstreamRow = async (name: string) => {
+    const { branches: remotes } = await window.gitAPI.listRemoteBranches()
+    const current = branches.find(b => b.name === name)?.upstream ?? ''
+    const shown = remotes.slice(0, 40).join('\n')
+    const target = await showPrompt(shown ? `${t('sb.branch.upstreamPrompt')}\n\n${shown}` : t('sb.branch.upstreamPrompt'), current)
+    if (!target || target === current) return
+    const r = await window.gitAPI.setUpstream(name, target.trim())
+    if (r.success) { showToast(t('sb.branch.upstreamSet', name, target.trim())); onRefresh?.() }
+    else showToast(t('toast.err', r.error ?? ''), 'err')
+  }
+  /** Fold the `fixup!` / `squash!` commits in (#280) — it refuses when there are none. */
+  const handleSquashFixupsRow = async (base: string) => {
+    const r = await window.gitAPI.squashFixups(base)
+    if (r.success) { showToast(t('sb.branch.squashedFixups', r.squashed ?? 0)); onRefresh?.() }
+    else showToast(t('toast.err', r.error ?? ''), 'err')
+  }
+  /**
+   * A stash's sha and its patch, for EVERY stash (#287).
+   *
+   * Only `stash@{0}` ever had a graph row, so the rest could not be copied at
+   * all — and the ref is what makes the difference: `stash@{3}` resolves like
+   * any other revision, and its diff is the one the preview already reads.
+   */
+  const handleCopyStashSha = async (index: number) => {
+    const { hash } = await window.gitAPI.resolveCommit(`stash@{${index}}`)
+    if (!hash) { showToast(t('sb.stash.noSuchStash', index), 'err'); return }
+    await navigator.clipboard.writeText(hash)
+    showToast(t('sb.stash.shaCopied'))
+  }
+  const handleCopyStashPatch = async (index: number) => {
+    const r = await window.gitAPI.stashDiff(index)
+    if (!r.diff) { showToast(t('toast.err', r.error ?? ''), 'err'); return }
+    await navigator.clipboard.writeText(r.diff)
+    showToast(t('sb.stash.patchCopied'))
+  }
   const handleSetDefaultRemote = async (name: string) => {
     const r = await window.gitAPI.setDefaultRemote(name)
     if (!r.success) { showToast(t('toast.err', r.error ?? ''), 'err'); return }
@@ -294,14 +418,71 @@ export function useSidebar(props: SidebarProps) {
     if (r.success) showToast(t('sb.remote.fetchOk', name))
     else showToast(t('toast.fetchErr', r.error ?? ''), 'err')
   }
+  /**
+   * ONE filter field, and every list it can see answers it (#276).
+   *
+   * It was the branches' own, and TAGS, STASH, REMOTES and WORKTREES had
+   * none — a long list of tags was read by scrolling it. In the panel the
+   * rail has already chosen a view, so the field narrows that view and says
+   * which in its placeholder; on the desktop every section is on screen at
+   * once, so it narrows all of them, which is the same promise.
+   */
   const [branchFilter, setBranchFilter] = useState('')
+  const keep = (text: string) => matchesFilter(text, branchFilter)
   // Favorites float to the top of LOCAL — the whole point of starring a branch
   // is not to hunt for it in a long list (v1.21.0). Order is otherwise
   // untouched, so unstarred branches keep the ordering git gave us.
   const localBranches = branches
     .filter(b => !b.remote)
-    .filter(b => !branchFilter || b.name.toLowerCase().includes(branchFilter.toLowerCase()))
+    .filter(b => keep(b.name))
     .sort((a, b) => Number(isFavorite?.(b.name) ?? false) - Number(isFavorite?.(a.name) ?? false))
+  const filteredTags = tags.filter(tg => keep(tg.name))
+  // A stash is found by what it says, not by `stash@{2}`.
+  const filteredStashes = stashes.filter(st => keep(st.message))
+  const filteredRemotes = remotes.filter(r => keep(r.name) || keep(r.fetchUrl))
+  // Either end of a worktree row: the folder it is in, or the branch it holds.
+  const filteredWorktrees = worktrees.filter(wt => keep(wt.path) || keep(wt.branch ?? ''))
+  /**
+   * List or tree, per view, kept on this machine. Held here rather than read
+   * in each section so a re-render of one does not lose the other's choice.
+   */
+  const [layouts, setLayouts] = useState<Record<SbLayoutView, SbLayout>>(() => ({
+    local: readLayout('local'), remote: readLayout('remote'), tags: readLayout('tags'),
+  }))
+  const toggleLayout = useCallback((view: SbLayoutView) => {
+    setLayouts(prev => {
+      const next: SbLayout = prev[view] === 'tree' ? 'list' : 'tree'
+      writeLayout(view, next)
+      return { ...prev, [view]: next }
+    })
+  }, [])
+  /**
+   * What a section draws as. A filter FLATTENS whatever the choice was — a
+   * tree that stays folded while you type reads as an empty section — and a
+   * list with no slash in it is a list whatever the setting says.
+   */
+  const layoutFor = (view: SbLayoutView, names: readonly string[]): SbLayout =>
+    branchFilter || !hasPaths(names) ? 'list' : layouts[view]
+  const layoutToggle = (view: SbLayoutView, names: readonly string[]) =>
+    hasPaths(names) ? { mode: layouts[view], onToggle: () => toggleLayout(view) } : undefined
+  /**
+   * Which list the field is filtering, and what it therefore says. The two
+   * GitHub views have searches of their own — a second field above them would
+   * be two boxes over one list — and the AI stack is not a list of refs, so
+   * neither shows it.
+   */
+  const FILTERED = {
+    branches: 'sb.filterBranches', tags: 'sb.filter.tags', stash: 'sb.filter.stashes',
+    remotes: 'sb.filter.remotes', worktrees: 'sb.filter.worktrees',
+  } as const
+  const filtered = (v: SidebarView | undefined): v is keyof typeof FILTERED =>
+    !!v && v in FILTERED
+  const filterView: SidebarView | 'all' | null = single
+    ? (filtered(view) ? view : null)
+    : (showAI ? null : 'all')
+  const filterPlaceholder = filterView === 'all'
+    ? t('sb.filter.any')
+    : filtered(filterView as SidebarView | undefined) ? t(FILTERED[filterView as keyof typeof FILTERED]) : ''
   // ── What each section hides from the graph ────────────────────
   // A row is hidden in its own right or because its family is; the count on a
   // section header has to say both, or "Hide all tags" would leave every tag
@@ -377,10 +558,10 @@ export function useSidebar(props: SidebarProps) {
   }
   const remoteBranches = branches
     .filter(b => b.remote)
-    .filter(b => !branchFilter || b.name.toLowerCase().includes(branchFilter.toLowerCase()))
+    .filter(b => keep(b.name))
 
   return {
-    repoPath, repoName, currentBranch, branches, recentRepos, stashes, tags, wipCount, wipSelected, onViewWip, onOpenRepo, onClone, onSetRepo, onCheckout, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch, onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream, onCreateStash, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onRefreshStashes, onExplainBranch, onBranchChangelog, onOpenChangelog, onOpenExplanation, onOpenNote, onShowCommits, subjectFor, tab, onTab, memoryToken, onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag, onSelectCommit, onCompareBranch, soloBranch, visibility, onToggleSolo, onToggleHide, onToggleHideTag, onToggleHideRemote, onSetFamilyHidden, onPull, githubPRs, githubIssues, onOpenGithubItem, onStartBranchFromIssue, onShowGithubDetail, githubDetailOpen, githubLogin, githubRepo, isFavorite, issueFor, onToggleFavorite, onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR, showAllBranches, onToggleAllBranches, onRefreshGithub, onStartPR, onNewIssue, githubRefreshing, githubRefreshTick, githubPollTick, onCopyBranchLink, onDeleteBranchBoth, showToast, showPrompt, showConfirm, onRefresh, view, single, activeTab, showAI, show, reflog, setReflog, contributors, onFilterAuthor, authorFilter, home, mergeTarget, launchpad, remotes, setRemotes, defaultRemote, setDefaultRemote, submodules, setSubmodules, worktrees, setWorktrees, agents, setAgents, work, setWork, t, loadAgents, changelogs, setChangelogs, explanations, setExplanations, notes, setNotes, loadMemory, loadWorktrees, agentsFor, handleAddWorktree, handleRemoveWorktree, handleInitSubmodule, handleUpdateSubmodule, handleSyncSubmodule, handleDeinitSubmodule, handleAddRemote, handleRemoveRemote, handleRenameRemote, stashMenu, setStashMenu, prsQuery, setPrsQuery, issuesQuery, setIssuesQuery, ghFilters, setGhFilters, filterEditor, setFilterEditor, mutateFilters, stashScopeItems, handleRenameStash, handlePruneRemote, handleSetDefaultRemote, handleFetchRemote, branchFilter, setBranchFilter, localBranches, branchHidden, tagHidden, remoteHidden, stashesHidden, familyMenu, foldersKey, closedFolders, setClosedFolders, toggleFolder, openFolders, filtering, rootRef, filterDraft, setFilterDraft, showAll, localMenu, remoteBranches,
+    repoPath, repoName, currentBranch, branches, recentRepos, stashes, tags, wipCount, wipSelected, onViewWip, onOpenRepo, onClone, onSetRepo, onCheckout, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch, onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream, onCreateStash, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onRefreshStashes, onExplainBranch, onBranchChangelog, onOpenChangelog, onOpenExplanation, onOpenNote, onShowCommits, subjectFor, tab, onTab, memoryToken, onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag, onSelectCommit, onCompareBranch, soloBranch, visibility, onToggleSolo, onToggleHide, onToggleHideTag, onToggleHideRemote, onSetFamilyHidden, onPull, githubPRs, githubIssues, onOpenGithubItem, onComparePullRequest, onStartBranchFromIssue, onShowGithubDetail, githubDetailOpen, githubLogin, githubRepo, isFavorite, issueFor, onToggleFavorite, onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR, showAllBranches, onToggleAllBranches, onRefreshGithub, onStartPR, onNewIssue, githubRefreshing, githubRefreshTick, githubPollTick, onCopyBranchLink, onDeleteBranchBoth, showToast, showPrompt, showConfirm, onRefresh, view, single, activeTab, showAI, show, reflog, setReflog, contributors, onFilterAuthor, authorFilter, home, mergeTarget, launchpad, remotes, setRemotes, defaultRemote, setDefaultRemote, submodules, setSubmodules, worktrees, setWorktrees, agents, setAgents, work, setWork, t, loadAgents, changelogs, setChangelogs, explanations, setExplanations, notes, setNotes, loadMemory, loadWorktrees, agentsFor, handleAddWorktree, handleRemoveWorktree, handleInitSubmodule, handleUpdateSubmodule, handleSyncSubmodule, handleDeinitSubmodule, handleAddRemote, handleRemoveRemote, handleRenameRemote, stashMenu, setStashMenu, prsQuery, setPrsQuery, issuesQuery, setIssuesQuery, ghFilters, setGhFilters, filterEditor, setFilterEditor, mutateFilters, stashScopeItems, handleRenameStash, handlePruneRemote, handleSetDefaultRemote, handleFetchRemote, branchFilter, setBranchFilter, localBranches, branchHidden, tagHidden, remoteHidden, stashesHidden, familyMenu, foldersKey, closedFolders, setClosedFolders, toggleFolder, openFolders, filtering, rootRef, filterDraft, setFilterDraft, showAll, localMenu, remoteBranches, onReveal, onOpenCard, onRebaseOntoUpstream, onCompareUpstream, tipActions, handlePullBranchRow, handleChangeUpstreamRow, handleSquashFixupsRow, handleWorktreeTerminal, handleWorktreeReveal, handleToggleWorktreeLock, handleCopyChangesTo, worktreeOf, handleCreateWorktreeFor, handlePullRequestCode, onCompareStash, onSelectStashForCompare, handleCopyStashSha, handleCopyStashPatch, filteredTags, filteredStashes, filteredRemotes, filteredWorktrees, layouts, toggleLayout, layoutFor, layoutToggle, filterView, filterPlaceholder,
   }
 }
 

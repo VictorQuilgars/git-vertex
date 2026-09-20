@@ -642,7 +642,16 @@
    first visible row is in — today, this week, August 2026 — and a hairline
    where one stretch ends and the next begins. The band has no height of its
    own: it sticks to the top of the scroller and floats over the rows. */
-.cg-period-band { position: sticky; top: 0; height: 0; z-index: 5; pointer-events: none; }
+/* The band belongs to the SCROLL, not to the row it happens to sit over: it
+   fades in with the movement and out with it (CommitGraph.tsx, BAND_LINGER_MS).
+   Standing still it stated the top row's own date a second time, in a chip
+   that covered that row's sha and read as if it were the row's. */
+.cg-period-band {
+  position: sticky; top: 0; height: 0; z-index: 5; pointer-events: none;
+  opacity: 0; transition: opacity var(--dur-base);
+}
+.cg-period-band--on { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .cg-period-band { transition: none; } }
 .cg-period-pill {
   position: absolute; right: 12px; top: 6px;
   padding: 1px 8px; border-radius: var(--radius-pill);
