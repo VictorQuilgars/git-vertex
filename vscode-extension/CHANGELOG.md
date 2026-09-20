@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.36.0
 
 ### Added
 - **A branch, a remote branch or a tag opens its card from the side bar.** The card — what the branch is, where it stands against its upstream, whether it merges cleanly, its next steps — could only be opened by clicking the chip on its tip's **graph row**, which meant finding that row first. Every one of those rows now leads with a card button, before the acts: reading comes before acting. It opens exactly what the chip opens, and in the order the card needs — the tip is selected first, then the card opens, because a card whose reference is not the selected commit closes itself on the next render. A tip that is not on the page yet is reached the way everything else reaches one. (#274)
