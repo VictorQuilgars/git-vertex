@@ -41,9 +41,15 @@ yours runs beside ours.
 ## Four things that make it work, and each cost an hour
 
 - **A webview is two iframes.** The debugger lists the editor's
-  `vscode-webview://…` container; the extension's HTML is one frame further in,
-  reached through an isolated world. Read the container's document and you will
-  conclude, wrongly, that the panel did not load.
+  `vscode-webview://…` container; the extension's HTML is one frame further in.
+  Read the container's document and you will conclude, wrongly, that the panel
+  did not load.
+- **And the frame's MAIN world, not an isolated one.** An isolated world shares
+  the DOM and nothing else: the panel reads fine and `window.gitAPI` is simply
+  not there, so every call to the host comes back "absent" while the panel in
+  front of you is plainly talking to it. The main world is found by replaying
+  the execution contexts — `Runtime.disable` then `Runtime.enable`, because
+  `Page.connect` enabled Runtime before any listener could exist.
 - **The profile path must be short.** VS Code opens a Unix socket inside the
   user-data directory, and a Unix socket path is capped at 103 characters. A
   profile under a deep scratchpad makes the editor exit at startup with
@@ -71,6 +77,13 @@ three calls, bound to the panel's frame here and to the window there.
 | File | What it reads |
 |---|---|
 | `branch-rows.js` | every branch row's state and the acts it offers, checked against the rules |
+| `host-answers.js` | every read the panel makes, actually made — no `not-implemented`, no throw |
+
+`host-answers.js` is the one `hostParity.test.ts` cannot be. That test reads
+the sources and sees a method that is MISSING; a host that answers
+`not-implemented: x` at runtime passes it, because the method is there to be
+found. CLAUDE.md names the worse case: a method that exists on both sides with
+a poorer signature "succeeds while doing something else".
 
 ## The twin
 

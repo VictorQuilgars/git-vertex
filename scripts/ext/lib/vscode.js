@@ -95,8 +95,16 @@ async function webviewTargets(port) {
 }
 
 /**
- * The extension's own frame inside a webview container: an isolated world in
- * the child frame, wrapped in the few calls a scenario actually makes.
+ * The extension's own frame inside a webview container, and its MAIN world.
+ *
+ * Not an isolated world, which was the first thing tried: it shares the DOM
+ * and nothing else, so reading the panel works and `window.gitAPI` is simply
+ * not there — every call comes back "absent" while the panel in front of you
+ * is plainly talking to the host. A scenario that asks what the host answers
+ * has to run where the page's own variables are.
+ *
+ * `Runtime.enable` replays the contexts that already exist, which is how the
+ * frame's default world is found after the fact.
  */
 async function contentFrame(target) {
   const page = await Page.connect(target)
@@ -104,9 +112,29 @@ async function contentFrame(target) {
   const { frameTree } = await page.send('Page.getFrameTree')
   const child = (frameTree.childFrames ?? [])[0]
   if (!child) return null
-  const { executionContextId } = await page.send('Page.createIsolatedWorld', {
-    frameId: child.frame.id, grantUniveralAccess: true,
-  })
+  // `Page.connect` enables Runtime on its way in, so every context was
+  // announced before a listener could exist. Turning it off and on again is
+  // what replays them — without this the search below finds nothing, falls
+  // back to the isolated world, and every call to the host reads as "absent"
+  // while the panel in front of you is plainly working.
+  const contexts = []
+  page.on('Runtime.executionContextCreated', ({ context }) => contexts.push(context))
+  await page.send('Runtime.disable')
+  await page.send('Runtime.enable')
+  const deadline = Date.now() + 5000
+  let executionContextId = null
+  while (!executionContextId && Date.now() < deadline) {
+    const main = contexts.find(c => c.auxData?.frameId === child.frame.id && c.auxData?.isDefault)
+    if (main) executionContextId = main.id
+    else await sleep(100)
+  }
+  // A frame whose main world never announced itself: fall back to the DOM-only
+  // world rather than failing, so `--shot` and the layout scenarios still work.
+  if (!executionContextId) {
+    ({ executionContextId } = await page.send('Page.createIsolatedWorld', {
+      frameId: child.frame.id, grantUniveralAccess: true,
+    }))
+  }
   const evaluate = async expression => {
     const r = await page.send('Runtime.evaluate', { expression, contextId: executionContextId, returnByValue: true, awaitPromise: true })
     if (r.exceptionDetails) throw new Error(r.exceptionDetails.exception?.description ?? 'evaluate failed')
