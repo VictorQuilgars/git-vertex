@@ -105,6 +105,24 @@ function makeProfile() {
   return dir
 }
 
+/**
+ * The end of the editor's log, for an error message.
+ *
+ * Without it the failure reads "VS Code did not come up — see
+ * /tmp/gv-vs-XXXX/vscode.log", and that path is inside the profile this
+ * harness deletes on the way out. On a CI runner it is gone before anybody
+ * can look, which is how the first run there said nothing at all about why.
+ */
+function tail(file, lines = 25) {
+  try {
+    const all = fs.readFileSync(file, 'utf8').trim().split('\n')
+    const shown = all.slice(-lines).join('\n')
+    return all.length ? `── the editor's log, last ${Math.min(lines, all.length)} lines ──\n${shown}` : '(its log is empty)'
+  } catch {
+    return `(no log at ${file})`
+  }
+}
+
 /** Every webview container the debugger lists, newest last. */
 async function webviewTargets(port) {
   const targets = await getJson(`http://127.0.0.1:${port}/json/list`)
@@ -266,6 +284,10 @@ async function openPanel({ repo, keepProfile = false, maximize = false } = {}) {
     `--extensionDevelopmentPath=${EXTENSION}`,
     `--remote-debugging-port=${port}`,
     '--disable-workspace-trust', '--skip-release-notes', '--skip-welcome',
+    // The harness, not the shipped editor: a Linux CI runner has no setuid
+    // sandbox, and without this VS Code exits before it draws anything. The
+    // desktop harness carries the same line for the same reason.
+    ...(process.platform === 'linux' ? ['--no-sandbox'] : []),
     // No `--disable-extensions`: the extensions directory above is a fresh
     // empty one, so ours is already the only extension that runs — and the
     // flag puts a standing "all installed extensions are temporarily
@@ -299,7 +321,7 @@ async function openPanel({ repo, keepProfile = false, maximize = false } = {}) {
       } catch { /* not listening yet */ }
       if (!workbench) await sleep(400)
     }
-    if (!workbench) throw new Error(`VS Code did not come up — see ${logFile}`)
+    if (!workbench) throw new Error(`VS Code did not come up.\n${tail(logFile)}`)
     await clearTheView(workbench)
     await runCommand(workbench, 'Git Vertex: Show Graph')
     const panel = await findPanel(port)
