@@ -1,17 +1,25 @@
-// What a branch row offers, read from the REAL panel.
+// What a branch row offers, read from a REAL product — either of them.
 //
-//   node scripts/ext/drive.js --demo --scenario scripts/ext/scenarios/branch-rows.js
+//   npm run ext:drive -- --demo --scenario scripts/scenarios/branch-rows.js
+//   npm run app:drive -- --demo --scenario scripts/scenarios/branch-rows.js
 //
 // The same ground as Sidebar.rowActions.test.tsx, and not the same proof: that
 // one renders the shared component under jsdom with a fixture for a host. This
-// asks a running VS Code, where the rows are filled by the extension host
-// talking to git in a real repository — which is where `behind → pull` failed
-// to appear while every unit test agreed that it should.
+// asks a running product, where the rows are filled by a host talking to git
+// in a real repository — which is where `behind → pull` failed to appear while
+// every unit test agreed that it should.
+//
+// One file for both, because the rows are one file for both: the side bar is
+// shared renderer code, so a scenario about it is a parity check for free. The
+// two drivers hand over the same three calls — `eval`, `until`, `click` — the
+// panel's bound to the extension's frame, the desktop's to its window.
 'use strict'
 
-module.exports = async function branchRows({ panel }) {
-  // The rail's Branches view. It is a button with a label, so it is named
-  // rather than found by position: the rail's contents change with its height.
+module.exports = async function branchRows(ctx) {
+  const panel = ctx.panel ?? ctx.page
+  // The panel shows one view at a time, chosen from the rail; the desktop
+  // stacks every section and has no rail at all. Clicking it when it is there
+  // is all the difference between the two products this scenario has to know.
   await panel.eval(`(() => {
     const b = [...document.querySelectorAll('.gv-rail-btn')].find(x => x.getAttribute('aria-label') === 'Branches')
     if (b) b.click()

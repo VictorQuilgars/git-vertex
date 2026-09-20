@@ -9,7 +9,7 @@ node scripts/ext/drive.js --demo                      # a demo repository, built
 node scripts/ext/drive.js --repo /path/to/repo        # your own
 node scripts/ext/drive.js --repo … --shot panel.png --maximize
 node scripts/ext/drive.js --repo … --eval 'document.querySelectorAll(".cg-row").length'
-node scripts/ext/drive.js --repo … --scenario scripts/ext/scenarios/branch-rows.js
+node scripts/ext/drive.js --repo … --scenario scripts/scenarios/branch-rows.js
 node scripts/ext/drive.js --repo … --keep             # leave it open to poke at by hand
 ```
 
@@ -63,6 +63,18 @@ yours runs beside ours.
 A scenario is a module exporting `async ({ workbench, panel, port, stop })`.
 `panel` is the extension's frame: `eval`, `until`, `click`, `text`.
 
+They live in **`scripts/scenarios/`**, shared with `npm run app:drive`, because
+the side bar and the graph are shared renderer code: one scenario run against
+both products is a parity check for free. The two drivers hand over the same
+three calls, bound to the panel's frame here and to the window there.
+
 | File | What it reads |
 |---|---|
 | `branch-rows.js` | every branch row's state and the acts it offers, checked against the rules |
+
+## The twin
+
+`npm run app:drive` is the same thing for the desktop app (`scripts/e2e/drive.js`),
+down to the flags. Victor's standing instruction, 20/09/2026: verify a feature
+in the **extension development host first, then the desktop app** — the suites
+being green is not the same as the feature being there.
