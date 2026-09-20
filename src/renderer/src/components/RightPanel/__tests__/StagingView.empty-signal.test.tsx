@@ -1,4 +1,5 @@
-// The staging pane says which of its two faces it is showing (#298).
+// The staging pane says which of its two faces it is showing — the VS Code
+// panel lays itself out around the answer.
 import { waitFor } from '@testing-library/react'
 import { StagingView } from '../StagingView'
 import { installMockGitAPI, renderWithProviders } from '../../../__tests__/test-utils'

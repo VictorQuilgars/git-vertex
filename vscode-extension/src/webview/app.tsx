@@ -1301,7 +1301,7 @@ function VertexApp() {
    * wants the width. On a clean tree the same pane shows one card of next
    * steps, and all three were being offered for it: a column at 73% of the
    * panel holding one card, and a *Hide graph* button that gave the rest of
-   * the window to it (#298).
+   * the window to it.
    */
   const compactWorking = showRight && selectedCommit?.hash === '__WIP__' && !conflictMode
     && !workingIsEmpty

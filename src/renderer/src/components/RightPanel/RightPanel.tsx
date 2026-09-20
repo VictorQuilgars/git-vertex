@@ -28,7 +28,7 @@ export interface RightPanelProps {
   currentBranch?: string
   wipCount?: number
   onViewWip?: () => void
-  /** The staging pane switched between its files and the home card (#298). */
+  /** The staging pane switched between its files and the home card. */
   onEmptyState?: (empty: boolean) => void
   conflictFiles?: string[]
   // path → unmerged state. Absent/empty ⇒ the host does not report it and no

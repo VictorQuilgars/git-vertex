@@ -466,7 +466,7 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, showConfirm,
    * an amend and a half-written message into account, and neither is
    * knowable from outside. The VS Code panel widens the details into two
    * columns for the staging pane, which has two things to show; over the
-   * home it was widening a column to hold one card (#298).
+   * home it was widening a column to hold one card.
    */
   useEffect(() => { onEmptyState?.(showEmptyState) }, [showEmptyState, onEmptyState])
   const canCommit = changes.staged.length > 0 || amend

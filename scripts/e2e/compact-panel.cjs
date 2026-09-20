@@ -64,7 +64,7 @@ app.whenReady().then(async () => {
     await win.loadFile(path.join(dir, 'index.html'))
     await new Promise(resolve => setTimeout(resolve, 750))
     const wide = await assertCompact()
-    // ── The two columns are for the FILES, not for the home card (#298) ──
+    // ── The two columns are for the FILES, not for the home card ──
     // A clean tree shows one card of next steps in the same pane. It was
     // getting the whole compact treatment: a column at 73% of the panel to
     // hold it, and a *Hide graph* button offering the rest of the window.
