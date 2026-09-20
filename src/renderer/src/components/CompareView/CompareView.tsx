@@ -10,6 +10,8 @@ import { repoFromRemotes, remoteUrl, type RemoteRepo } from '../../utils/remoteU
 import { useCompareHistory, type SavedComparison } from '../../hooks/useCompareHistory'
 import { useStoredSize } from '../../hooks/useStoredSize'
 import type { CompareAxis } from '../../types'
+import { useKept } from '../../hooks/useKept'
+import { sameComparison } from '../../hooks/useCompareHistory'
 import './CompareView.css'
 
 interface CompareCommit {
@@ -110,6 +112,9 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
       .catch(() => { /* repo not ready */ })
   }, [])
 
+  const kept = useKept(repoKey ?? null)
+  const saved = kept.entries.find(e => e.kind === 'comparison' && sameComparison(e, { a: refA, b: refB === WORKING ? null : refB, axis }))
+
   const against = refB === WORKING ? null : refB          // null = the working tree
 
   useEffect(() => {
@@ -186,6 +191,13 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
   const restore = useCallback((c: SavedComparison) => {
     setRefA(c.a); setRefB(c.b === null ? WORKING : c.b); setAxis(c.axis)
   }, [])
+  // An existing VS Code tab may have changed its selectors since it opened.
+  // Reopening a kept entry restores its refs rather than only revealing it.
+  useEffect(() => {
+    const reopen = (event: Event) => restore((event as CustomEvent<SavedComparison>).detail)
+    window.addEventListener('gv-restore-comparison', reopen)
+    return () => window.removeEventListener('gv-restore-comparison', reopen)
+  }, [restore])
   const labelFor = (c: SavedComparison) =>
     `${shortRef(c.a)} ${c.axis === 'diverged' ? '…' : '‥'} ${c.b === null ? t('cv.workingTree') : shortRef(c.b)}`
 
@@ -257,6 +269,10 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
             <span className="cv-sum-ahead">+{ahead.length}</span> / <span className="cv-sum-behind">−{behind.length}</span> commits
           </span>
         )}
+        {ready && repoKey && <button className="cv-copy-link" disabled={!!saved || loading || !!loadError}
+          onClick={() => void kept.keep({ kind: 'comparison', a: refA, b: against, axis, reviewed: [] }, labelFor({ a: refA, b: against, axis }))}>
+          {t(saved ? 'kept.saved' : 'kept.keep')}
+        </button>}
         {ready && remoteRepo && (
           <button
             className="cv-copy-link"
@@ -272,6 +288,7 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
         )}
       </div>
 
+      {kept.error && <div role="alert">{t('kept.error')}</div>}
       {ready && (
         <div className="cv-reading">
           {against === null
@@ -344,6 +361,8 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
                 headerLabel={against === null
                   ? `${shortRef(refA)} → ${t('cv.workingTree')}`
                   : `${shortRef(refA)}${axis === 'diverged' ? '...' : '..'}${shortRef(refB)}`}
+                reviewed={saved?.kind === 'comparison' ? saved.reviewed : undefined}
+                onReview={saved ? (path, checked) => void kept.review(saved.id, path, checked) : undefined}
                 diff={diff}
                 files={files}
                 loading={loading}

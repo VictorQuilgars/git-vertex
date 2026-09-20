@@ -776,6 +776,21 @@
           "default": 20000,
           "description": "Skip blame annotations for files longer than this. 0 disables the limit."
         },
+        "gitVertex.blame.file.groupRuns": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show one file blame label per consecutive run of lines from the same commit, with a thin continuation mark."
+        },
+        "gitVertex.blame.file.avatars": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show author avatars in file blame labels, with initials when an image is unavailable."
+        },
+        "gitVertex.blame.file.highlightCommit": {
+          "type": "boolean",
+          "default": true,
+          "description": "Highlight all lines written by the commit under the cursor while file blame is on."
+        },
         "gitVertex.blame.heatmap.enabled": {
           "type": "boolean",
           "default": true,

@@ -1147,3 +1147,11 @@
 .sb-gh-mark { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0; color: var(--text-tertiary); background: var(--surface); border: 1px solid var(--border-muted); border-radius: var(--radius-xs); cursor: pointer; }
 .sb-gh-mark:hover { color: var(--text-primary); border-color: var(--border-strong); }
 .sb-gh-mark--on { color: var(--accent); border-color: var(--accent); }
+
+.sb-kept { padding: 0 10px 10px; }
+.sb-kept-row { display: flex; align-items: center; gap: 4px; margin-bottom: 6px; }
+.sb-kept-row button { background: none; color: var(--text-primary); border: none; cursor: pointer; }
+.sb-kept-open { flex: 1; min-width: 0; text-align: left; }
+.sb-kept-open span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-kept-open time { display: block; font-size: 10px; color: var(--text-tertiary); }
+.sb-kept-row input { min-width: 0; width: 100%; }

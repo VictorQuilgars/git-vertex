@@ -17,6 +17,8 @@ interface DiffViewerProps {
   // Ref-comparison mode (no single commit): shown in place of the commit
   // header, e.g. "main..feature".
   headerLabel?: string
+  reviewed?: string[]
+  onReview?: (path: string, checked: boolean) => void
 }
 
 interface DiffLine {
@@ -138,7 +140,7 @@ function buildSplitRows(lines: DiffLine[]): SplitRow[] {
   return rows
 }
 
-function FileList({ files, t }: { files: FileChange[]; t: (k: any, ...a: any[]) => string }) {
+function FileList({ files, t, reviewed, onReview }: Pick<DiffViewerProps, 'files' | 'reviewed' | 'onReview'> & { t: (k: any, ...a: any[]) => string }) {
   // 120px held three rows. A comparison routinely has twenty files, and the
   // list is how you decide what to read — so it is as tall as you want it,
   // and it remembers.
@@ -149,6 +151,7 @@ function FileList({ files, t }: { files: FileChange[]; t: (k: any, ...a: any[]) 
     <div className="file-list" style={{ maxHeight: height }}>
       {files.map((f, i) => (
         <div key={i} className="file-item">
+          {onReview && <input type="checkbox" aria-label={t('kept.reviewed', f.path)} checked={reviewed?.includes(f.path) ?? false} onChange={e => onReview(f.path, e.target.checked)} />}
           <span className={`file-status status-${f.status.toLowerCase()}`}>{f.status}</span>
           <span className="file-path">{f.path}</span>
           <span className="file-stats">
@@ -239,7 +242,7 @@ function SplitHunk({ hunk, lang }: { hunk: DiffHunk; lang?: string }) {
   )
 }
 
-export default function DiffViewer({ commit, diff, files, loading, headerLabel }: DiffViewerProps) {
+export default function DiffViewer({ commit, diff, files, loading, headerLabel, reviewed, onReview }: DiffViewerProps) {
   const { t } = useLang()
   const [viewMode, setViewMode] = useState<'unified' | 'split'>('unified')
   const parsedDiff = useMemo(() => parseDiff(diff), [diff])
@@ -305,7 +308,7 @@ export default function DiffViewer({ commit, diff, files, loading, headerLabel }
         </div>
       ) : (
         <>
-          <FileList files={files} t={t} />
+          <FileList files={files} t={t} reviewed={reviewed} onReview={onReview} />
 
           {parsedDiff.length === 0 && !loading && (
             <div className="diff-empty-inner">{t('diff.empty')}</div>

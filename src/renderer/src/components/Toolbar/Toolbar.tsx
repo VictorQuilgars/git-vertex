@@ -38,6 +38,7 @@ interface ToolbarProps {
   /** git is being asked about the query's `file:` operators. */
   searchOpsLoading?: boolean
   onSearch: (q: string) => void
+  keepSearch?: React.ReactNode
   onUndo: () => void
   onRedo: () => void
   onFetch: () => void
@@ -105,7 +106,7 @@ function TBtn({ icon, label, onClick, disabled, title, accent, active }: {
 }
 
 export default function Toolbar({
-  repoPath, currentBranch, searchQuery, searchMatches, searchOpsLoading, onSearch,
+  repoPath, currentBranch, searchQuery, searchMatches, searchOpsLoading, onSearch, keepSearch,
   repoName, recentRepos = [], onOpenRepo, onClone, onSetRepo, onRemoveRecent,
   branches = [], onGoTo,
   onUndo, onRedo, onFetch, onPush, onPull, pullMode, onSetPullMode, onCreateBranch,
@@ -462,6 +463,7 @@ export default function Toolbar({
               {searchMatches}
             </span>
           )}
+          {keepSearch}
           {searchQuery && <button className="tb-clear" title={t('common.clearSearch')} onClick={() => onSearch('')}>×</button>}
           {onToggleExtendedSearch && (
             <button className={`tb-ext-search ${extendedSearch ? 'active' : ''}`}

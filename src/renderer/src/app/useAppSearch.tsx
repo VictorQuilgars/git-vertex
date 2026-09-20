@@ -3,6 +3,8 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { PaletteCommand } from '../components/CommandPalette/CommandPalette'
 import { logOptionsFor } from '../utils/graphVisibility'
 import { planReach, type ReachPlan } from './search-reach'
+import { useKeptSearch } from '../hooks/useKeptSearch'
+import type { KeptEntry, KeptSearch } from '../hooks/useKept'
 import { useSearchOperators } from './useSearchOperators'
 import type { AppChrome } from './useAppChrome'
 import type { RepoSession } from './useRepoSession'
@@ -16,7 +18,17 @@ import type { AppActions } from './useAppActions'
 export function useAppSearch(app: AppChrome & RepoSession & AppGithub & AppConflicts & AppAi & AppTabs & AppUpdates & AppActions) {
   const { t, showToast, repoPath, commits, branches, setSelectedCommit, notedHashes, stashes, tags, loadRepoData, aiSearchHashes, setAiSearchHashes, setAiSearchLoading, handleOpenRepo, handleFetch, handlePush, handlePull, handleCheckout, handleCreateBranch, handleMergeBranch, handleApplyStash, logLimitRef, growHistory, showAllRef, soloRef, visibilityRef, setDeepLinkHash } = app
 
-  const [searchQuery, setSearchQuery] = useState<string>('')
+  const [searchQuery, setQuery] = useState<string>('')
+  const keptSearch = useKeptSearch(repoPath)
+  const setSearchQuery = (query: string) => { keptSearch.clear(); setQuery(query) }
+  const restoreSearch = (entry: KeptEntry) => {
+    if (entry.kind !== 'search') return
+    setExtendedSearch(false)
+    app.setAiSearch(entry.ai)
+    setAiSearchHashes(null)
+    setQuery(entry.query)
+    keptSearch.restore(entry)
+  }
   const [searchMatches, setSearchMatches] = useState(-1)
   const [extendedSearch, setExtendedSearch] = useState(false)
   const [extendedSearchHashes, setExtendedSearchHashes] = useState<Set<string>>(new Set())
@@ -25,7 +37,7 @@ export function useAppSearch(app: AppChrome & RepoSession & AppGithub & AppConfl
   const [paletteOpen, setPaletteOpen] = useState(false)
   // The query's operators (#255): `file:` is git's to answer, and the searches
   // below are given the words of the query, not its operators.
-  const searchOps = useSearchOperators(searchQuery, repoPath)
+  const searchOps = useSearchOperators(keptSearch.restored ? '' : searchQuery, repoPath)
   const freeText = searchOps.freeText
   // ── Extended search ────────────────────────────────────────
   // The hits come from the whole history and the graph holds a page of it. A
@@ -99,6 +111,7 @@ export function useAppSearch(app: AppChrome & RepoSession & AppGithub & AppConfl
   // ── AI natural-language search ─────────────────────────────
   const runAiSearch = useCallback(async () => {
     if (!searchQuery.trim() || !repoPath) return
+    keptSearch.clear()
     setAiSearchLoading(true)
     try {
       const r = await (window.gitAPI as any).aiSearchCommits(searchQuery.trim())
@@ -174,9 +187,16 @@ export function useAppSearch(app: AppChrome & RepoSession & AppGithub & AppConfl
     return cmds
   }
 
+  const restored = keptSearch.restored
+  const searchSnapshot: KeptSearch = restored ?? {
+    kind: 'search', query: searchQuery, ai: app.aiSearch,
+    hashes: graphSearchHashes === null ? null : [...graphSearchHashes],
+    requiredHashes: searchOps.requiredHashes === null ? null : [...searchOps.requiredHashes],
+  }
   return {
-    searchQuery, setSearchQuery, searchMatches, setSearchMatches, extendedSearch, setExtendedSearch, extendedSearchHashes, setExtendedSearchHashes, extendedSearchLoading, setExtendedSearchLoading, repoSearch, setRepoSearch, paletteOpen, setPaletteOpen, runAiSearch, graphSearchHashes, buildPaletteCommands, revealRef,
-    requiredSearchHashes: searchOps.requiredHashes, searchOpsLoading: searchOps.loading,
+    restoreSearch, searchSnapshot,
+    searchQuery, setSearchQuery, searchMatches, setSearchMatches, extendedSearch, setExtendedSearch: (value: boolean | ((previous: boolean) => boolean)) => { keptSearch.clear(); setExtendedSearch(value) }, extendedSearchHashes, setExtendedSearchHashes, extendedSearchLoading, setExtendedSearchLoading, repoSearch, setRepoSearch, paletteOpen, setPaletteOpen, runAiSearch, graphSearchHashes: restored ? (restored.hashes === null ? null : new Set(restored.hashes)) : graphSearchHashes, buildPaletteCommands, revealRef,
+    requiredSearchHashes: restored ? (restored.requiredHashes === null ? null : new Set(restored.requiredHashes)) : searchOps.requiredHashes, searchOpsLoading: !restored && searchOps.loading,
   }
 }
 

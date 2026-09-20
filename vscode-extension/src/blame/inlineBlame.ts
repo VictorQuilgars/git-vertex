@@ -4,6 +4,8 @@ import { BlameLine, blameFile, getUserEmail } from './blame'
 import { DEFAULT_LINE_FORMAT, formatAnnotation, formatRelative } from './format'
 import { HEATMAP_BUCKETS, bucketColor, heatmapBucket, heatmapIcon, resolveHeatmapEnds } from './heatmap'
 import { getGitDir, getRepoRootForFile } from '../gitInfo'
+import { authorInitials, commitLines, fileAnnotations } from './fileAnnotations'
+import { BlameAvatars } from './avatars'
 
 // End-of-line blame annotations: the current line always (when
 // enabled), the whole file on demand. Blame is computed per document *version*
@@ -41,6 +43,18 @@ export class InlineBlameController implements vscode.Disposable {
     rangeBehavior: vscode.DecorationRangeBehavior.ClosedOpen,
   })
 
+  private readonly commitDecoration = vscode.window.createTextEditorDecorationType({
+    isWholeLine: true,
+    backgroundColor: new vscode.ThemeColor('editor.wordHighlightBackground'),
+    rangeBehavior: vscode.DecorationRangeBehavior.ClosedOpen,
+  })
+  private avatarRefresh: NodeJS.Timeout | null = null
+  private disposed = false
+  private readonly avatars = new BlameAvatars(() => {
+    if (this.disposed || this.avatarRefresh) return
+    this.avatarRefresh = setTimeout(() => { this.avatarRefresh = null; this.renderAll() }, 50)
+  })
+
   private heatDecorations: vscode.TextEditorDecorationType[] | null = null
   /** Colour values already reported as unusable, so each is said once. */
   private readonly rejectedColors = new Set<string>()
@@ -53,7 +67,7 @@ export class InlineBlameController implements vscode.Disposable {
   /** Set by the toggle command; null means "follow the setting". */
   private lineOverride: boolean | null = null
 
-  private readonly renders = new Map<string, number>()
+  private readonly renders = new WeakMap<vscode.TextEditor, number>()
   private readonly disposables: vscode.Disposable[] = []
   private readonly changeEmitter = new vscode.EventEmitter<vscode.Uri | undefined>()
   /** Fires when cached blame is dropped — the CodeLens provider listens. */
@@ -64,7 +78,7 @@ export class InlineBlameController implements vscode.Disposable {
 
   constructor() {
     this.disposables.push(
-      vscode.window.onDidChangeActiveTextEditor(editor => { void this.render(editor) }),
+      vscode.window.onDidChangeActiveTextEditor(() => this.renderAll()),
       vscode.window.onDidChangeVisibleTextEditors(() => this.renderAll()),
       vscode.window.onDidChangeTextEditorSelection(e => { void this.render(e.textEditor) }),
       vscode.workspace.onDidChangeTextDocument(e => this.onEdit(e.document)),
@@ -256,33 +270,46 @@ export class InlineBlameController implements vscode.Disposable {
   }
 
   async render(editor: vscode.TextEditor | undefined): Promise<void> {
-    if (!editor) return
+    if (!editor || this.disposed) return
+    editor.setDecorations(this.commitDecoration, [])
 
     // Every render for one editor gets a ticket; a slow one that resolves after
     // a newer render has started must not repaint stale annotations.
     const key = editor.document.uri.toString()
-    const token = (this.renders.get(key) ?? 0) + 1
-    this.renders.set(key, token)
+    const version = editor.document.version
+    const token = (this.renders.get(editor) ?? 0) + 1
+    this.renders.set(editor, token)
 
     const fileMode = this.fileMode.has(key)
     const lines = (fileMode || this.isLineBlameEnabled()) ? await this.getBlame(editor.document) : []
-    if (this.renders.get(key) !== token) return
+    if (this.disposed || this.renders.get(editor) !== token || editor.document.version !== version) return
 
     const repoRoot = this.repoRootFor(editor.document.uri.fsPath)
     const email = repoRoot ? await this.userEmail(repoRoot) : ''
-    if (this.renders.get(key) !== token) return
+    if (this.disposed || this.renders.get(editor) !== token || editor.document.version !== version) return
 
     const template = config().get<string>('blame.line.format', DEFAULT_LINE_FORMAT) || DEFAULT_LINE_FORMAT
     const messageLength = config().get<number>('blame.messageLength', 60)
     const now = Date.now()
+    const showAvatars = fileMode && config().get<boolean>('blame.file.avatars', true)
     const annotate = (line: BlameLine): string =>
       formatAnnotation(template, line, { now, currentUserEmail: email, messageLength })
 
-    const decorationFor = (line: BlameLine, lineIndex: number): vscode.DecorationOptions => {
+    const decorationFor = (line: BlameLine, lineIndex: number, continuation = false): vscode.DecorationOptions => {
       const end = editor.document.lineAt(lineIndex).range.end
+      const withAvatar = showAvatars && !continuation && !line.uncommitted
+      const image = withAvatar ? this.avatars.get(line.authorMail) : null
+      const before: vscode.ThemableDecorationAttachmentRenderOptions | undefined = withAvatar
+        ? image
+          ? { contentIconPath: vscode.Uri.parse(image), width: '14px', height: '14px', margin: '0 0 0 2em' }
+          : { contentText: authorInitials(line.author), color: new vscode.ThemeColor('gitVertex.blameForeground'), margin: '0 0 0 2em' }
+        : undefined
       return {
         range: new vscode.Range(end, end),
-        renderOptions: { after: { contentText: annotate(line) } },
+        renderOptions: {
+          before,
+          after: { contentText: continuation ? '│' : annotate(line), margin: withAvatar ? '0 0 0 0.5em' : '0 0 0 2em' },
+        },
         hoverMessage: this.hover(line, editor.document),
       }
     }
@@ -304,11 +331,17 @@ export class InlineBlameController implements vscode.Disposable {
     }
 
     const fileDecorations: vscode.DecorationOptions[] = []
-    for (let index = 0; index < editor.document.lineCount; index++) {
-      const line = this.lineAt(lines, index)
-      if (line) fileDecorations.push(decorationFor(line, index))
+    for (const { line, continuation } of fileAnnotations(lines, config().get<boolean>('blame.file.groupRuns', true))) {
+      const index = line.line - 1
+      if (index >= 0 && index < editor.document.lineCount) fileDecorations.push(decorationFor(line, index, continuation))
     }
     editor.setDecorations(this.fileDecoration, fileDecorations)
+    const active = vscode.window.activeTextEditor
+    const cursor = active?.document === editor.document && active.viewColumn === editor.viewColumn && editor.selection.isEmpty
+      && config().get<boolean>('blame.file.highlightCommit', true) ? editor.selection.active.line + 1 : undefined
+    editor.setDecorations(this.commitDecoration, commitLines(lines, cursor)
+      .filter(line => line > 0 && line <= editor.document.lineCount)
+      .map(line => editor.document.lineAt(line - 1).range))
     this.renderHeatmap(editor, lines, now)
   }
 
@@ -410,6 +443,10 @@ export class InlineBlameController implements vscode.Disposable {
   }
 
   dispose(): void {
+    this.disposed = true
+    this.avatars.dispose()
+    if (this.avatarRefresh) clearTimeout(this.avatarRefresh)
+    this.commitDecoration.dispose()
     if (this.editDebounce) clearTimeout(this.editDebounce)
     this.disposeHeatDecorations()
     this.lineDecoration.dispose()

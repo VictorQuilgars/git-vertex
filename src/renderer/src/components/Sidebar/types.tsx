@@ -83,6 +83,7 @@ export interface WorktreeEntry { path: string; branch: string; head: string; isM
 export interface AgentEntry { pid: number; name: string; cwd: string }
 
 export interface SidebarProps {
+  onOpenKept?: (entry: import('../../hooks/useKept').KeptEntry) => void
   repoPath: string | null
   repoName: string
   /**

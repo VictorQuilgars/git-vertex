@@ -18,6 +18,12 @@ knowing on macOS, whose bundled git is still 2.39.
 - Click any commit to see its full detail (files, diff, author, co-authors)
 - Context menu: cherry-pick, revert, reset, create branch, create tag, copy hash
 
+### File Blame
+Toggle file blame to see one author label per run of lines from the same commit,
+with continuation marks and author avatars (initials when an image is unavailable).
+Moving the cursor highlights all lines written by that commit, including separate
+runs elsewhere in the file. The age heatmap and hover actions remain available.
+
 ### Staging & Commits
 - Stage / unstage / discard files individually or all at once
 - Write a commit message and commit without leaving VS Code
@@ -51,6 +57,9 @@ Open it via:
 |---------|---------|-------------|
 | `gitVertex.appPath` | _(auto-detect)_ | Path to the Git Vertex Desktop executable |
 | `gitVertex.showStatusBar` | `true` | Show branch info in the status bar |
+| `gitVertex.blame.file.groupRuns` | `true` | One label per consecutive run of the same commit |
+| `gitVertex.blame.file.avatars` | `true` | Author avatars, with initials as fallback |
+| `gitVertex.blame.file.highlightCommit` | `true` | Highlight every line from the cursor's commit |
 
 ## Links
 

@@ -11,6 +11,7 @@ import { CommitNode, BranchInfo, ConflictEntry, ConflictKind, FileChange, Workin
 // `vscode`, which is what lets both products run it. See #191 — `getBlame` here
 // and on the desktop used to format dates in two different locales.
 import * as core from '../../src/main/git-core'
+import { resolveAvatar } from './avatar'
 
 const CONFLICT_KINDS: Record<string, ConflictKind> = {
   UU: 'both-modified',
@@ -2242,14 +2243,6 @@ exit 0
   // ── Avatar resolution (no network: deterministic GitHub avatars) ──
 
   avatarResolve(email: string, _sha?: string): string {
-    const key = (email || '').trim().toLowerCase()
-    // GitHub noreply emails encode the user id → real avatar
-    const noreply = key.match(/^(?:(\d+)\+)?([^@]+)@users\.noreply\.github\.com$/)
-    if (noreply && noreply[1]) {
-      return `https://avatars.githubusercontent.com/u/${noreply[1]}?v=4`
-    }
-    // Fallback: GitHub-style colorful identicon (no Gravatar B/W default)
-    const localPart = key.split('@')[0] || key
-    return `https://github.com/identicons/${encodeURIComponent(localPart)}.png`
+    return resolveAvatar(email)
   }
 }

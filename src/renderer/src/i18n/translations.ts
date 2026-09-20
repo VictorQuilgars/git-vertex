@@ -1,6 +1,15 @@
 export type Lang = 'fr' | 'en'
 
 const fr = {
+  'kept.title': 'Conservés',
+  'kept.keep': 'Conserver',
+  'kept.saved': 'Conservé',
+  'kept.empty': 'Conservez une recherche ou une comparaison pour la retrouver ici.',
+  'kept.name': 'Nom',
+  'kept.rename': 'Renommer',
+  'kept.remove': 'Retirer',
+  'kept.reviewed': (path: string) => `Relu : ${path}`,
+  'kept.error': 'Impossible de charger ou enregistrer les éléments conservés.',
   'panel.resize.filesCommit': 'Redimensionner les fichiers et le commit',
   'panel.resize.graphFiles': 'Redimensionner le graphe et les fichiers',
   'panel.compact.options': 'Options',
@@ -2187,6 +2196,15 @@ const fr = {
 }
 
 const en: typeof fr = {
+  'kept.title': 'Kept',
+  'kept.keep': 'Keep',
+  'kept.saved': 'Kept',
+  'kept.empty': 'Keep a search or comparison to find it here.',
+  'kept.name': 'Name',
+  'kept.rename': 'Rename',
+  'kept.remove': 'Remove',
+  'kept.reviewed': (path: string) => `Reviewed: ${path}`,
+  'kept.error': 'Could not load or save kept items.',
   'panel.resize.filesCommit': 'Resize files and commit',
   'panel.resize.graphFiles': 'Resize graph and files',
   'panel.compact.options': 'Options',
