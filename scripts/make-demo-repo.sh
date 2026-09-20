@@ -19,6 +19,14 @@ cd "$TARGET"
 
 git init -q -b main
 
+# An identity of this repository's own. Every commit below carries an author
+# through GIT_AUTHOR_*, but `git merge` and `git tag` write a committer from
+# the machine's config — and a fresh CI runner has none, so they fail with
+# "empty ident name" after the script has already built half a history. Set
+# locally, so nothing of the user's global config is touched or needed.
+git config user.name "Git Vertex Demo"
+git config user.email "demo@git-vertex.invalid"
+
 # ── Authors (bash 3.2 compatible — no associative arrays) ───────────────────
 author_name() {
   case "$1" in
