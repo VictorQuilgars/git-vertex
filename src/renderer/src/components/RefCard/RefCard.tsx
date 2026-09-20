@@ -256,11 +256,14 @@ export default function RefCard(props: RefCardProps) {
       if (onClick) out.push(<button key={key} type="button" className="refcard-btn" onClick={onClick} title={title}>{label}</button>)
     }
     const push = isCurrent ? props.onPush : props.onPushBranch ? () => props.onPushBranch!(target.name) : undefined
-    if (up.state === 'unpublished') btn('publish', t('refcard.publish'), push)
+    // Publishing must establish tracking, including for the checked-out branch.
+    // Its generic Push can open the modal and send commits without an upstream.
+    const publish = props.onPushBranch ? () => props.onPushBranch!(target.name) : undefined
+    if (up.state === 'unpublished') btn('publish', t('refcard.publish'), publish)
     else if (up.state === 'missing') {
       btn('delete', t('refcard.deleteLocal'), props.onDelete && !isCurrent ? () => props.onDelete!(target.name) : undefined)
       // Gone because its request was merged: publishing it would bring back a finished branch.
-      if (!mergedByPR) btn('publish', t('refcard.publish'), push)
+      if (!mergedByPR) btn('publish', t('refcard.publish'), publish)
     } else {
       if (up.behind > 0) btn('pull', t('refcard.pull'), isCurrent ? props.onPull : undefined)
       if (up.ahead > 0) btn('push', t(up.behind > 0 ? 'refcard.forcePush' : 'refcard.push'), up.behind > 0 ? undefined : push)
