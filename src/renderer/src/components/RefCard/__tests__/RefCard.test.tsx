@@ -385,3 +385,52 @@ describe('commits the target already holds', () => {
     expect(api.duplicateCommits).not.toHaveBeenCalled()
   })
 })
+
+// ── A branch that tracks somebody else's branch (#308) ──────────
+//
+// `git checkout -b feature origin/main` points feature at origin/main, and
+// the card read that as published: "3 to push", with a Push button git
+// refuses because the upstream's name is not the branch's.
+
+describe('an upstream that is a branch of another name', () => {
+  const tracksMain = [
+    { name: 'feature/login', current: true, remote: false, commit: 'fffffff', label: 'add the form',
+      upstream: 'origin/main', ahead: 3, behind: 0 },
+    { name: 'main', current: false, remote: false, commit: 'mmmmmmm', label: 'base' },
+    { name: 'remotes/origin/main', current: false, remote: true, commit: 'mmmmmmm', label: 'base' },
+  ] as any[]
+
+  test('offers Publish, and never the Push git would refuse', async () => {
+    const p = draw({ kind: 'head', name: 'feature/login', hash: H('f') }, {}, { branches: tracksMain })
+    await screen.findByText('Merges into')
+    const labels = buttons()
+    expect(labels).toContain('Publish')
+    expect(labels).not.toContain('Push')
+    // Publishing is the branch's own push, which sets the tracking too.
+    screen.getByText('Publish').click()
+    expect(p.onPushBranch).toHaveBeenCalledWith('feature/login')
+    expect(p.onPush).not.toHaveBeenCalled()
+  })
+
+  test('says what it tracks instead of counting what there is to push', async () => {
+    draw({ kind: 'head', name: 'feature/login', hash: H('f') }, {}, { branches: tracksMain })
+    await screen.findByText('Merges into')
+    expect(screen.getByText('Tracks another branch — feature/login is not on the remote')).toBeTruthy()
+    expect(screen.queryByText('3 to push')).toBeNull()
+    // The distance is still shown — it is true, it is just not "to push".
+    expect(document.querySelector('.refcard-track--elsewhere')?.textContent).toContain('3↑')
+  })
+
+  test('a branch that tracks its own counterpart is untouched', async () => {
+    draw({ kind: 'head', name: 'feature/login', hash: H('f') }, {}, {
+      branches: [
+        { name: 'feature/login', current: true, remote: false, commit: 'fffffff', label: 'x',
+          upstream: 'origin/feature/login', ahead: 3, behind: 0 },
+        ...tracksMain.slice(1),
+      ],
+    })
+    await screen.findByText('Merges into')
+    expect(buttons()).toContain('Push')
+    expect(screen.getByText('3 to push')).toBeTruthy()
+  })
+})

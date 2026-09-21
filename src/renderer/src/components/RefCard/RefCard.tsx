@@ -280,6 +280,14 @@ export default function RefCard(props: RefCardProps) {
     // Its generic Push can open the modal and send commits without an upstream.
     const publish = props.onPushBranch ? () => props.onPushBranch!(target.name) : undefined
     if (up.state === 'unpublished') btn('publish', t('refcard.publish'), publish)
+    // Tracking somebody else's branch: Push is the one thing NOT to offer.
+    // git refuses a bare push whose upstream is named differently, and the
+    // reading behind the button — "3 to push" — was a distance from another
+    // branch all along. Publishing under its own name is what was meant.
+    else if (up.state === 'elsewhere') {
+      btn('publish', t('refcard.publish'), publish, t('refcard.publishAsTip', target.name))
+      btn('fetch', t('refcard.fetch'), props.onFetch)
+    }
     else if (up.state === 'missing') {
       btn('delete', t('refcard.deleteLocal'), props.onDelete && !isCurrent ? () => props.onDelete!(target.name) : undefined)
       // Gone because its request was merged: publishing it would bring back a finished branch.
@@ -293,6 +301,7 @@ export default function RefCard(props: RefCardProps) {
     return out
   }
   const upstreamStatus = !up ? '' : up.state === 'missing' ? (mergedByPR ? t('refcard.up.deletedAfterMerge', mergedByPR.number) : t('refcard.up.missing'))
+    : up.state === 'elsewhere' ? t('refcard.up.elsewhere', target.name)
     : up.state === 'diverged' ? t('refcard.up.diverged')
     : up.state === 'behind' ? t('refcard.up.toPull', up.behind)
     : up.state === 'ahead' ? t('refcard.up.toPush', up.ahead)
@@ -390,7 +399,10 @@ export default function RefCard(props: RefCardProps) {
                           </button>}
                     </div>
                     <div className="refcard-card-foot">
-                      {up.state !== 'unpublished' && (
+                      {/* A distance chip with no distance in it is an empty
+                          box: `elsewhere` is the one state that can be level
+                          with what it tracks and still have something to say. */}
+                      {up.state !== 'unpublished' && (up.state !== 'elsewhere' || up.ahead > 0 || up.behind > 0) && (
                         <span className={`refcard-track refcard-track--${up.state}`}
                           title={up.state === 'level' ? t('refcard.track.level', target.name, up.name ?? '')
                             : up.state === 'missing' ? t('refcard.track.missing', target.name, up.name ?? '')

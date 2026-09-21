@@ -12,7 +12,7 @@ export interface RefTarget {
   hash: string
 }
 
-export type UpstreamState = 'unpublished' | 'missing' | 'diverged' | 'behind' | 'ahead' | 'level'
+export type UpstreamState = 'unpublished' | 'missing' | 'elsewhere' | 'diverged' | 'behind' | 'ahead' | 'level'
 
 export interface UpstreamFacts {
   state: UpstreamState
@@ -22,11 +22,35 @@ export interface UpstreamFacts {
   behind: number
 }
 
+/**
+ * Does this branch track its OWN counterpart on a remote — `x` tracking
+ * `origin/x` — or somebody else's branch?
+ *
+ * The question matters because git answers it for you and rarely the way you
+ * meant: `git checkout -b feature origin/main` sets `feature`'s upstream to
+ * `origin/main`, and from then on the branch looks published to anything that
+ * only asks *has it got an upstream*. It has not been pushed anywhere, `ahead`
+ * counts what it has over `main`, and `git push` refuses it outright — the
+ * upstream's name is not the branch's, so git will not guess which of the two
+ * was meant.
+ *
+ * A remote's name never contains a slash, so the first one splits it.
+ */
+export function tracksOwnBranch(name: string, upstream: string): boolean {
+  return splitRemoteRef(upstream).branch === name
+}
+
 /** Where a local branch stands against what it tracks. */
-export function upstreamFacts(branch: Pick<BranchInfo, 'upstream' | 'ahead' | 'behind' | 'gone'>): UpstreamFacts {
+export function upstreamFacts(branch: Pick<BranchInfo, 'name' | 'upstream' | 'ahead' | 'behind' | 'gone'>): UpstreamFacts {
   const ahead = branch.ahead ?? 0, behind = branch.behind ?? 0
   if (!branch.upstream) return { state: 'unpublished', ahead: 0, behind: 0 }
   if (branch.gone) return { state: 'missing', name: branch.upstream, ahead: 0, behind: 0 }
+  // Tracking another branch is a real state of its own, and the distance is
+  // still real — it is just not "what there is to push", which is why it comes
+  // before the ahead/behind reading rather than colouring it afterwards.
+  if (!tracksOwnBranch(branch.name, branch.upstream)) {
+    return { state: 'elsewhere', name: branch.upstream, ahead, behind }
+  }
   const state: UpstreamState = ahead && behind ? 'diverged' : behind ? 'behind' : ahead ? 'ahead' : 'level'
   return { state, name: branch.upstream, ahead, behind }
 }

@@ -1464,3 +1464,36 @@ export async function duplicateCommits(
     return { duplicates: [], total: 0, error: reason(e) }
   }
 }
+
+// ── Pointing a branch at a remote branch ────────────────────────
+
+/**
+ * Set a branch's upstream, and say the one refusal that matters in our own
+ * words.
+ *
+ * `git branch --set-upstream-to` answers a remote branch that is not there
+ * with eight lines of hint, ending in two suggestions — fetch it, or
+ * `git push -u`. The second is almost always the answer: the branch has never
+ * been published, which is exactly the state git puts you in when it points a
+ * new branch at whatever it was created from (`git checkout -b x origin/main`
+ * tracks `origin/main`, and `origin/x` does not exist). One sentence, naming
+ * the act that fixes it, instead of a page of advice about both.
+ */
+export async function setBranchUpstream(
+  run: GitRunner, branch: string, upstream: string,
+): Promise<{ success: boolean; error?: string }> {
+  const bad = assertRef(branch, 'branch') ?? assertRef(upstream, 'upstream')
+  if (bad) return { success: false, error: bad }
+  // `--verify --quiet` exits 1 rather than printing when the ref is unknown,
+  // which the runner turns into a rejection: absent, not an error to report.
+  const known = await run(['rev-parse', '--verify', '--quiet', `refs/remotes/${upstream}`]).catch(() => '')
+  if (!known.trim()) {
+    return { success: false, error: `${upstream} is not on the remote — publish ${branch} to create it` }
+  }
+  try {
+    await run(['branch', `--set-upstream-to=${upstream}`, branch])
+    return { success: true }
+  } catch (e) {
+    return { success: false, error: reason(e) }
+  }
+}

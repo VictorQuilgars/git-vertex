@@ -26,6 +26,7 @@ import CommitGraph from '../../../src/renderer/src/components/CommitGraph/Commit
 import RightPanel from '../../../src/renderer/src/components/RightPanel/RightPanel'
 import RefCard from '../../../src/renderer/src/components/RefCard/RefCard'
 import { useRefCard } from '../../../src/renderer/src/components/RefCard/useRefCard'
+import { tracksOwnBranch } from '../../../src/renderer/src/components/RefCard/ref-card-model'
 import { useSearchOperators } from '../../../src/renderer/src/app/useSearchOperators'
 import { authorOfQuery, authorQuery } from '../../../src/renderer/src/utils/searchQuery'
 import type { ConflictKind, StashScope } from '../../../src/renderer/src/types'
@@ -1181,7 +1182,25 @@ function VertexApp() {
     () => window.gitAPI.predictConflicts('@{u}'),   // merge of the already-known upstream tip (pre-fetch)
     () => runOp('Pull', () => window.gitAPI.pull()),
   ), [runOp, guardConflict])
-  const handlePush = useCallback(() => runOp('Push', () => window.gitAPI.push()), [runOp])
+  /**
+   * Push — with the one check git makes and then refuses on (#308).
+   *
+   * A bare `git push` whose upstream is a branch of ANOTHER NAME is refused:
+   * git will not guess whether you meant that branch or this one's own. It is
+   * the state `git checkout -b x origin/main` leaves behind, so it is common.
+   * The panel has no push dialog to choose in, so it asks the one question
+   * that matters and publishes under the branch's own name.
+   */
+  const handlePush = useCallback(async () => {
+    const { upstream } = await window.gitAPI.getUpstream().catch(() => ({ upstream: null }))
+    if (upstream && currentBranch && !tracksOwnBranch(currentBranch, upstream)) {
+      const ok = await window.gitAPI.uiConfirm(t('ext.app.publishNotItsUpstream', currentBranch, upstream))
+      if (!ok) return
+      await runOp(`Publish ${currentBranch}`, () => window.gitAPI.pushBranch(currentBranch))
+      return
+    }
+    await runOp('Push', () => window.gitAPI.push())
+  }, [runOp, currentBranch])
   const handleUndo = useCallback(() => runOp(t('ext.app.undone'), () => window.gitAPI.undoLastAction()), [runOp])
   const handleRedo = useCallback(() => runOp(t('ext.app.redone'), () => window.gitAPI.redoLastAction()), [runOp])
   const handleStash = useCallback(() => runOp(t('ext.app.stashCreated'), () => window.gitAPI.createStash()), [runOp])

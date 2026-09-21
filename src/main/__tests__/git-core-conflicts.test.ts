@@ -1,7 +1,7 @@
 import { execSync, spawnSync } from 'child_process'
 import * as fs from 'fs'
 import {
-  predictConflicts, predictRebaseConflicts, pullRequestConflicts, duplicateCommits,
+  predictConflicts, predictRebaseConflicts, pullRequestConflicts, duplicateCommits, setBranchUpstream,
   type GitRunner, type GitRawRunner,
 } from '../git-core'
 
@@ -285,6 +285,60 @@ describe('the same patch under another hash', () => {
     const spy: GitRunner = async args => { calls.push(args); return '' }
     expect((await duplicateCommits(spy, '--exec=boom', 'main')).error).toBeTruthy()
     expect((await duplicateCommits(spy, 'mine', '--exec=boom')).error).toBeTruthy()
+    expect(calls).toEqual([])
+  })
+})
+
+describe('pointing a branch at a remote branch', () => {
+  let dir = ''
+  let remote = ''
+  let run: GitRunner
+  const git = (cmd: string) => execSync(`git -C ${dir} ${cmd}`, { encoding: 'utf8', env })
+
+  beforeEach(() => {
+    const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    dir = `/tmp/gv-upstream-${stamp}`
+    remote = `/tmp/gv-upstream-${stamp}-remote.git`
+    execSync(`git init -q --bare -b main ${remote}`)
+    const seed = `${dir}-seed`
+    makeRepo(seed)
+    fs.writeFileSync(`${seed}/f.txt`, 'base\n')
+    execSync(`git -C ${seed} add -A && git -C ${seed} commit -qm base`)
+    execSync(`git -C ${seed} push -q ${remote} main`)
+    fs.rmSync(seed, { recursive: true, force: true })
+    execSync(`git clone -q ${remote} ${dir}`)
+    git('config user.email t@t.com')
+    git('config user.name T')
+    ;({ run } = runnersFor(dir))
+  })
+
+  afterEach(() => {
+    for (const p of [dir, remote]) { try { fs.rmSync(p, { recursive: true, force: true }) } catch { /* gone */ } }
+  })
+
+  test('a remote branch that is there is set, and git agrees', async () => {
+    git('checkout -q -b feature')
+    expect(await setBranchUpstream(run, 'feature', 'origin/main')).toEqual({ success: true })
+    expect(git('rev-parse --abbrev-ref feature@{u}').trim()).toBe('origin/main')
+  })
+
+  test('one that is NOT there says so in a sentence, naming what fixes it', async () => {
+    git('checkout -q -b feature')
+    const r = await setBranchUpstream(run, 'feature', 'origin/feature')
+    expect(r.success).toBe(false)
+    // git's own answer here is eight lines of hint about fetching and about
+    // `push -u`; the one that applies is publishing, and it is said alone.
+    expect(r.error).toBe('origin/feature is not on the remote — publish feature to create it')
+    expect(r.error).not.toMatch(/hint:/)
+    // And nothing was changed on the way to refusing.
+    expect(() => git('rev-parse --abbrev-ref feature@{u}')).toThrow()
+  })
+
+  test('a ref that is an option is refused before git runs', async () => {
+    const calls: string[][] = []
+    const spy: GitRunner = async args => { calls.push(args); return '' }
+    expect((await setBranchUpstream(spy, '--exec=boom', 'origin/main')).success).toBe(false)
+    expect((await setBranchUpstream(spy, 'feature', '--exec=boom')).success).toBe(false)
     expect(calls).toEqual([])
   })
 })

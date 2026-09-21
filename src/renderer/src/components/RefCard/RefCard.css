@@ -244,3 +244,8 @@ button.refcard-pill:not(:disabled):hover { border-color: var(--accent); color: v
 .refcard-dupes > :first-child { margin-top: 2px; }   /* the icon, on the text's first line */
 .refcard-dupes-text { min-width: 0; overflow-wrap: anywhere; }
 .refcard-dupes .refcard-btn { grid-column: 2; justify-self: start; }
+
+/* Tracking a branch of another name (#308): the distance is real but it is not
+   a distance from this branch's own remote counterpart, so it wears neither
+   the "ahead" nor the "behind" colour — it is information, not a call to act. */
+.refcard-track--elsewhere { color: var(--text-secondary); border-color: var(--border-default); }

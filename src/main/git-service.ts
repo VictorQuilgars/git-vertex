@@ -1476,18 +1476,13 @@ export class GitService {
   // repo's default remote, so repos whose remote isn't named "origin" — or that
   // have several — still work. An explicit `upstream` overrides all.
   async setUpstream(branch: string, upstream?: string): Promise<{ success: boolean; error?: string }> {
-    try {
-      let target = upstream
-      if (!target) {
-        const { remote } = await this.getDefaultRemote()
-        if (!remote) return { success: false, error: 'No remote configured' }
-        target = `${remote}/${branch}`
-      }
-      await this.git.raw(['branch', `--set-upstream-to=${target}`, branch])
-      return { success: true }
-    } catch (e: any) {
-      return { success: false, error: e.message }
+    let target = upstream
+    if (!target) {
+      const { remote } = await this.getDefaultRemote()
+      if (!remote) return { success: false, error: 'No remote configured' }
+      target = `${remote}/${branch}`
     }
+    return core.setBranchUpstream(this.run, branch, target)
   }
 
   // ── Tag operations ─────────────────────────────────────────

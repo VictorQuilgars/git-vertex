@@ -562,6 +562,8 @@ const fr = {
   'refcard.setUpstream': 'Non publiée — définir l\'upstream…',
   'refcard.changeUpstream': (name: string) => `${name} — changer d'upstream…`,
   'refcard.up.missing': 'Absente du remote',
+  // #308 — git fait suivre à une branche neuve ce dont elle est issue.
+  'refcard.up.elsewhere': (branch: string) => `Suit une autre branche — ${branch} n'est pas sur le remote`,
   'refcard.up.diverged': 'Divergée',
   'refcard.up.toPull': (n: number) => `${n} à tirer`,
   'refcard.up.toPush': (n: number) => `${n} à pousser`,
@@ -571,6 +573,7 @@ const fr = {
   'refcard.track.apart': (branch: string, behind: number, ahead: number, upstream: string) =>
     `${branch} a ${behind} commit${behind !== 1 ? 's' : ''} de retard et ${ahead} d'avance sur ${upstream}`,
   'refcard.publish': 'Publier',
+  'refcard.publishAsTip': (branch: string) => `Pousser ${branch} sous son propre nom et la faire suivre`,
   'refcard.pull': 'Pull',
   'refcard.push': 'Push',
   'refcard.forcePush': 'Push forcé',
@@ -2254,6 +2257,8 @@ const fr = {
   'ext.app.remoteBranchDeleted': 'Branche distante supprimée',
   'ext.app.branchReset': 'Branche réinitialisée',
   'ext.app.upstreamSet': 'Branche amont définie',
+  'ext.app.publishNotItsUpstream': (branch: string, upstream: string) =>
+    `${branch} suit ${upstream}, qui n'est pas une branche de son nom — git refuse un push simple.\n\nPublier ${branch} sous son propre nom ?`,
   'ext.app.commitDeleted': 'Commit supprimé',
   'ext.app.commitMoved': 'Commit déplacé',
   'ext.app.commitSelected': 'Commit sélectionné pour comparaison',
@@ -2845,6 +2850,8 @@ const en: typeof fr = {
   'refcard.setUpstream': 'Unpublished — Set Upstream…',
   'refcard.changeUpstream': (name: string) => `${name} — Change Upstream…`,
   'refcard.up.missing': 'Missing from the remote',
+  // #308 — git points a new branch at whatever it was created from.
+  'refcard.up.elsewhere': (branch: string) => `Tracks another branch — ${branch} is not on the remote`,
   'refcard.up.diverged': 'Diverged',
   'refcard.up.toPull': (n: number) => `${n} to pull`,
   'refcard.up.toPush': (n: number) => `${n} to push`,
@@ -2854,6 +2861,7 @@ const en: typeof fr = {
   'refcard.track.apart': (branch: string, behind: number, ahead: number, upstream: string) =>
     `${branch} is ${behind} commit${behind !== 1 ? 's' : ''} behind, ${ahead} commit${ahead !== 1 ? 's' : ''} ahead of ${upstream}`,
   'refcard.publish': 'Publish',
+  'refcard.publishAsTip': (branch: string) => `Push ${branch} under its own name and track it`,
   'refcard.pull': 'Pull',
   'refcard.push': 'Push',
   'refcard.forcePush': 'Force Push',
@@ -4540,6 +4548,8 @@ const en: typeof fr = {
   'ext.app.remoteBranchDeleted': 'Remote branch deleted',
   'ext.app.branchReset': 'Branch reset',
   'ext.app.upstreamSet': 'Upstream set',
+  'ext.app.publishNotItsUpstream': (branch: string, upstream: string) =>
+    `${branch} tracks ${upstream}, which is not a branch of its own name — git refuses a bare push.\n\nPublish ${branch} under its own name?`,
   'ext.app.commitDeleted': 'Commit dropped',
   'ext.app.commitMoved': 'Commit moved',
   'ext.app.commitSelected': 'Commit selected for compare',

@@ -72,6 +72,7 @@ const SHARED: Record<string, string> = {
   predictRebaseConflicts: 'predictRebaseConflicts',
   pullRequestConflicts: 'pullRequestConflicts',
   duplicateCommits: 'duplicateCommits',
+  setUpstream: 'setBranchUpstream',
 }
 
 describe('the shared git core is what both products run', () => {
