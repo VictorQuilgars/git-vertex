@@ -46,6 +46,7 @@ test('shared restoration used by the VS Code panel cannot leak results to anothe
 function searchHook(over: Record<string, any> = {}) {
   const app = {
     repoPath: '/repo', commits: [], branches: [], stashes: [], tags: [], notedHashes: null,
+    setNotedHashes: jest.fn(), tabs: [{ id: 'a', kind: 'repo', path: '/repo' }, { id: 'b', kind: 'repo', path: '/other' }],
     aiSearch: false, aiSearchHashes: null, setAiSearch: jest.fn(), setAiSearchHashes: jest.fn(), setAiSearchLoading: jest.fn(),
     t: (key: string) => key, showToast: jest.fn(), setSelectedCommit: jest.fn(),
     logLimitRef: { current: 500 }, showAllRef: { current: true }, soloRef: { current: null },
@@ -81,4 +82,60 @@ test('editing the query after an answer comes back to filtering', () => {
   act(() => hook.result.current.setSearchQuery('cache'))
   expect(app.setAiSearch).toHaveBeenCalledWith(false)
   expect(app.setAiSearchHashes).toHaveBeenCalledWith(null)
+})
+
+
+// ── A search is about a repository, not about the window ────────────────────
+// Switching tabs used to leave the words typed in the repository you had just
+// left sitting in the field: the graph of the new one opened greyed out under
+// a query nobody had typed for it, and its count read 0.
+test('the search goes with the repository it was typed in, and comes back with it', () => {
+  installMockGitAPI()
+  const app: Record<string, any> = {
+    repoPath: '/one', commits: [], branches: [], stashes: [], tags: [], notedHashes: null,
+    setNotedHashes: jest.fn(), tabs: [{ id: 'a', kind: 'repo', path: '/one' }, { id: 'b', kind: 'repo', path: '/two' }],
+    aiSearch: false, aiSearchHashes: null, setAiSearch: jest.fn(), setAiSearchHashes: jest.fn(), setAiSearchLoading: jest.fn(),
+    t: (key: string) => key, showToast: jest.fn(), setSelectedCommit: jest.fn(),
+    logLimitRef: { current: 500 }, showAllRef: { current: true }, soloRef: { current: null },
+    visibilityRef: { current: emptyVisibility() },
+  }
+  const { result, rerender } = renderHook(() => useAppSearch(app as any))
+  act(() => result.current.setSearchQuery('fix'))
+  act(() => result.current.setExtendedSearch(true))
+  expect(result.current.searchQuery).toBe('fix')
+
+  app.repoPath = '/two'
+  rerender()
+  expect(result.current.searchQuery).toBe('')
+  expect(result.current.extendedSearch).toBe(false)
+  // What the graph is given with it: no host hits, and no noted set either.
+  expect(app.setAiSearchHashes).toHaveBeenLastCalledWith(null)
+  expect(app.setNotedHashes).toHaveBeenLastCalledWith(null)
+
+  app.repoPath = '/one'
+  rerender()
+  expect(result.current.searchQuery).toBe('fix')
+  expect(result.current.extendedSearch).toBe(true)
+})
+
+test('a repository whose tab was closed is not searched again on its return', () => {
+  installMockGitAPI()
+  const app: Record<string, any> = {
+    repoPath: '/one', commits: [], branches: [], stashes: [], tags: [], notedHashes: null,
+    setNotedHashes: jest.fn(), tabs: [{ id: 'a', kind: 'repo', path: '/one' }, { id: 'b', kind: 'repo', path: '/two' }],
+    aiSearch: false, aiSearchHashes: null, setAiSearch: jest.fn(), setAiSearchHashes: jest.fn(), setAiSearchLoading: jest.fn(),
+    t: (key: string) => key, showToast: jest.fn(), setSelectedCommit: jest.fn(),
+    logLimitRef: { current: 500 }, showAllRef: { current: true }, soloRef: { current: null },
+    visibilityRef: { current: emptyVisibility() },
+  }
+  const { result, rerender } = renderHook(() => useAppSearch(app as any))
+  act(() => result.current.setSearchQuery('fix'))
+  // Its tab is closed while it is the one on screen: leaving it, nothing is kept.
+  app.tabs = [{ id: 'b', kind: 'repo', path: '/two' }]
+  app.repoPath = '/two'
+  rerender()
+  app.tabs = [{ id: 'b', kind: 'repo', path: '/two' }, { id: 'c', kind: 'repo', path: '/one' }]
+  app.repoPath = '/one'
+  rerender()
+  expect(result.current.searchQuery).toBe('')
 })

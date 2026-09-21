@@ -5,10 +5,19 @@ module.exports = {
   async run({ page, expect, fixture }) {
     const { repo1, repo2, git } = fixture
     await page.click('.app-tab')
+    // A search belongs to the repository it was typed in. It used to be state
+    // of the window: the second repository opened with the first one's words
+    // in the field and its own graph greyed out under them.
+    await page.focus('.tb-search input')
+    await page.type('alpha')
+    await page.until(`(document.querySelector('.tb-search-count')?.textContent ?? '') === '3'`, { what: 'the three hits of the first repository' })
+    await page.eval(`document.querySelector('.tb-search input').blur()`)
     await page.click('.tb-repo-btn')
     await page.until(`!!document.querySelector('.tb-recent-path[title=${JSON.stringify(repo2)}]')`, { what: 'the second repository in the recents' })
     await page.click(`.tb-recent-path[title=${JSON.stringify(repo2)}]`)
     await page.until(`document.querySelectorAll('.app-tab').length === 2 && /^1 commit/.test(document.querySelector('.sb-history')?.textContent ?? '')`, { what: 'the second repository shown' })
+    expect.equal(await page.eval(`document.querySelector('.tb-search input').value`), '', 'the search does not follow to the next repository')
+    expect.equal(await page.eval(`document.querySelectorAll('.cg-row.cg-dimmed').length`), 0, 'and its graph is not greyed out under a query nobody typed for it')
     const names = (r) => r.branches.map(b => b.name)
     const hidden = await page.eval(`window.gitAPI.session(${JSON.stringify(repo1)}).getBranches().then(r => r.branches.map(b => b.name))`)
     const shown = await page.eval(`window.gitAPI.getBranches().then(r => r.branches.map(b => b.name))`)
@@ -21,6 +30,7 @@ module.exports = {
     await page.click('.app-tab')
     const t0 = Date.now()
     await page.until(`/^4 commits/.test(document.querySelector('.sb-history')?.textContent ?? '')`, { what: 'the hidden commit shown on return', timeoutMs: 8000 })
+    expect.equal(await page.eval(`document.querySelector('.tb-search input').value`), 'alpha', 'the search came back with its tab')
     const ms = Date.now() - t0
     expect(ms < 1500, `the return showed the present at once (${ms}ms)`)
     // Close the second tab: its session goes; a call bound to it is answered by nothing, not by the other.
