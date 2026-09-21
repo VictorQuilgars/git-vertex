@@ -2019,7 +2019,7 @@ exit 0
 
   // ── Contributors ───────────────────────────────────────────
   async getContributors(limit?: number): Promise<{ contributors: core.Contributor[] }> {
-    return core.contributors(this.run, { limit })
+    return core.contributors(this.run, { limit, scope: await this.refScope({ all: true }) })
   }
 
   /** The full hash a branch, a tag or any revision stands for — null when it names no commit. */
@@ -2029,7 +2029,7 @@ exit 0
 
   /** The commits that touched a path or a folder — the search field's `file:`. */
   async searchByFile(paths: string[]): Promise<{ hashes: string[]; error?: string }> {
-    return core.commitsTouching(this.run, paths)
+    return core.commitsTouching(this.run, paths, await this.refScope({ all: true }))
   }
 
   /** What a tag is — its commit, and the annotation of an annotated one. */
@@ -2099,7 +2099,7 @@ exit 0
   }
 
   async searchInDiffs(query: string): Promise<{ hashes: string[] }> {
-    return core.searchInDiffs(this.run, query)
+    return core.searchInDiffs(this.run, query, await this.refScope({ all: true }))
   }
 
   /**

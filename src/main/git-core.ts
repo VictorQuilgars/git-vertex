@@ -662,14 +662,18 @@ export function filePathspecs(value: string): string[] {
 
 /** The commits that touched any of these paths or folders, on any ref. */
 export async function commitsTouching(
-  run: GitRunner, paths: string[],
+  run: GitRunner, paths: string[], scope: RefScope = {},
 ): Promise<{ hashes: string[]; error?: string }> {
   const wanted = paths.map(p => p.trim()).filter(Boolean)
   if (wanted.length === 0) return { hashes: [] }
   // A pathspec comes after `--`, where git reads no option: a leading dash is a file name there.
   if (wanted.some(p => /[\u0000-\u001f]/.test(p))) return { hashes: [], error: 'Invalid path' }
   try {
-    const out = await run(['log', '--all', '--format=%H', '--', ...wanted.flatMap(filePathspecs)])
+    // The same refs the graph is drawn from: a hash from a ref the graph does
+    // not collect is a hit it cannot show, and the reach then calls it
+    // unreachable. `scope` carries the other working trees when the caller
+    // knows them; the per-ref hiding is the graph's own and does not reach here.
+    const out = await run(['log', ...refArgs({ all: true, ...scope }), '--format=%H', '--', ...wanted.flatMap(filePathspecs)])
     return { hashes: out.split('\n').map(l => l.trim()).filter(Boolean) }
   } catch (e) {
     return { hashes: [], error: reason(e) }
@@ -864,9 +868,9 @@ export async function blame(
 }
 
 /** Commits whose diff adds or removes `query` — `git log -S`, capped. */
-export async function searchInDiffs(run: GitRunner, query: string): Promise<{ hashes: string[] }> {
+export async function searchInDiffs(run: GitRunner, query: string, scope: RefScope = {}): Promise<{ hashes: string[] }> {
   try {
-    const out = await run(['log', '--all', '--pretty=format:%H', '-S', query, '--max-count=100'])
+    const out = await run(['log', ...refArgs({ all: true, ...scope }), '--pretty=format:%H', '-S', query, '--max-count=100'])
     return { hashes: out.trim().split('\n').filter(Boolean) }
   } catch {
     return { hashes: [] }
@@ -894,11 +898,11 @@ export function parseShortlog(raw: string): Contributor[] {
  * branch.
  */
 export async function contributors(
-  run: GitRunner, opts: { limit?: number } = {},
+  run: GitRunner, opts: { limit?: number; scope?: RefScope } = {},
 ): Promise<{ contributors: Contributor[] }> {
   const limit = opts.limit ?? 20
   try {
-    const raw = await run(['shortlog', '-sne', '--no-merges', '--all'])
+    const raw = await run(['shortlog', '-sne', '--no-merges', ...refArgs({ all: true, ...(opts.scope ?? {}) })])
     return { contributors: parseShortlog(raw).slice(0, limit) }
   } catch {
     return { contributors: [] }
