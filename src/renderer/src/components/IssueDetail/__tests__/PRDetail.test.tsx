@@ -9,11 +9,18 @@ import { installMockGitAPI, renderWithProviders } from '../../../__tests__/test-
 // checks are green (or absent) and there are no conflicts. The rest of the
 // pane rides the issue endpoints, which a pull request is to GitHub.
 
+// The same commit, as each side names it. The forge answers with all 40
+// characters; a branch read here carries what `%(objectname:short)` printed.
+// Both fixtures used to say `abc123`, which made a `!==` between them pass a
+// test it can never fail in a real repository (#306).
+const HEAD_SHA = 'abc1234def5678901234567890abcdef12345678'
+const HEAD_SHORT = 'abc1234'
+
 const FULL_PR = {
   number: 42, title: 'Speed up the graph', state: 'open', merged: false, draft: false,
   author: 'alice', createdAt: new Date(Date.now() - 3600_000).toISOString(),
   body: 'A **faster** layout.',
-  headRef: 'feat/speed', headSha: 'abc123', baseRef: 'main',
+  headRef: 'feat/speed', headSha: HEAD_SHA, baseRef: 'main',
   commits: 2, changedFiles: 9, additions: 726, deletions: 10,
   mergeable: true, mergeableState: 'clean',
   labels: [{ name: 'perf', color: '00ff00' }], assignees: [], reviewers: ['victor'],
@@ -35,8 +42,8 @@ function draw(prOverrides: Record<string, any> = {}, apiOverrides: Record<string
     // default repository has the request's head on both sides.
     getBranches: jest.fn().mockResolvedValue({
       branches: [
-        { name: 'feat/speed', commit: 'abc123', remote: false },
-        { name: 'remotes/origin/feat/speed', commit: 'abc123', remote: true },
+        { name: 'feat/speed', commit: HEAD_SHORT, remote: false },
+        { name: 'remotes/origin/feat/speed', commit: HEAD_SHORT, remote: true },
         { name: 'main', commit: 'deadbee', remote: false },
       ],
     }),
@@ -239,10 +246,10 @@ describe('the PR detail', () => {
       deleteBranch,
       getBranches: jest.fn().mockResolvedValue({
         branches: [
-          { name: 'feat/speed', commit: 'abc123', remote: false },
-          { name: 'feat/speed-1', commit: 'abc123', remote: false },
+          { name: 'feat/speed', commit: HEAD_SHORT, remote: false },
+          { name: 'feat/speed-1', commit: HEAD_SHORT, remote: false },
           { name: 'main', commit: 'deadbee', remote: false },
-          { name: 'remotes/origin/feat/speed', commit: 'abc123', remote: true },
+          { name: 'remotes/origin/feat/speed', commit: HEAD_SHORT, remote: true },
         ],
       }),
     })
@@ -718,7 +725,7 @@ describe('a finished request offers only what is left to do', () => {
     draw({ merged: true, state: 'closed' }, {
       deleteRemoteBranch, deleteBranch,
       getBranches: jest.fn().mockResolvedValue({
-        branches: [{ name: 'feat/speed', commit: 'abc123', remote: false }],
+        branches: [{ name: 'feat/speed', commit: HEAD_SHORT, remote: false }],
       }),
     })
     await screen.findByText('Merged')
@@ -733,7 +740,7 @@ describe('a finished request offers only what is left to do', () => {
     draw({ merged: true, state: 'closed' }, {
       deleteRemoteBranch, deleteBranch,
       getBranches: jest.fn().mockResolvedValue({
-        branches: [{ name: 'remotes/origin/feat/speed', commit: 'abc123', remote: true }],
+        branches: [{ name: 'remotes/origin/feat/speed', commit: HEAD_SHORT, remote: true }],
       }),
     })
     await screen.findByText('Merged')
@@ -769,7 +776,7 @@ const CONFLICTING = { mergeable: false, mergeableState: 'dirty' }
 describe('a conflicting request', () => {
   test('names the files, and the row counts them', async () => {
     const pullRequestConflicts = jest.fn().mockResolvedValue({
-      files: ['CHANGELOG.md', 'src/main/release-notes.ts'], head: 'abc123', base: 'deadbee',
+      files: ['CHANGELOG.md', 'src/main/release-notes.ts'], head: HEAD_SHA, base: 'deadbee',
     })
     draw(CONFLICTING, { pullRequestConflicts })
     expect(await screen.findByText('Conflicts with the base — 2 files')).toBeInTheDocument()
@@ -777,7 +784,7 @@ describe('a conflicting request', () => {
     expect(screen.getByText('src/main/release-notes.ts')).toBeInTheDocument()
     // Both sides read from the remote: the base is a branch NAME, and the head
     // the forge's own sha, so a prediction about another commit can be spotted.
-    expect(pullRequestConflicts).toHaveBeenCalledWith(42, { baseRef: 'main', headSha: 'abc123' })
+    expect(pullRequestConflicts).toHaveBeenCalledWith(42, { baseRef: 'main', headSha: HEAD_SHA })
   })
 
   test('is not asked at all while the forge says it merges cleanly', async () => {
@@ -806,7 +813,7 @@ describe('a conflicting request', () => {
     draw(CONFLICTING, {
       pullRequestConflicts: jest.fn().mockResolvedValue({ files: ['CHANGELOG.md'] }),
       getBranches: jest.fn().mockResolvedValue({
-        branches: [{ name: 'feat/speed', commit: 'abc123', remote: false, current: true }],
+        branches: [{ name: 'feat/speed', commit: HEAD_SHORT, remote: false, current: true }],
       }),
     }, { onTakeBase })
     const update = await screen.findByText('Update from main')
@@ -822,7 +829,7 @@ describe('a conflicting request', () => {
       pullRequestConflicts: jest.fn().mockResolvedValue({ files: ['CHANGELOG.md'] }),
       getBranches: jest.fn().mockResolvedValue({
         branches: [
-          { name: 'feat/speed', commit: 'abc123', remote: false },
+          { name: 'feat/speed', commit: HEAD_SHORT, remote: false },
           { name: 'main', commit: 'deadbee', remote: false, current: true },
         ],
       }),
@@ -873,6 +880,22 @@ describe('a head that is not the one on this machine', () => {
     draw()
     await screen.findByText('Speed up the graph')
     expect(screen.queryByText(/not what you have here/)).not.toBeInTheDocument()
+  })
+
+  // The symptom the abbreviation produced: a branch level with its upstream,
+  // named by the forge in full and by the branch list in seven characters. The
+  // banner claimed the request was about something else, and the line under it
+  // said there was nothing to push and nothing to pull — which is the banner's
+  // own denial.
+  test('says nothing when the local tip is the forge\'s head under a shorter name', async () => {
+    draw({}, {
+      getBranches: jest.fn().mockResolvedValue({
+        branches: [{ name: 'feat/speed', commit: HEAD_SHORT, remote: false, current: true, upstream: 'origin/feat/speed', ahead: 0, behind: 0 }],
+      }),
+    }, { onSyncHead: jest.fn() })
+    await screen.findByText('Speed up the graph')
+    expect(screen.queryByText(/not what you have here/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/0 to push, 0 to pull/)).not.toBeInTheDocument()
   })
 
   test('says nothing when no branch of that name is here — there is nothing to disagree with', async () => {
