@@ -61,6 +61,7 @@ import { useAppUpdates } from './app/useAppUpdates'
 import { useAppActions } from './app/useAppActions'
 import { useAppSearch } from './app/useAppSearch'
 import { usePullRequestCode } from './hooks/usePullRequestCode'
+import { useChangeUpstream } from './hooks/useChangeUpstream'
 import './App.css'
 
 // Kept on this module for the tests and hosts that import them from here.
@@ -413,6 +414,10 @@ export default function App() {
     setSelectedCommit(onPage)
     refCard.toggle({ kind, name: ref, hash: onPage.hash })
   }
+  // The pencil on a reference's card: the same act the side bar's Change
+  // Upstream… offers, not the `setUpstream(branch)` that could only ever set
+  // `<remote>/<same name>` and failed on anything unpublished (#308).
+  const changeUpstream = useChangeUpstream({ t, showToast, showPrompt, onDone: () => { void loadRepoData() } })
   // A request's code, from the sheet — the same hook the side bar's rows use.
   const pullRequestCode = usePullRequestCode({
     t, showToast,
@@ -1192,7 +1197,7 @@ export default function App() {
                     onPush={handlePush}
                     onFetch={handleFetch}
                     onPushBranch={handlePushBranch}
-                    onSetUpstream={handleSetUpstream}
+                    onSetUpstream={(name, current) => { void changeUpstream(name, current ?? '') }}
                     onCompare={(name) => openViewTab({ view: 'compare', a: currentBranch, b: name, axis: 'diverged', label: `${currentBranch} … ${name}` })}
                     onMerge={handleMergeBranch}
                     onRebase={handleRebaseOnto}

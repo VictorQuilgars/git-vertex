@@ -910,10 +910,18 @@ export async function fastForwardBranch(run: GitRunner, branch: string): Promise
 /** Every remote-tracking branch, as `origin/main` — what an upstream is picked from. */
 export async function remoteBranchNames(run: GitRunner): Promise<string[]> {
   try {
-    const raw = await run(['for-each-ref', '--format=%(refname:short)', 'refs/remotes'])
     // `origin/HEAD` is a symbolic ref to the remote's default branch, not a
     // branch anybody tracks: offering it as an upstream sets a moving target.
-    return raw.split('\n').map(s => s.trim()).filter(s => s && !/\/HEAD$/.test(s))
+    //
+    // ⚠️ It is dropped by `%(symref)` — empty on every ordinary ref — and NOT
+    // by its name. `%(refname:short)` prints `refs/remotes/origin/HEAD` as
+    // plain **`origin`**, so a filter on `/HEAD$` matches nothing and the
+    // remote's own name was offered in a list of branches (#308).
+    const raw = await run(['for-each-ref', '--format=%(refname:short)%09%(symref)', 'refs/remotes'])
+    return raw.split('\n')
+      .map(line => line.split('\t'))
+      .filter(([name, symref]) => name?.trim() && !symref?.trim())
+      .map(([name]) => name.trim())
   } catch { return [] }
 }
 

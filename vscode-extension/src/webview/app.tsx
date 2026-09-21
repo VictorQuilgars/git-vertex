@@ -27,6 +27,7 @@ import RightPanel from '../../../src/renderer/src/components/RightPanel/RightPan
 import RefCard from '../../../src/renderer/src/components/RefCard/RefCard'
 import { useRefCard } from '../../../src/renderer/src/components/RefCard/useRefCard'
 import { tracksOwnBranch } from '../../../src/renderer/src/components/RefCard/ref-card-model'
+import { useChangeUpstream } from '../../../src/renderer/src/hooks/useChangeUpstream'
 import { useSearchOperators } from '../../../src/renderer/src/app/useSearchOperators'
 import { authorOfQuery, authorQuery } from '../../../src/renderer/src/utils/searchQuery'
 import type { ConflictKind, StashScope } from '../../../src/renderer/src/types'
@@ -882,6 +883,9 @@ function VertexApp() {
     // up to date — because each of the three calls for something different.
     await runOp(`Pull ${branch}`, () => window.gitAPI.pullBranch(branch))
   }, [handlePushBranch, runOp])
+  // The reference card's pencil: the act the side bar's Change Upstream…
+  // offers, with the remote branches listed (#308).
+  const changeUpstream = useChangeUpstream({ t, showToast, showPrompt, onDone: loadRepoData })
   const handleSetUpstream = useCallback((name: string) =>
     runOp(t('ext.app.upstreamSet'), () => window.gitAPI.setUpstream(name)), [runOp])
   const handleDeleteRemoteBranch = useCallback(async (ref: string) => {
@@ -1800,7 +1804,7 @@ function VertexApp() {
                     onPush={handlePush}
                     onFetch={handleFetch}
                     onPushBranch={handlePushBranch}
-                    onSetUpstream={handleSetUpstream}
+                    onSetUpstream={(name, current) => { void changeUpstream(name, current ?? '') }}
                     onCompare={(name) => window.gitAPI.openCompare(currentBranch, name)}
                     onMerge={handleMergeBranch}
                     onRebase={handleRebaseCurrentOnto}

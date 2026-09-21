@@ -138,7 +138,13 @@ test('the upstream picker is offered every remote branch, and never origin/HEAD'
   git('remote set-head origin main')
   const names = await remoteBranchNames(run)
   expect(names).toEqual(expect.arrayContaining(['origin/main', 'origin/feature']))
+  // ⚠️ `%(refname:short)` prints `refs/remotes/origin/HEAD` as plain `origin`,
+  // so THIS is the string to refuse — the assertion below it passed all along
+  // while the remote's own name sat in the list of branches (#308).
+  expect(names).not.toContain('origin')
   expect(names).not.toContain('origin/HEAD')
+  // Nothing else was lost on the way: every name still has its remote on it.
+  for (const n of names) expect(n).toMatch(/^origin\/.+/)
 })
 
 describe('squashing the fixups', () => {

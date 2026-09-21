@@ -20,7 +20,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 - A base branch merged with **rebase** or **squash** puts **copies** of its commits on the target — same patch, new hash — and a branch stacked on it still carries the originals, which is a conflict in every changelog over a change that is already in. A branch's card now says **how many of its commits the target already has**, with their shas, and offers **Rebase onto \`main\` to drop them**.
 
 ### 🚩 A branch created from main is not a published branch
-- \`git checkout -b feature origin/main\` makes git track **origin/main**, and the card used to read that as published: *3 to push*, with a **Push** git refuses because the upstream's name is not the branch's. The card now says **what it tracks**, keeps the distance for what it is, and offers **Publish** — the branch's own push, which gives it an upstream of its own name. Setting an upstream that is not on the remote says so in one sentence instead of a page of git hints.
+- \`git checkout -b feature origin/main\` makes git track **origin/main**, and the card used to read that as published: *3 to push*, with a **Push** git refuses because the upstream's name is not the branch's. The card now says **what it tracks**, keeps the distance for what it is, and offers **Publish** — the branch's own push, which gives it an upstream of its own name. The **pencil** now opens the same picker as the side bar's *Change Upstream…*, remote branches listed — it used to be able to set only \`<remote>/<same name>\`, which on an unpublished branch does not exist. And the heading says **Unpublished** instead of naming what it happens to track, which read as *this branch's remote is main*.
 `,
   '1.38.0': `## What's new in 1.38.0
 

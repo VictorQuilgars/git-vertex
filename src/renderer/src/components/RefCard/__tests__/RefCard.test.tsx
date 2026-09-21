@@ -415,10 +415,29 @@ describe('an upstream that is a branch of another name', () => {
   test('says what it tracks instead of counting what there is to push', async () => {
     draw({ kind: 'head', name: 'feature/login', hash: H('f') }, {}, { branches: tracksMain })
     await screen.findByText('Merges into')
-    expect(screen.getByText('Tracks another branch — feature/login is not on the remote')).toBeTruthy()
+    expect(screen.getByText('Tracks origin/main — feature/login is not on the remote')).toBeTruthy()
     expect(screen.queryByText('3 to push')).toBeNull()
     // The distance is still shown — it is true, it is just not "to push".
     expect(document.querySelector('.refcard-track--elsewhere')?.textContent).toContain('3↑')
+  })
+
+  // Naming origin/main where the branch's own remote name goes read as "this
+  // branch's remote is main", which is exactly the thing to be afraid of.
+  test('the heading says Unpublished, not the branch it happens to track', async () => {
+    draw({ kind: 'head', name: 'feature/login', hash: H('f') }, {}, { branches: tracksMain })
+    await screen.findByText('Merges into')
+    const token = document.querySelector('.refcard-token')
+    expect(token?.textContent).toBe('Unpublished')
+    expect(token?.className).toContain('refcard-token--muted')
+    // It is still the way to change it, and it says which one it would change.
+    expect(token?.getAttribute('title')).toContain('origin/main')
+  })
+
+  test('the pencil hands over the upstream it already has, to start from', async () => {
+    const p = draw({ kind: 'head', name: 'feature/login', hash: H('f') }, {}, { branches: tracksMain })
+    await screen.findByText('Merges into')
+    ;(document.querySelector('.refcard-token') as HTMLElement).click()
+    expect(p.onSetUpstream).toHaveBeenCalledWith('feature/login', 'origin/main')
   })
 
   test('a branch that tracks its own counterpart is untouched', async () => {

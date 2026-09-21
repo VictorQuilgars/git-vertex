@@ -563,7 +563,7 @@ const fr = {
   'refcard.changeUpstream': (name: string) => `${name} — changer d'upstream…`,
   'refcard.up.missing': 'Absente du remote',
   // #308 — git fait suivre à une branche neuve ce dont elle est issue.
-  'refcard.up.elsewhere': (branch: string) => `Suit une autre branche — ${branch} n'est pas sur le remote`,
+  'refcard.up.elsewhere': (upstream: string, branch: string) => `Suit ${upstream} — ${branch} n'est pas sur le remote`,
   'refcard.up.diverged': 'Divergée',
   'refcard.up.toPull': (n: number) => `${n} à tirer`,
   'refcard.up.toPush': (n: number) => `${n} à pousser`,
@@ -2851,7 +2851,7 @@ const en: typeof fr = {
   'refcard.changeUpstream': (name: string) => `${name} — Change Upstream…`,
   'refcard.up.missing': 'Missing from the remote',
   // #308 — git points a new branch at whatever it was created from.
-  'refcard.up.elsewhere': (branch: string) => `Tracks another branch — ${branch} is not on the remote`,
+  'refcard.up.elsewhere': (upstream: string, branch: string) => `Tracks ${upstream} — ${branch} is not on the remote`,
   'refcard.up.diverged': 'Diverged',
   'refcard.up.toPull': (n: number) => `${n} to pull`,
   'refcard.up.toPush': (n: number) => `${n} to push`,

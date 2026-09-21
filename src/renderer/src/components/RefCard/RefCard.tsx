@@ -33,7 +33,12 @@ export interface RefCardActions {
   onFetch?: () => void
   /** Push a branch that is not checked out, or publish one that tracks nothing. */
   onPushBranch?: (name: string) => void
-  onSetUpstream?: (name: string) => void
+  /**
+   * The pencil: point this branch at a remote branch, the one it already
+   * tracks offered as the starting point. It used to be handed a branch and
+   * nothing else, which could only ever set `<remote>/<same name>` (#308).
+   */
+  onSetUpstream?: (name: string, currentUpstream?: string) => void
   onCompare?: (name: string) => void
   /** Merge `name` into the current branch / rebase the current branch onto `name`. */
   onMerge?: (name: string) => void
@@ -301,7 +306,7 @@ export default function RefCard(props: RefCardProps) {
     return out
   }
   const upstreamStatus = !up ? '' : up.state === 'missing' ? (mergedByPR ? t('refcard.up.deletedAfterMerge', mergedByPR.number) : t('refcard.up.missing'))
-    : up.state === 'elsewhere' ? t('refcard.up.elsewhere', target.name)
+    : up.state === 'elsewhere' ? t('refcard.up.elsewhere', up.name ?? '', target.name)
     : up.state === 'diverged' ? t('refcard.up.diverged')
     : up.state === 'behind' ? t('refcard.up.toPull', up.behind)
     : up.state === 'ahead' ? t('refcard.up.toPush', up.ahead)
@@ -388,14 +393,22 @@ export default function RefCard(props: RefCardProps) {
                     <div className="refcard-card-head">
                       <Icon name="cloud" size={14} className="refcard-card-icon" />
                       <span>{t('refcard.upstream')}</span>
-                      {up.name
+                      {/* What this branch IS on the remote — which, when it
+                          tracks a branch of another name, is nothing. Naming
+                          `origin/main` here read as "this branch's remote is
+                          main", and the honest answer to that is Unpublished:
+                          what it tracks is said below, where an explanation
+                          belongs. Frightening somebody out of pushing is a
+                          worse failure than saying too little (#308). */}
+                      {up.name && up.state !== 'elsewhere'
                         ? <button type="button" className="refcard-token" disabled={!props.onSetUpstream}
-                            title={t('refcard.changeUpstream', up.name)} onClick={() => props.onSetUpstream?.(target.name)}>
+                            title={t('refcard.changeUpstream', up.name)} onClick={() => props.onSetUpstream?.(target.name, up.name)}>
                             {up.name}{props.onSetUpstream && <Icon name="pencil" size={11} />}
                           </button>
                         : <button type="button" className="refcard-token refcard-token--muted" disabled={!props.onSetUpstream}
-                            title={t('refcard.setUpstream')} onClick={() => props.onSetUpstream?.(target.name)}>
-                            {t('refcard.unpublished')}
+                            title={up.name ? t('refcard.changeUpstream', up.name) : t('refcard.setUpstream')}
+                            onClick={() => props.onSetUpstream?.(target.name, up.name)}>
+                            {t('refcard.unpublished')}{props.onSetUpstream && <Icon name="pencil" size={11} />}
                           </button>}
                     </div>
                     <div className="refcard-card-foot">
