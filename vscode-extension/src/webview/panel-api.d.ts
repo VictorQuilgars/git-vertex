@@ -72,6 +72,15 @@ declare global {
     openCompareWorkingTab: (hash: string) => Promise<unknown>
     /** A stash's contents — the desktop's stash view, as an editor tab. */
     openStashTab: (index: number, message: string) => Promise<unknown>
+    /** What this repository keeps — the desktop's Memory page, as an editor tab. */
+    openMemoryTab: () => Promise<unknown>
+    /**
+     * A commit shown in the GRAPH VIEW, from a tab that is not it — the memory
+     * page's rows. It goes through `gitVertex.revealCommit`, the command the
+     * blame gutter and the editor links already use, so the view is focused
+     * the same way wherever the user has moved it.
+     */
+    revealCommit: (ref: string) => Promise<{ success: boolean; error?: string }>
     openInteractiveRebaseTab: (hash: string) => Promise<unknown>
     openStagingEditor: (path?: string) => Promise<unknown>
     /**

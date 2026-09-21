@@ -183,6 +183,9 @@ export const ARG_RULES: Record<string, ArgSpec[]> = {
   'git:search-in-diffs': [null],
   // Pathspecs, not paths: `*.ts` and a bare word are fine, and they go after `--`.
   'git:search-by-file': [null],
+  // A query: words, names, dates, and pathspecs that go after `--` — no ref in it.
+  'git:search-commits': [null],
+  'git:commits-by-hash': ['revs'],
 
   // The working tree
   'git:stage': ['repoFiles'],

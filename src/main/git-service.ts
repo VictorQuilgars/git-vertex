@@ -2408,6 +2408,24 @@ exit 0
     return core.commitsTouching(this.run, paths, await this.refScope({ all: true }))
   }
 
+  /**
+   * The commits a KEPT search finds now — the query asked of git over
+   * the whole history, not of the page the graph happens to hold. The same
+   * refs the graph is drawn from, so a hit is a row the graph could show.
+   */
+  async searchCommits(query: core.CommitQuery): Promise<{ commits: core.LogCommit[]; error?: string }> {
+    return core.searchCommits(this.run, query, await this.refScope({ all: true }))
+  }
+
+  /**
+   * What these hashes are — subject, author, date, refs. A hash the repository
+   * no longer has comes back missing rather than failing the call, which is
+   * how the memory page knows a kept commit was rewritten away.
+   */
+  async commitsByHash(hashes: string[]): Promise<{ commits: core.LogCommit[] }> {
+    return { commits: await core.commitsByHash(this.run, hashes) }
+  }
+
   /** What a tag is — its commit, and the annotation of an annotated one. */
   async getTagDetails(name: string): Promise<{ tag: core.TagDetails | null; error?: string }> {
     return core.tagDetails(this.run, name)

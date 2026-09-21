@@ -1,0 +1,157 @@
+/* The Memory page (MemoryView.tsx): the kept things on the left, what the one
+   you picked actually holds on the right. Two columns rather than a list and a
+   drawer — the right-hand side is a list of commits, and a drawer would be the
+   side bar's width all over again, which is the shape this page exists to
+   leave behind. */
+.mem-body { display: flex; min-height: 0; overflow: hidden; }
+
+.mem-list {
+  flex: none;
+  width: 260px;
+  padding: var(--space-md) 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--border-default);
+  background: var(--surface-sunken);
+}
+.mem-group { margin-bottom: var(--space-lg); }
+.mem-group-head {
+  padding: var(--space-xs) var(--space-lg);
+  font-size: var(--text-tiny);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.mem-row { display: flex; align-items: center; gap: var(--space-2xs); padding: 0 var(--space-sm) 0 var(--space-md); }
+.mem-row:hover { background: var(--surface-hover); }
+.mem-row--on { background: var(--surface-active); }
+.mem-row-open {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+  height: var(--row-nav);
+  padding: 0;
+  font: inherit;
+  color: var(--text-primary);
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.mem-row-open > svg { flex: none; color: var(--text-tertiary); }
+.mem-row-name { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.mem-row-when { flex: none; font-size: var(--text-tiny); color: var(--text-tertiary); }
+.mem-row-act {
+  flex: none;
+  width: 20px; height: 20px;
+  padding: 0;
+  font-size: var(--text-sm);
+  line-height: 1;
+  color: var(--text-tertiary);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  opacity: 0;
+}
+.mem-row:hover .mem-row-act, .mem-row-act:focus-visible { opacity: 1; }
+.mem-row-act:hover { color: var(--text-primary); background: var(--surface-hover); }
+.mem-rename { flex: 1; min-width: 0; height: var(--row-field); font: inherit; color: var(--text-primary); background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius-sm); padding: 0 var(--space-sm); }
+
+/* ── The right-hand side: one kept thing, in full ── */
+.mem-detail { flex: 1; min-width: 0; overflow-y: auto; }
+.mem-pane { display: flex; flex-direction: column; min-height: 0; }
+.mem-head { padding: var(--space-xl) var(--space-2xl) var(--space-md); border-bottom: 1px solid var(--border-muted); }
+.mem-name { margin: 0 0 var(--space-sm); font-size: var(--text-lg); font-weight: var(--weight-semibold); color: var(--text-primary); }
+.mem-query { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-xs); }
+.mem-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  max-width: 100%;
+  padding: var(--space-2xs) var(--space-sm);
+  font-size: var(--text-tiny);
+  color: var(--text-primary);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.mem-chip code { font-family: 'JetBrains Mono', monospace; }
+.mem-chip-op { font-weight: 600; color: var(--accent); }
+.mem-chip--text { font-style: italic; }
+/* What the MODEL answered, in the seed the app gives it — and never a fill. */
+.mem-chip--ai { color: var(--purple-soft); border-color: color-mix(in srgb, var(--purple) var(--alpha-soft), transparent); }
+.mem-axis { color: var(--text-tertiary); }
+.mem-meta { display: flex; flex-wrap: wrap; gap: var(--space-xs); margin-top: var(--space-sm); font-size: var(--text-xs); color: var(--text-tertiary); }
+.mem-note { margin-top: var(--space-sm); font-size: var(--text-xs); color: var(--attention); }
+.mem-note--err { color: var(--danger); }
+.mem-error { font-size: var(--text-xs); color: var(--danger); }
+
+.mem-actions { display: flex; flex-wrap: wrap; gap: var(--space-sm); padding: var(--space-md) var(--space-2xl); }
+.mem-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--row-ctl);
+  padding: 0 var(--space-md);
+  font: inherit;
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.mem-btn:hover:not(:disabled) { background: var(--surface-hover); border-color: var(--border-strong); }
+.mem-btn:disabled { color: var(--text-disabled); cursor: default; }
+.mem-btn > svg { flex: none; color: var(--text-tertiary); }
+
+/* ── The commits (or the files of a comparison) ── */
+.mem-commits { padding: 0 var(--space-xl) var(--space-2xl); }
+.mem-commit {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  min-height: var(--row-field);
+  padding: 0 var(--space-md);
+  font: inherit;
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+}
+.mem-commit--open { cursor: pointer; }
+.mem-commit--open:hover { background: var(--surface-hover); }
+.mem-sha { flex: none; width: 62px; font-family: 'JetBrains Mono', monospace; color: var(--accent); }
+.mem-subject { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.mem-author { flex: none; max-width: 140px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--text-tertiary); }
+.mem-when { flex: none; width: 82px; text-align: right; color: var(--text-tertiary); }
+/* A commit the kept answer did not hold — the one thing asking again is for. */
+.mem-new {
+  flex: none;
+  padding: 0 var(--space-xs);
+  font-size: var(--text-tiny);
+  color: var(--success);
+  border: 1px solid color-mix(in srgb, var(--success) var(--alpha-soft), transparent);
+  border-radius: var(--radius-xs);
+}
+.mem-tick { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 16px; height: 16px; color: var(--text-disabled); }
+.mem-tick--on { color: var(--success); }
+
+.mem-empty { padding: var(--space-2xl); color: var(--text-disabled); font-size: var(--text-sm); }
+
+/* Narrow (the VS Code tab in a split editor): the list goes on top. */
+@media (max-width: 720px) {
+  .mem-body { flex-direction: column; }
+  .mem-list { width: auto; max-height: 40%; border-right: 0; border-bottom: 1px solid var(--border-default); }
+  .mem-head, .mem-actions { padding-left: var(--space-lg); padding-right: var(--space-lg); }
+  .mem-commits { padding-left: var(--space-sm); padding-right: var(--space-sm); }
+}

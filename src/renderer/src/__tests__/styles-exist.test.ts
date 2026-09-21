@@ -51,7 +51,7 @@ const defined = new Set([...CSS.matchAll(/\.([a-zA-Z][a-zA-Z0-9_-]*)/g)].map(m =
  * to those keeps the check honest: a class from a third-party stylesheet, or
  * one built at runtime, is not this test's business.
  */
-const OURS = /^(sb|cg|idv|pr|rp|cm|ir|pdrawer|chip|mchip|bstrip|tb|cv|ctx)-/
+const OURS = /^(sb|cg|idv|pr|rp|cm|ir|pdrawer|chip|mchip|bstrip|tb|cv|ctx|mem|shint)-/
 
 /**
  * Classes that were already asking for a rule nobody had written when this

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
+  <!-- bookmark — what the app was TOLD to keep: a kept search, a kept
+       comparison, and the Memory page they live in.
+       A FILLED shape, not a stroke drawing, and the file says so: it belongs
+       to the interface furniture beside the bell and the gear, not to the git
+       vocabulary we draw ourselves at grid 24.
+       The notch is two straight lines on purpose — at 14px the rounded tip of
+       a ribbon is one grey pixel, and the shape then reads as a plain slab.
+       EDIT THIS FILE to change the icon — the folder is the source. -->
+  <path d="M4 2.75C4 1.784 4.784 1 5.75 1h4.5C11.216 1 12 1.784 12 2.75V15l-4-3-4 3V2.75Z"/>
+</svg>

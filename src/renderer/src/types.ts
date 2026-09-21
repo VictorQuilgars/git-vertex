@@ -247,6 +247,14 @@ declare global {
     searchInDiffs: (query: string) => Promise<{ hashes: string[] }>
     /** The commits that touched any of these paths, folders or patterns — the search field's `file:`. */
     searchByFile: (paths: string[]) => Promise<{ hashes: string[]; error?: string }>
+    /**
+     * A kept search, asked again: the query read into its parts (the caller
+     * has already resolved `after:2w` to an instant), answered by git over the
+     * whole history rather than by the page the graph holds.
+     */
+    searchCommits: (query: { text?: string; authors?: string[]; after?: string; before?: string; paths?: string[]; maxCount?: number }) => Promise<{ commits: CommitNode[]; error?: string }>
+    /** What these hashes are. A hash the repository no longer holds is simply absent from the answer. */
+    commitsByHash: (hashes: string[]) => Promise<{ commits: CommitNode[] }>
     /** The full hash a branch, a tag or any revision stands for; null when it names no commit. */
     resolveCommit: (ref: string) => Promise<{ hash: string | null; error?: string }>
     /** What a tag is: the commit it points at, and the annotation of an annotated one. */

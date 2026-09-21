@@ -663,38 +663,6 @@ export class GitService {
     }
   }
 
-  async searchCommits(query: string): Promise<{ commits: CommitNode[] }> {
-    try {
-      const result = await this.git.raw([
-        'log', '--all',
-        `--pretty=format:%H|%P|%s|%an|%ae|%ai|%D`,
-        '--max-count=100',
-        `--grep=${query}`,
-        '--regexp-ignore-case',
-      ])
-      const commits: CommitNode[] = []
-      for (const line of result.trim().split('\n')) {
-        if (!line.trim()) continue
-        const [hash, parentStr, message, author, authorEmail, date, refsStr] = line.split('|')
-        const parents = parentStr ? parentStr.trim().split(' ').filter(Boolean) : []
-        const refs = refsStr ? refsStr.split(',').map(r => r.trim()).filter(Boolean) : []
-        commits.push({
-          hash: hash.trim(),
-          shortHash: hash.trim().slice(0, 7),
-          message: message || '(no message)',
-          author: author || '',
-          authorEmail: authorEmail || '',
-          date: date || '',
-          parents,
-          refs
-        })
-      }
-      return { commits }
-    } catch {
-      return { commits: [] }
-    }
-  }
-
   // ── Commit details ─────────────────────────────────────────────
 
   async getCommitBody(hash: string): Promise<{ body: string }> {
@@ -2030,6 +1998,24 @@ exit 0
   /** The commits that touched a path or a folder — the search field's `file:`. */
   async searchByFile(paths: string[]): Promise<{ hashes: string[]; error?: string }> {
     return core.commitsTouching(this.run, paths, await this.refScope({ all: true }))
+  }
+
+  /**
+   * The commits a KEPT search finds now — the query asked of git over
+   * the whole history, not of the page the graph happens to hold. The same
+   * refs the graph is drawn from, so a hit is a row the graph could show.
+   */
+  async searchCommits(query: core.CommitQuery): Promise<{ commits: core.LogCommit[]; error?: string }> {
+    return core.searchCommits(this.run, query, await this.refScope({ all: true }))
+  }
+
+  /**
+   * What these hashes are — subject, author, date, refs. A hash the repository
+   * no longer has comes back missing rather than failing the call, which is
+   * how the memory page knows a kept commit was rewritten away.
+   */
+  async commitsByHash(hashes: string[]): Promise<{ commits: core.LogCommit[] }> {
+    return { commits: await core.commitsByHash(this.run, hashes) }
   }
 
   /** What a tag is — its commit, and the annotation of an annotated one. */

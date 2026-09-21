@@ -9,6 +9,13 @@
   z-index: calc(var(--z-dropdown) + 1);
   min-width: 300px;
   max-width: min(420px, 92vw);
+  /* The field is at the TOP of its toolbar and the panel hangs under it, so
+     what does not fit is what the window has left below — in the VS Code
+     panel, a dock 300px tall, that was everything after the operators. It
+     scrolls rather than being cut off; on a desktop window it never reaches
+     the cap at all. */
+  max-height: min(60vh, 520px);
+  overflow-y: auto;
   padding: var(--space-xs);
   color: var(--text-primary);
   background: var(--surface);
@@ -93,3 +100,15 @@
   border-radius: var(--radius-xs);
 }
 .shint-split { height: 1px; margin: var(--space-xs) var(--space-sm); background: var(--border-muted); }
+
+/* ── The searches one kept ───────────────────────────────────────────────────
+   Under the operators, because they are the thing one comes back to rather
+   than the thing one is learning. The whole list, with what each holds, is the
+   Memory page the last row opens. */
+.shint-kept { align-items: center; }
+.shint-kept > svg { flex: none; color: var(--text-tertiary); }
+.shint-kept .shint-label { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.shint-kept .shint-example { max-width: 45%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.shint-kept-all { align-items: center; color: var(--text-tertiary); }
+.shint-kept-all > svg { flex: none; }
+.shint-kept-all:hover { color: var(--text-primary); }

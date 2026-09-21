@@ -6,6 +6,7 @@ export function KeepSearchButton({ repo, search, loading }: { repo: string | nul
   const kept = useKept(repo)
   if (!repo || !search.query.trim()) return null
   const saved = kept.entries.some(e => e.kind === 'search' && e.query === search.query && e.ai === search.ai
+    && !!e.diffs === !!search.diffs
     && JSON.stringify(e.hashes) === JSON.stringify(search.hashes) && JSON.stringify(e.requiredHashes) === JSON.stringify(search.requiredHashes))
   return <>
     <button type="button" disabled={loading || saved} onClick={() => void kept.keep(search, search.query)}>{t(saved ? 'kept.saved' : 'kept.keep')}</button>

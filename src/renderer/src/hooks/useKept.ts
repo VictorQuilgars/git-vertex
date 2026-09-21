@@ -3,6 +3,14 @@ import type { SavedComparison } from './useCompareHistory'
 
 export type KeptSearch = {
   kind: 'search'; query: string; ai: boolean
+  /**
+   * The query was asked of the DIFFS (`git log -S`) rather than of the
+   * messages — the field's code-chevrons toggle. Kept because the memory page
+   * asks the question again, and asking the wrong engine would answer a
+   * different question under the same name. Absent on entries kept before this
+   * was recorded, which is `false`: the plain search is what they were.
+   */
+  diffs?: boolean
   hashes: string[] | null; requiredHashes: string[] | null
 }
 export type KeptComparison = SavedComparison & { kind: 'comparison'; reviewed: string[] }
@@ -21,6 +29,7 @@ export function decodeKept(raw?: string): KeptEntry[] {
         ? typeof v.a === 'string' && (typeof v.b === 'string' || v.b === null)
           && ['diverged', 'endpoints'].includes(v.axis) && strings(v.reviewed)
         : v.kind === 'search' && typeof v.query === 'string' && typeof v.ai === 'boolean'
+          && (v.diffs === undefined || typeof v.diffs === 'boolean')
           && (v.hashes === null || strings(v.hashes)) && (v.requiredHashes === null || strings(v.requiredHashes))))
   } catch { return [] }
 }
@@ -76,5 +85,13 @@ export function useKept(repo: string | null) {
     remove: (id: string) => mutate(entries => entries.filter(e => e.id !== id)),
     review: (id: string, path: string, checked: boolean) => mutate(entries => entries.map(e => e.id === id && e.kind === 'comparison'
       ? { ...e, reviewed: checked ? [...new Set([...e.reviewed, path])] : e.reviewed.filter(p => p !== path) } : e)),
+    /**
+     * A kept search's answer, replaced by the one it was just given — the
+     * memory page's "keep this instead". `at` moves with it: what the entry
+     * holds is an answer and a date, and an answer of today dated last month
+     * would make every commit in it look new for ever.
+     */
+    answer: (id: string, hashes: string[]) => mutate(entries => entries.map(e => e.id === id && e.kind === 'search'
+      ? { ...e, hashes, at: Date.now() } : e)),
   }
 }

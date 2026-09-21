@@ -20,7 +20,11 @@ import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from '
 import { useLang } from '../../i18n/LanguageContext'
 import { Icon } from '../Icon/Icon'
 import { appendOperator, parseDateBound, parseSearchQuery, removeTerm, type SearchOperator } from '../../utils/searchQuery'
+import { useKept, type KeptEntry } from '../../hooks/useKept'
 import './SearchHint.css'
+
+/** How many kept searches the panel lists before sending the rest to the page. */
+const KEPT_ROWS = 6
 
 const ROWS: { op: SearchOperator; label: 'search.op.author' | 'search.op.file' | 'search.op.after' | 'search.op.before'; example: string }[] = [
   { op: 'author', label: 'search.op.author', example: 'author:ana' },
@@ -43,7 +47,7 @@ export function useSearchHint() {
   return { open, boxProps: { ref: box, onFocus, onBlur, onKeyDown } }
 }
 
-export default function SearchHint({ open, query, onChange, loading = false, onAsk, asking = false, answered = false }: {
+export default function SearchHint({ open, query, onChange, loading = false, onAsk, asking = false, answered = false, repo, onOpenKept, onOpenMemory }: {
   open: boolean
   query: string
   onChange: (query: string) => void
@@ -58,9 +62,22 @@ export default function SearchHint({ open, query, onChange, loading = false, onA
   asking?: boolean
   /** What the graph is showing IS the model's answer to this query. */
   answered?: boolean
+  /**
+   * The repository whose kept searches belong under the field. A search one
+   * kept is a search one means to run again, and the field is where searches
+   * are run: leaving them to a page of their own meant going to fetch them.
+   * Absent (or without `onOpenKept`) ⇒ the block is not drawn at all.
+   */
+  repo?: string | null
+  onOpenKept?: (entry: KeptEntry) => void
+  /** The Memory page — all of them, with what they hold. */
+  onOpenMemory?: () => void
 }) {
   const { t } = useLang()
+  const kept = useKept(onOpenKept ? repo ?? null : null)
   const parsed = useMemo(() => parseSearchQuery(query), [query])
+  // Searches only: a kept COMPARISON is not something this field can run.
+  const keptSearches = useMemo(() => kept.entries.filter(entry => entry.kind === 'search'), [kept.entries])
   // What would be asked: the words, without the operators — which is also what
   // decides whether there is anything to ask at all.
   const words = parsed.text.trim()
@@ -132,6 +149,28 @@ export default function SearchHint({ open, query, onChange, loading = false, onA
         </button>
       ))}
       <div className="shint-foot">{t('search.hint.foot')}</div>
+      {onOpenKept && keptSearches.length > 0 && (
+        <>
+          <div className="shint-split" />
+          <div className="shint-head">{t('search.hint.kept')}</div>
+          {keptSearches.slice(0, KEPT_ROWS).map(entry => (
+            <button key={entry.id} type="button" className="shint-row shint-kept" tabIndex={-1}
+              title={entry.query} onClick={() => onOpenKept(entry)}>
+              <Icon name="bookmark" size={12} />
+              <span className="shint-label">{entry.name}</span>
+              {/* A search keeps its query as its name until it is renamed, and
+                  the same word twice on one row says nothing. */}
+              {entry.name !== entry.query && <code className="shint-example">{entry.query}</code>}
+            </button>
+          ))}
+          {onOpenMemory && (
+            <button type="button" className="shint-row shint-kept-all" tabIndex={-1} onClick={onOpenMemory}>
+              <span className="shint-label">{t('search.hint.keptAll')}</span>
+              <Icon name="arrowRight" size={12} />
+            </button>
+          )}
+        </>
+      )}
     </div>
   )
 }

@@ -430,6 +430,83 @@ describe('git-core — against a real repository, on both hosts', () => {
       .resolves.toEqual({ hashes: [] })
   })
 
+  // ── The memory page's two questions ──────────────────────────────
+  // What a set of hashes IS, and what a kept query finds now.
+  test('commitsByHash answers the commits named, and not their ancestors', async () => {
+    const commits = await onBothHosts(repo, r => core.commitsByHash(r, [second]))
+    expect(commits.map(c => c.hash)).toEqual([second])
+    expect(commits[0].message).toBe('second')
+  })
+
+  // The page reads the ends of this list — "compare the oldest with the
+  // newest" — so the order is part of the contract, not a detail of printing.
+  // Dated explicitly: the fixture's two commits are made in the same second,
+  // and `--no-walk=sorted` leaves a tie in the order it was given.
+  test('commitsByHash keeps the order of a log: the newest first', async () => {
+    execSync('git commit -q --allow-empty -m later', {
+      cwd: repo,
+      env: { ...process.env, LC_ALL: 'C', GIT_AUTHOR_DATE: '2030-01-01T00:00:00', GIT_COMMITTER_DATE: '2030-01-01T00:00:00' },
+    })
+    const later = run('git rev-parse HEAD').trim()
+    const commits = await onBothHosts(repo, r => core.commitsByHash(r, [first, later]))
+    expect(commits.map(c => c.hash)).toEqual([later, first])
+  })
+
+  // A kept search outlives the rebase that rewrote what it found: the commit
+  // that is gone is simply absent, and the page counts what is missing.
+  test('a hash the repository no longer holds is left out, not an error', async () => {
+    const commits = await onBothHosts(repo, r => core.commitsByHash(r, [second, 'f'.repeat(40)]))
+    expect(commits.map(c => c.hash)).toEqual([second])
+  })
+
+  test('commitsByHash asked about nothing runs no git at all', async () => {
+    await expect(onBothHosts(repo, r => core.commitsByHash(r, ['not-a-hash', '']))).resolves.toEqual([])
+  })
+
+  test('searchCommits narrows by the words of the query', async () => {
+    const { commits } = await onBothHosts(repo, r => core.searchCommits(r, { text: 'second' }))
+    expect(commits.map(c => c.hash)).toEqual([second])
+  })
+
+  test("the words are words, not a pattern: a dot matches a dot", async () => {
+    write('c.txt', 'x\n')
+    run('git add c.txt && git commit -m "touches a.txt here"')
+    const dotted = await onBothHosts(repo, r => core.searchCommits(r, { text: 'a.txt' }))
+    const any = await onBothHosts(repo, r => core.searchCommits(r, { text: 'aXtxt' }))
+    expect(dotted.commits).toHaveLength(1)
+    expect(any.commits).toHaveLength(0)
+  })
+
+  test('an author narrows, and narrows WITH the words rather than instead of them', async () => {
+    execSync('git commit -q --allow-empty -m "second thoughts"', {
+      cwd: repo, env: { ...process.env, LC_ALL: 'C', GIT_AUTHOR_NAME: 'Ada', GIT_AUTHOR_EMAIL: 'ada@test.com' },
+    })
+    const byAda = await onBothHosts(repo, r => core.searchCommits(r, { authors: ['Ada'] }))
+    expect(byAda.commits.map(c => c.message)).toEqual(['second thoughts'])
+    // Both have to hold: "second" alone finds two commits, with the author one.
+    const both = await onBothHosts(repo, r => core.searchCommits(r, { text: 'second', authors: ['Ada'] }))
+    expect(both.commits.map(c => c.message)).toEqual(['second thoughts'])
+    const words = await onBothHosts(repo, r => core.searchCommits(r, { text: 'second' }))
+    expect(words.commits).toHaveLength(2)
+  })
+
+  test('a file: term narrows to the commits that touched it', async () => {
+    const { commits } = await onBothHosts(repo, r => core.searchCommits(r, { paths: ['b.txt'] }))
+    expect(commits.map(c => c.hash)).toEqual([second])
+  })
+
+  test('a query that asks nothing finds nothing — never the whole history', async () => {
+    await expect(onBothHosts(repo, r => core.searchCommits(r, {}))).resolves.toEqual({ commits: [] })
+    await expect(onBothHosts(repo, r => core.searchCommits(r, { text: '  ', authors: [''], paths: [] })))
+      .resolves.toEqual({ commits: [] })
+  })
+
+  test('a date bound is git\'s, and the caller has already resolved it', async () => {
+    const tomorrow = new Date(Date.now() + 86400e3).toISOString()
+    await expect(onBothHosts(repo, r => core.searchCommits(r, { text: 'second', after: tomorrow })))
+      .resolves.toEqual({ commits: [] })
+  })
+
   // It writes the index, so the two hosts take turns rather than race for its lock.
   test('restoreConflict puts a resolved file back in conflict', async () => {
     run('git checkout -q -b theirs ' + first)

@@ -24,6 +24,20 @@ describe('sameView', () => {
     expect(sameView(a, { ...a, label: "Renamed" })).toBe(true)
   })
 
+  // One page for the whole of what a repository keeps: a second tab of it
+  // would be the same tab twice, like the settings.
+  test('the memory is one page, so two of them are one tab', () => {
+    expect(sameView({ view: 'memory' }, { view: 'memory' })).toBe(true)
+    expect(sameView({ view: 'memory' }, { view: 'settings' })).toBe(false)
+  })
+
+  // It lists what THIS repository keeps, so it is bound to one, unlike the
+  // settings — the tab carries the path, and switching repository opens its own.
+  test('the memory is about a repository, the settings are not', () => {
+    expect(viewNeedsRepo({ view: 'memory' })).toBe(true)
+    expect(viewNeedsRepo({ view: 'settings' })).toBe(false)
+  })
+
   test('a history is its file, a stash is its index', () => {
     expect(sameView({ view: 'fileHistory', file: 'a.ts' }, { view: 'fileHistory', file: 'a.ts' })).toBe(true)
     expect(sameView({ view: 'fileHistory', file: 'a.ts' }, { view: 'fileHistory', file: 'b.ts' })).toBe(false)

@@ -208,7 +208,7 @@ export function useAppSearch(app: AppChrome & RepoSession & AppGithub & AppConfl
 
   const restored = keptSearch.restored
   const searchSnapshot: KeptSearch = restored ?? {
-    kind: 'search', query: searchQuery, ai: app.aiSearch,
+    kind: 'search', query: searchQuery, ai: app.aiSearch, diffs: extendedSearch,
     hashes: graphSearchHashes === null ? null : [...graphSearchHashes],
     requiredHashes: searchOps.requiredHashes === null ? null : [...searchOps.requiredHashes],
   }

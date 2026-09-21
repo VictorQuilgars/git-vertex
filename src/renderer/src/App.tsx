@@ -51,6 +51,7 @@ import IssueDetail, { detailKey } from './components/IssueDetail/IssueDetail'
 import PRDetail from './components/IssueDetail/PRDetail'
 import ContextMenu, { MenuItemDef } from './components/ContextMenu/ContextMenu'
 import { kindsByPath, StashPreview, viewTabName, viewTabIcon, GITHUB_POLL_MS } from './app/shared'
+import MemoryView from './components/Memory/MemoryView'
 import { useAppChrome } from './app/useAppChrome'
 import { useRepoSession } from './app/useRepoSession'
 import { useAppGithub } from './app/useAppGithub'
@@ -454,6 +455,18 @@ export default function App() {
     showToast(r.upToDate ? t('sb.branch.pullUpToDate', branch) : t('sb.branch.pulledNamed', branch, r.moved ?? 0))
     await loadRepoData()
   }
+  /**
+   * Back to the graph of the repository on screen.
+   *
+   * The Memory page is a tab like any other, and what it offers — show these
+   * commits, search this again — happens in the graph, which is behind it. A
+   * tab that quietly changed what another tab shows would be an action with no
+   * visible effect, so the page hands the work over and steps aside.
+   */
+  const backToGraph = () => {
+    const graph = tabs.find(tb => tb.kind === 'repo' && tb.path === repoPath)
+    if (graph) void switchTab(graph)
+  }
   const compactDetails = !!selectedCommit && !conflictResolverFile && !rebaseHash && !viewTab && !issueDetail
     && detailsTakeCenter(windowWidth, repoPath ? sidebarW : 0, rightW)
   // The minimap's block, above the three panes; the graph draws into it.
@@ -549,6 +562,17 @@ export default function App() {
                 <span className="app-tb-bell-badge">{bellCount > 99 ? '99+' : bellCount}</span>
               )}
             </button>
+            {/* The memory of the repository on screen — the searches and
+                comparisons it was asked to keep. Beside the bell rather than
+                in the git action bar: it is a PLACE, not an act on a
+                repository, like the journal the bell holds. */}
+            {repoPath && (
+              <button className={`app-tb-icon ${viewTab?.view === 'memory' ? 'active' : ''}`}
+                title={t('memory.title')} aria-label={t('memory.title')}
+                onClick={() => { setRepoMgmtOpen(false); openViewTab({ view: 'memory' }) }}>
+                <Icon name="bookmark" />
+              </button>
+            )}
             <button className={`app-tb-icon ${viewTab?.view === 'settings' ? 'active' : ''}`}
               title={t('settings.title')} onClick={() => { setRepoMgmtOpen(false); openSettingsTab() }}>
               <Icon name="gear" />
@@ -592,6 +616,11 @@ export default function App() {
         searchOpsLoading={searchOpsLoading}
         onSearch={setSearchQuery}
         keepSearch={<KeepSearchButton repo={repoPath} search={searchHook.searchSnapshot} loading={searchOpsLoading || extendedSearchLoading || aiSearchLoading} />}
+        onOpenKept={entry => {
+          if (entry.kind === 'comparison') openViewTab({ view: 'compare', a: entry.a, b: entry.b, axis: entry.axis, label: entry.name })
+          else searchHook.restoreSearch(entry)
+        }}
+        onOpenMemory={() => openViewTab({ view: 'memory' })}
         onUndo={handleUndo}
         onRedo={handleRedo}
         onFetch={handleFetch}
@@ -695,10 +724,6 @@ export default function App() {
         <div className="app-sidebar" style={{ width: sidebarW }} ref={sidebarPanelRef}>
           {(
             <Sidebar
-              onOpenKept={entry => {
-                if (entry.kind === 'comparison') openViewTab({ view: 'compare', a: entry.a, b: entry.b, axis: entry.axis, label: entry.name })
-                else searchHook.restoreSearch(entry)
-              }}
               githubPRs={githubPRs}
               githubIssues={githubIssues}
               onStartBranchFromIssue={handleCreateBranchFromIssue}
@@ -909,6 +934,20 @@ export default function App() {
                 target={viewTab.target}
                 onClose={() => closeTab(activeTabId!)}
                 onStaged={() => loadRepoData(true)}
+              />
+            ) : viewTab.view === 'memory' ? (
+              <MemoryView
+                key={activeTabId}
+                repo={repoPath}
+                repoName={repoName}
+                showToast={showToast}
+                // Every one of these acts on the GRAPH, which is behind this
+                // tab: the page hands the work over and steps aside, rather
+                // than doing something invisible under an open page.
+                onShowCommits={hashes => { setNotedHashes(new Set(hashes)); backToGraph() }}
+                onOpenCommit={hash => { void searchHook.revealRef(hash); backToGraph() }}
+                onRestoreSearch={entry => { searchHook.restoreSearch(entry); backToGraph() }}
+                onOpenCompare={(a, b, axis, label) => openViewTab({ view: 'compare', a, b, axis, label })}
               />
             ) : viewTab.view === 'settings' ? (
               <SettingsModal

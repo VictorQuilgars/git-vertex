@@ -44,6 +44,7 @@ import arrowRight from './icons/arrowRight.svg'
 import bell from './icons/bell.svg'
 import blame from './icons/blame.svg'
 import book from './icons/book.svg'
+import bookmark from './icons/bookmark.svg'
 import branch from './icons/branch.svg'
 import card from './icons/card.svg'
 import caretDown from './icons/caretDown.svg'
@@ -116,7 +117,7 @@ import worktree from './icons/worktree.svg'
 import wrench from './icons/wrench.svg'
 
 const SOURCE: Record<string, string> = {
-  activity, agent, ai, arrowRight, bell, blame, book, branch,
+  activity, agent, ai, arrowRight, bell, blame, book, bookmark, branch,
   card, caretDown, check, chevronDown, chevronLeft, chevronRight, clock, cloud,
   commandPalette, comment, commit, compare, conflict, copy, device, diff,
   download, editor, externalLink, eye, eyeOff, folder, gear, gitflow,

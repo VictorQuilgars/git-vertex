@@ -40,6 +40,10 @@ interface ToolbarProps {
   searchOpsLoading?: boolean
   onSearch: (q: string) => void
   keepSearch?: React.ReactNode
+  /** A kept search, put back in the field (the panel under it lists them). */
+  onOpenKept?: (entry: import('../../hooks/useKept').KeptEntry) => void
+  /** The Memory page: every kept thing, with what it holds. */
+  onOpenMemory?: () => void
   onUndo: () => void
   onRedo: () => void
   onFetch: () => void
@@ -112,7 +116,7 @@ function TBtn({ icon, label, onClick, disabled, title, accent, active }: {
 }
 
 export default function Toolbar({
-  repoPath, currentBranch, searchQuery, searchMatches, searchOpsLoading, onSearch, keepSearch,
+  repoPath, currentBranch, searchQuery, searchMatches, searchOpsLoading, onSearch, keepSearch, onOpenKept, onOpenMemory,
   repoName, recentRepos = [], onOpenRepo, onClone, onSetRepo, onRemoveRecent,
   branches = [], onGoTo,
   onUndo, onRedo, onFetch, onPush, onPull, pullMode, onSetPullMode, onCreateBranch,
@@ -461,7 +465,8 @@ export default function Toolbar({
               model has answered — a click on an operator edits the query, and
               editing the query is what comes back to filtering. */}
           <SearchHint open={searchHint.open} query={searchQuery} onChange={onSearch} loading={searchOpsLoading}
-            onAsk={onAskAi} asking={aiSearchLoading} answered={aiSearch} />
+            onAsk={onAskAi} asking={aiSearchLoading} answered={aiSearch}
+            repo={repoPath} onOpenKept={onOpenKept} onOpenMemory={onOpenMemory} />
           <Icon name="search" size={13} />
           <input type="text"
             placeholder={t('toolbar.search.placeholder')}

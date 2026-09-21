@@ -366,6 +366,105 @@ export async function log(run: GitRunner, options: LogOptions): Promise<LogCommi
   return parseLog(await run(['log', ...logArgs(options)]), !!options.numstat)
 }
 
+/** How many commits one `log --no-walk` is asked about: an argument list has an end, a set of hits has not. */
+const BY_HASH_BATCH = 200
+
+/**
+ * The commits these hashes name, and nothing else — `--no-walk`, so none of
+ * their ancestors comes with them.
+ *
+ * A hash the repository no longer holds is left OUT rather than failing the
+ * whole call (`--ignore-missing`): a search someone kept outlives the rebase
+ * that rewrote what it found, and the page's job is then to say which of its
+ * commits are gone — which it reads from what is missing here.
+ */
+export async function commitsByHash(run: GitRunner, hashes: string[]): Promise<LogCommit[]> {
+  const wanted = [...new Set(hashes.map(h => h.trim()).filter(h => /^[0-9a-f]{7,64}$/i.test(h)))]
+  if (!wanted.length) return []
+  const commits: LogCommit[] = []
+  for (let i = 0; i < wanted.length; i += BY_HASH_BATCH) {
+    try {
+      commits.push(...parseLog(await run([
+        'log', '--no-walk=sorted', '--ignore-missing',
+        `--pretty=format:${LOG_FORMAT}`, ...wanted.slice(i, i + BY_HASH_BATCH), '--',
+      ])))
+    } catch {
+      // A batch git refuses is a batch of commits this repository does not
+      // have: the same answer as a hash it ignored, one call further out.
+    }
+  }
+  return commits
+}
+
+/**
+ * A search, as git can answer it — the shape a kept one is asked in again.
+ *
+ * The field's own filter narrows the page the graph holds, which is what makes
+ * it live as it is typed. That page is not a fact about the repository, so it
+ * cannot be what a kept search means a week later: this asks the same question
+ * of the whole history instead. The caller has already read the query
+ * (utils/searchQuery) — a span like `after:2w` is a date only at the moment it
+ * is read, and reading it here would date it from the wrong moment.
+ */
+export interface CommitQuery {
+  /** The free text, matched against the message. */
+  text?: string
+  /** `author:` values — a name or an address; every one of them has to hold. */
+  authors?: string[]
+  /** `after:` / `before:`, already resolved to an instant git can parse. */
+  after?: string
+  before?: string
+  /** `file:` values, each read by filePathspecs like the live search's are. */
+  paths?: string[]
+  maxCount?: number
+}
+
+/** What a kept search brings back at most: enough to work with, short of a second history. */
+export const SEARCH_COMMITS_MAX = 500
+
+export function searchCommitArgs(q: CommitQuery, scope: RefScope = {}): string[] {
+  const text = q.text?.trim() ?? ''
+  const authors = (q.authors ?? []).map(a => a.trim()).filter(Boolean)
+  const paths = (q.paths ?? []).map(p => p.trim()).filter(Boolean)
+  const patterns = [...(text ? [`--grep=${text}`] : []), ...authors.map(a => `--author=${a}`)]
+  return [
+    'log',
+    `--pretty=format:${LOG_FORMAT}`,
+    `--max-count=${q.maxCount && q.maxCount > 0 ? q.maxCount : SEARCH_COMMITS_MAX}`,
+    '--date-order',
+    // A query is words, not a regular expression: `cache.ts` is a file, and
+    // its dot may not quietly match any character.
+    ...(patterns.length ? ['--fixed-strings', '--regexp-ignore-case'] : []),
+    ...patterns,
+    // Every operator NARROWS — with the words and with each other (#255).
+    // git ORs the patterns it is given unless it is told this.
+    ...(patterns.length > 1 ? ['--all-match'] : []),
+    ...(q.after ? [`--since=${q.after}`] : []),
+    ...(q.before ? [`--until=${q.before}`] : []),
+    ...refArgs({ all: true, ...scope }),
+    ...(paths.length ? ['--', ...paths.flatMap(filePathspecs)] : []),
+  ]
+}
+
+/**
+ * The commits that answer the query now. Empty when the query asks nothing —
+ * never the whole history under the name of a search.
+ */
+export async function searchCommits(
+  run: GitRunner, q: CommitQuery, scope: RefScope = {},
+): Promise<{ commits: LogCommit[]; error?: string }> {
+  const paths = (q.paths ?? []).map(p => p.trim()).filter(Boolean)
+  const asks = !!q.text?.trim() || (q.authors ?? []).some(a => a.trim()) || !!q.after || !!q.before || paths.length > 0
+  if (!asks) return { commits: [] }
+  // A pathspec comes after `--`, where git reads no option: the same guard commitsTouching keeps.
+  if (paths.some(p => /[\u0000-\u001f]/.test(p))) return { commits: [], error: 'Invalid path' }
+  try {
+    return { commits: parseLog(await run(searchCommitArgs(q, scope))) }
+  } catch (e) {
+    return { commits: [], error: reason(e) }
+  }
+}
+
 /**
  * Why a rewrite cannot touch these commits — the message BOTH products give.
  *

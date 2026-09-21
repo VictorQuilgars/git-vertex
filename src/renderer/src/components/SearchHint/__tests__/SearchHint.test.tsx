@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import SearchHint, { useSearchHint } from '../SearchHint'
 import { installMockGitAPI, renderWithProviders } from '../../../__tests__/test-utils'
 
@@ -160,4 +160,54 @@ test('a panel that grows past the window edge hangs from the field, measured as 
     width.mockRestore()
     Object.defineProperty(window, 'innerWidth', { value: innerWidth, configurable: true })
   }
+})
+
+// ── The searches one kept ───────────────────────────────────────────────────
+// They were a block in the side bar, above the branches, where a search one
+// means to run again is nowhere near the field one runs searches in.
+
+function KeptField({ onOpenKept, onOpenMemory }: { onOpenKept?: (e: any) => void; onOpenMemory?: () => void }) {
+  const [q, setQ] = useState('')
+  const hint = useSearchHint()
+  return (
+    <div {...hint.boxProps}>
+      <input aria-label="search" value={q} onChange={e => setQ(e.target.value)} />
+      <SearchHint open={hint.open} query={q} onChange={setQ} repo="/repo" onOpenKept={onOpenKept} onOpenMemory={onOpenMemory} />
+    </div>
+  )
+}
+
+const kept = (id: string, name: string, kind: 'search' | 'comparison' = 'search') =>
+  kind === 'search'
+    ? { kind, id, name, at: 1, query: `${name} file:src`, ai: false, hashes: null, requiredHashes: null }
+    : { kind, id, name, at: 1, a: 'v1', b: null, axis: 'endpoints', reviewed: [] }
+
+test('the kept searches are listed under the field, and a click puts one back', async () => {
+  installMockGitAPI({
+    settingsGetAll: jest.fn().mockResolvedValue({
+      'gv-kept:/repo': JSON.stringify([kept('one', 'cache'), kept('two', 'Release', 'comparison')]),
+    }),
+  })
+  const onOpenKept = jest.fn()
+  const onOpenMemory = jest.fn()
+  renderWithProviders(<KeptField onOpenKept={onOpenKept} onOpenMemory={onOpenMemory} />)
+  fireEvent.focus(input())
+  const row = await screen.findByRole('button', { name: /cache/ })
+  fireEvent.click(row)
+  expect(onOpenKept).toHaveBeenCalledWith(expect.objectContaining({ id: 'one' }))
+  // A kept COMPARISON is not something this field can run, so it is not here.
+  expect(screen.queryByRole('button', { name: /Release/ })).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: /Open Memory/ }))
+  expect(onOpenMemory).toHaveBeenCalled()
+})
+
+test('a host that cannot put a search back is not shown the block at all', async () => {
+  installMockGitAPI({
+    settingsGetAll: jest.fn().mockResolvedValue({ 'gv-kept:/repo': JSON.stringify([kept('one', 'cache')]) }),
+  })
+  renderWithProviders(<KeptField />)
+  fireEvent.focus(input())
+  await waitFor(() => expect(document.querySelector('.shint-op')).not.toBeNull())
+  expect(document.querySelector('.shint-kept')).toBeNull()
+  expect(screen.queryByRole('button', { name: /cache/ })).toBeNull()
 })

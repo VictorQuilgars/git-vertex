@@ -36,6 +36,10 @@ interface Props {
   repos?: { path: string; name: string }[]
   repoPath?: string
   onSwitchRepo?: (repoPath: string) => void
+  /** A kept search, put back in the field — the panel under it lists them. */
+  onOpenKept?: (entry: import('../../../src/renderer/src/hooks/useKept').KeptEntry) => void
+  /** What this repository keeps, in a tab of its own. */
+  onOpenMemory?: () => void
   branch: string
   branches: BranchInfo[]
   loading: boolean
@@ -272,6 +276,7 @@ export default function CompactToolbar(p: Props) {
     { label: t('toolbar.redo.tooltip'), icon: 'redo', action: p.onRedo },
     { separator: true },
     { label: 'Terminal', icon: 'terminal', action: p.onTerminal },
+    ...(p.onOpenMemory ? [{ label: t('gvt.memory'), icon: 'bookmark', action: p.onOpenMemory } as MenuItemDef] : []),
     { label: t('gvt.openDesktop'), icon: 'externalLink', action: p.onOpenDesktop },
     ...(p.onToggleFollowCursor ? [{ separator: true } as MenuItemDef, { label: t('gvt.followCursor'), icon: 'eye', checked: !!p.followCursor, action: p.onToggleFollowCursor } as MenuItemDef] : []),
     ...(p.onToggleMinimap ? [{ label: t('graph.menu.minimap'), icon: 'activity', checked: !!p.minimapShown, action: p.onToggleMinimap } as MenuItemDef] : []),
@@ -381,7 +386,8 @@ export default function CompactToolbar(p: Props) {
 
   const search = (
     <div className="gvt-search" {...searchHint.boxProps}>
-      <SearchHint open={searchHint.open} query={p.searchQuery} onChange={p.onSearch} loading={p.searchOpsLoading} />
+      <SearchHint open={searchHint.open} query={p.searchQuery} onChange={p.onSearch} loading={p.searchOpsLoading}
+        repo={p.repoPath ?? null} onOpenKept={p.onOpenKept} onOpenMemory={p.onOpenMemory} />
       <Icon name="search" size={11} />
       <input type="text" placeholder={t('gvt.search')} value={p.searchQuery} onChange={e => p.onSearch(e.target.value)} />
       {p.searchQuery && p.searchMatches != null && p.searchMatches >= 0 && (
@@ -430,6 +436,11 @@ export default function CompactToolbar(p: Props) {
 
       <span className="gvt-sep" />
 
+      {p.onOpenMemory && (
+        <IconBtn title={t('gvt.memory')} onClick={p.onOpenMemory}>
+          <Icon name="bookmark" size={14} />
+        </IconBtn>
+      )}
       <IconBtn title={t('gvt.openDesktop')} onClick={p.onOpenDesktop} hideNarrow>
         <Icon name="externalLink" size={14} />
       </IconBtn>

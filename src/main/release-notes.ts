@@ -4,6 +4,9 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🔖 What this repository keeps has a page
+- **Kept** was a block in the side bar, above the branches, where a kept search could only ever be a **name**. It is a page now — **Memory**, the bookmark beside the bell — with the kept things on the left and, on the right, the **commits** the one you picked holds: show them in the graph, put the search back in the field, compare the oldest with the newest. **Ask again** puts the same query to **git over the whole history** and marks what the kept answer did not have as **new**; *Keep this answer instead* makes today's the one it keeps. A commit that is no longer in the repository is counted rather than missed. The kept searches are listed **under the search field** too, which is where searches are run.
+
 ### 🌳 A worktree row carries its branch's menu
 - Right-click a worktree: **everything its branch can do** is there, after the worktree's own entries — push, upstream, merge, rebase, rename, compare, the pull request, graph display. Syncing or renaming the branch a worktree held used to mean finding it again in Branches. A **detached** worktree keeps its worktree entries alone.
 
