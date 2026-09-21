@@ -233,9 +233,14 @@ button.refcard-pill:not(:disabled):hover { border-color: var(--accent); color: v
 /* The commits the target already holds under another hash (#307). A note
    inside the merge card, between what it is about and its verdict: it is the
    CAUSE of the verdict above it, not another verdict. */
+/* A grid, not a wrapping row: the sentence is long enough to wrap in a 300px
+   card, and a flex row wraps the ICON onto a line of its own before it. */
 .refcard-dupes {
-  display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-sm);
+  display: grid; grid-template-columns: auto 1fr;
+  align-items: start; gap: var(--space-xs) var(--space-sm);
   margin: var(--space-xs) 0 var(--space-sm);
   color: var(--text-secondary); font-size: var(--text-sm);
 }
+.refcard-dupes > :first-child { margin-top: 2px; }   /* the icon, on the text's first line */
 .refcard-dupes-text { min-width: 0; overflow-wrap: anywhere; }
+.refcard-dupes .refcard-btn { grid-column: 2; justify-self: start; }
