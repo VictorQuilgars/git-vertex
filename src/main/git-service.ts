@@ -173,6 +173,14 @@ export class GitService {
    */
   private run: core.GitRunner = (args) => this.git.raw(args)
 
+  /**
+   * The second half of the same contract, for the commands whose NON-ZERO EXIT
+   * is the answer rather than a failure — `merge-tree` exits 1 to mean "would
+   * conflict", with the paths on stdout. `run` above rejects on that and loses
+   * them, so the core asks for this one too.
+   */
+  private runRaw: core.GitRawRunner = (args) => this.execRaw(args)
+
   // Redo stack: HEAD shas captured right before each undo. Because undo is a
   // soft reset (non-destructive — the working tree is untouched and the prior
   // commit stays reachable via the reflog), redo just soft-resets forward to
@@ -1223,79 +1231,29 @@ export class GitService {
     })
   }
 
-  // Predict whether reconciling `theirs` into `ours` (default HEAD) would
-  // conflict, and on which files — a DRY RUN via `git merge-tree` that never
-  // touches the working tree, the index or any ref. Pass `mergeBase` to pin the
-  // 3-way base: a cherry-pick uses the commit's parent, a revert the commit
-  // itself; omit it for a plain merge (git finds the base). For a rebase this is
-  // only a heuristic (it models a single merge of the two tips, not the
-  // per-commit replay), so treat a rebase result as advisory. Requires git ≥ 2.38.
-  // Returns `error` when the prediction itself couldn't run (bad ref, old git),
-  // which callers should treat as "unknown" and NOT as "will conflict".
-  async predictConflicts(theirs: string, ours = 'HEAD', mergeBase?: string): Promise<{ files: string[]; error?: string }> {
-    for (const [ref, label] of ([[theirs, 'theirs'], [ours, 'ours'], ...(mergeBase ? [[mergeBase, 'merge-base']] : [])] as [string, string][])) {
-      const bad = this.assertRef(ref, label)
-      if (bad) return { files: [], error: bad }
-    }
-    try {
-      const args = ['merge-tree', '--write-tree', '--name-only']
-      if (mergeBase) args.push(`--merge-base=${mergeBase}`)
-      args.push(ours, theirs)
-      const { code, stdout, stderr } = await this.execRaw(args)
-      if (code === 0) return { files: [] }                    // clean
-      if (code === 1) {                                        // conflicts
-        // stdout: merged tree OID, then the conflicted file names, a blank
-        // line, then informational messages. Take the names off the first block.
-        const [head] = stdout.split('\n\n')
-        const files = head.split('\n').slice(1).map(s => s.trim()).filter(Boolean)
-        return { files }
-      }
-      return { files: [], error: (stderr || stdout || 'merge-tree failed').trim() }  // real failure
-    } catch (e: any) {
-      return { files: [], error: e.message }
-    }
+  // ── The conflict family: predicted, and for a pull request (#305) ──
+  // The behaviour is in git-core, which both products run; what stays here is
+  // the adapter. `runRaw` is passed rather than `run` because merge-tree
+  // answers by its exit code — see the core's own note.
+
+  async predictConflicts(theirs: string, ours = 'HEAD', mergeBase?: string): Promise<core.ConflictPrediction> {
+    return core.predictConflicts(this.runRaw, theirs, ours, mergeBase)
   }
 
-  // Accurately predict whether rebasing `branch` (default HEAD) onto `upstream`
-  // will conflict — by SIMULATING the replay commit by commit, never touching
-  // the working tree. `merge-tree --write-tree` writes each merged tree to the
-  // object DB and prints its OID, which we feed as the base ("ours") of the next
-  // step — exactly what a real rebase does. This catches a conflict that only
-  // surfaces mid-replay, and avoids the false positives/negatives of merging the
-  // two tips in one shot (e.g. a change made in one commit and undone in a later
-  // one nets to zero for a tip-merge but still conflicts on replay). Returns the
-  // conflicted files of the FIRST failing commit (with its short hash), or no
-  // files when the whole replay is clean. Prediction failures never block.
-  async predictRebaseConflicts(upstream: string, branch = 'HEAD'): Promise<{ files: string[]; error?: string; atCommit?: string }> {
-    const badU = this.assertRef(upstream, 'upstream'); if (badU) return { files: [], error: badU }
-    const badB = this.assertRef(branch, 'branch'); if (badB) return { files: [], error: badB }
-    try {
-      // The commits a default `git rebase` would replay, oldest first: the
-      // non-merge commits in upstream..branch, parents before children.
-      const listed = await this.execRaw(['rev-list', '--reverse', '--topo-order', '--no-merges', `${upstream}..${branch}`])
-      if (listed.code !== 0) return { files: [], error: (listed.stderr || 'rev-list failed').trim() }
-      const commits = listed.stdout.split('\n').map(s => s.trim()).filter(Boolean)
-      if (commits.length === 0) return { files: [] }                    // nothing to replay
-      // A very long range would mean hundreds of merge-tree calls on a
-      // pre-flight check — fall back to the cheap single tip-merge past this cap.
-      if (commits.length > 100) return this.predictConflicts(branch, upstream)
-      let current = (await this.execRaw(['rev-parse', `${upstream}^{commit}`])).stdout.trim()
-      if (!current) return { files: [], error: `Unknown upstream: ${upstream}` }
-      for (const c of commits) {
-        // Replay c onto the accumulated tree: 3-way merge with c's parent as base.
-        const r = await this.execRaw(['merge-tree', '--write-tree', '--name-only', `--merge-base=${c}^`, current, c])
-        if (r.code === 0) { current = r.stdout.trim().split('\n')[0]; continue }   // clean → next base
-        if (r.code === 1) {
-          const [head] = r.stdout.split('\n\n')
-          const files = head.split('\n').slice(1).map(s => s.trim()).filter(Boolean)
-          return { files, atCommit: c.slice(0, 7) }
-        }
-        return { files: [], error: (r.stderr || r.stdout || 'merge-tree failed').trim() }  // bail out (don't block)
-      }
-      return { files: [] }                                              // whole replay is clean
-    } catch (e: any) {
-      return { files: [], error: e.message }
-    }
+  async predictRebaseConflicts(upstream: string, branch = 'HEAD'): Promise<core.RebasePrediction> {
+    return core.predictRebaseConflicts(this.runRaw, upstream, branch)
+  }
+
+  async pullRequestConflicts(
+    number: number, opts: { baseRef: string; headSha?: string; remote?: string },
+  ): Promise<core.PullRequestConflicts> {
+    const remote = opts.remote ?? (await this.getDefaultRemote()).remote
+    if (!remote) return { files: [], error: 'No remote configured' }
+    return core.pullRequestConflicts(this.run, this.runRaw, { ...opts, remote, number })
+  }
+
+  async duplicateCommits(branch: string, target: string): Promise<core.DuplicateCommits> {
+    return core.duplicateCommits(this.run, branch, target)
   }
 
   // Rebase the current branch onto another branch

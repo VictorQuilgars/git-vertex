@@ -64,6 +64,14 @@ const SHARED: Record<string, string> = {
   listWorktrees: 'worktrees',
   copyWorktreeChanges: 'copyChangesToWorktree',
   fetchPullRequest: 'fetchPullRequestHead',
+  // The conflict family (#305). It was the LAST thing written out twice, and
+  // for a reason worth remembering: `merge-tree` answers by its exit code, the
+  // core's runner throws on one, so the prediction could not be expressed over
+  // the contract and stayed on the hosts. The second runner fixed that.
+  predictConflicts: 'predictConflicts',
+  predictRebaseConflicts: 'predictRebaseConflicts',
+  pullRequestConflicts: 'pullRequestConflicts',
+  duplicateCommits: 'duplicateCommits',
 }
 
 describe('the shared git core is what both products run', () => {
