@@ -630,7 +630,60 @@ describe('the graph page — LOG_FORMAT and parseLog', () => {
 
   test('the format asks for no signature: a gpg process per commit, for nothing drawn', () => {
     expect(core.LOG_FORMAT).not.toContain('%G')
-    expect(core.logArgs({ maxCount: 5, all: true, excludes: ['refs/tags/*'] }))
-      .toEqual([`--pretty=format:${core.LOG_FORMAT}`, '--max-count=5', '--date-order', '--exclude=refs/tags/*', '--all'])
+    expect(core.logArgs({ maxCount: 5, all: true, excludes: ['refs/tags/*'] })).toEqual([
+      `--pretty=format:${core.LOG_FORMAT}`, '--max-count=5', '--date-order',
+      ...core.refArgs({ all: true, excludes: ['refs/tags/*'] }),
+    ])
+  })
+})
+
+// ── Which refs a page is collected from ─────────────────────────────────────
+// `--all` is every ref under `refs/`; the app can name four kinds, which is
+// also the only set git decorates. Everything in between became a row with an
+// empty `%D`: no chip, in no list, hideable by nothing, and refused by every
+// action. A `filter-branch` backup in `refs/original/` is how it was found.
+describe('refArgs — the families the app can name', () => {
+  test('the four families and HEAD, and nothing wider', () => {
+    expect(core.refArgs({ all: true })).toEqual([
+      '--branches', '--remotes', '--tags', '--glob=refs/stas[h]', 'HEAD',
+    ])
+    expect(core.refArgs({ all: true })).not.toContain('--all')
+  })
+
+  test('an exclusion goes to the family it names, with the prefix off', () => {
+    // `--exclude` applies to the NEXT collector only, and the pattern it takes
+    // there is matched under that family's prefix — `--exclude=refs/heads/wip`
+    // before `--branches` excludes nothing at all.
+    expect(core.refArgs({ all: true, excludes: ['refs/heads/wip', 'refs/tags/*', 'refs/remotes/origin/*'] })).toEqual([
+      '--exclude=wip', '--branches',
+      '--exclude=origin/*', '--remotes',
+      '--exclude=*', '--tags',
+      '--glob=refs/stas[h]', 'HEAD',
+    ])
+  })
+
+  test('the stash is hidden by not being collected', () => {
+    expect(core.refArgs({ all: true, excludes: ['refs/stash'] }))
+      .toEqual(['--branches', '--remotes', '--tags', 'HEAD'])
+  })
+
+  // `--glob` appends `/*` to a pattern with no glob character in it, so a bare
+  // `refs/stash` asks for `refs/stash/*` — every stash silently gone.
+  test('the stash pattern carries a glob character, and is still exact', () => {
+    const glob = core.refArgs({ all: true }).find(a => a.startsWith('--glob='))!.slice('--glob='.length)
+    expect(glob).toMatch(/[?*[]/)
+    expect(new RegExp(`^${glob.replace('[h]', '[h]')}$`).test('refs/stash')).toBe(true)
+    expect(glob).not.toBe('refs/stash*')
+  })
+
+  test('a branch shown alone is the whole answer — no HEAD, no families', () => {
+    expect(core.refArgs({ all: true, refs: ['feature'] })).toEqual(['feature'])
+    expect(core.refArgs({})).toEqual([])
+  })
+
+  test("another working tree's HEAD is collected, and cannot be excluded", () => {
+    expect(core.refArgs({ all: true, excludes: ['refs/heads/*'], extraRevs: ['c0ffee1'] })).toEqual([
+      '--exclude=*', '--branches', '--remotes', '--tags', '--glob=refs/stas[h]', 'HEAD', 'c0ffee1',
+    ])
   })
 })

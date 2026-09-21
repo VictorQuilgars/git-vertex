@@ -212,11 +212,22 @@ export interface LogCommit {
   deletions?: number
 }
 
-export interface LogOptions {
-  maxCount: number
+export interface RefScope {
   all?: boolean
   refs?: string[]
   excludes?: string[]
+  /**
+   * Revisions to collect beyond the named families — the HEAD of every OTHER
+   * working tree. `--all` carried them (it examines every working tree) and
+   * the families do not, and a worktree sitting on a detached commit is a
+   * worktree whose side bar row, which goes to its HEAD, would have nowhere
+   * to go. Never excludable, like HEAD itself.
+   */
+  extraRevs?: string[]
+}
+
+export interface LogOptions extends RefScope {
+  maxCount: number
   /** Count each commit's added and removed lines — the desktop's stats column. */
   numstat?: boolean
 }
@@ -238,8 +249,61 @@ export const LOG_FORMAT = '%H%x1f%P%x1f%s%x1f%an%x1f%ae%x1f%ai%x1f%D%x1f%b%x1e'
 /** How much of a body the page carries: the graph draws one line of it. */
 export const LOG_BODY_MAX = 240
 
+/** The families the app has a name for, and the prefix each `--exclude` wears. */
+const REF_FAMILIES: { prefix: string; collector: string }[] = [
+  { prefix: 'refs/heads/', collector: '--branches' },
+  { prefix: 'refs/remotes/', collector: '--remotes' },
+  { prefix: 'refs/tags/', collector: '--tags' },
+]
+
+/**
+ * Where a page of the graph is collected FROM — shared by the log and by
+ * anything that has to agree with it about which commits exist.
+ *
+ * Not `--all`, and that is the point. `--all` is every ref under `refs/`,
+ * while the app has a name for four kinds — a branch, a remote branch, a tag,
+ * the stash — which is exactly the set git's own decoration covers. So for
+ * anything else `%D` comes back EMPTY, and the row it produced could never
+ * carry a chip: absent from the side bar, unhideable (visibility is stated in
+ * those same four families), and refused by every action, all of which are
+ * defined against the branch you are on. A `filter-branch` backup left in
+ * `refs/original/`, a `refs/prefetch/` an editor writes, a `refs/notes/`
+ * commit, a `refs/bisect/` tip — each put commits in the graph that belonged
+ * to nothing and that *Drop* could only answer "Commit not found" about.
+ *
+ * Git keeps deciding reachability, exactly as under `--all`: hiding is still
+ * tips taken away, not a list of the survivors. `--exclude` applies to the
+ * NEXT collector only, so each family's exclusions are routed to it — with
+ * the prefix off, which is what `--branches` and friends match against.
+ */
+export function refArgs(o: RefScope): string[] {
+  // Explicit refs — a branch shown alone — are the whole answer.
+  if (o.refs && o.refs.length) return [...o.refs]
+  if (!o.all) return []
+  const globs = o.excludes ?? []
+  const args: string[] = []
+  for (const { prefix, collector } of REF_FAMILIES) {
+    for (const g of globs) if (g.startsWith(prefix)) args.push(`--exclude=${g.slice(prefix.length)}`)
+    args.push(collector)
+  }
+  // The stash is one ref, so it is hidden by not being collected: there is no
+  // `--exclude` that drops `stash@{2}` alone either (see graphVisibility).
+  //
+  // ⚠️ `--glob` appends `/*` to a pattern holding no glob character, so a plain
+  // `refs/stash` asks for `refs/stash/*` and silently finds nothing — every
+  // stash gone from the graph. The class is a glob character that matches the
+  // one letter it holds, which keeps the pattern EXACT: `refs/stash*` would
+  // work too and would also collect a ref called `refs/stashes`, which is the
+  // kind of ref this function exists to keep out.
+  if (!globs.includes('refs/stash')) args.push('--glob=refs/stas[h]')
+  // HEAD last, never excludable: you can hide the branch you are on, and the
+  // graph still has to show where you are standing.
+  args.push('HEAD', ...(o.extraRevs ?? []))
+  return args
+}
+
 export function logArgs(o: LogOptions): string[] {
-  const args = [
+  return [
     // "added\tdeleted\tpath" lines after each record (none for a merge, whose
     // diff git log skips) — still one process for the whole page.
     ...(o.numstat ? ['--numstat'] : []),
@@ -247,18 +311,8 @@ export function logArgs(o: LogOptions): string[] {
     `--max-count=${o.maxCount}`,
     // Children before parents, like --topo-order, but siblings by commit date.
     '--date-order',
+    ...refArgs(o),
   ]
-  // Explicit refs (a branch shown alone) take precedence over --all. Hidden
-  // refs are taken away from --all rather than replaced by a list of the
-  // visible ones: git keeps deciding what is reachable, so a commit a visible
-  // ref still reaches stays. --exclude only applies to the next ref-collecting
-  // option, hence immediately before --all and nowhere else.
-  if (o.refs && o.refs.length) args.push(...o.refs)
-  else if (o.all) {
-    if (o.excludes) args.push(...o.excludes.map(g => `--exclude=${g}`))
-    args.push('--all')
-  }
-  return args
 }
 
 /** A record's first field: the full hash, at the start of a line. */
@@ -310,6 +364,39 @@ export function parseLog(raw: string, numstat = false): LogCommit[] {
 
 export async function log(run: GitRunner, options: LogOptions): Promise<LogCommit[]> {
   return parseLog(await run(['log', ...logArgs(options)]), !!options.numstat)
+}
+
+/**
+ * Why a rewrite cannot touch these commits — the message BOTH products give.
+ *
+ * Drop, Move and Reword are one rebase of the checked-out branch, so the
+ * commits they can act on are the ones that branch's history holds. Anything
+ * else was answered "Commit not found", which says the commit does not exist —
+ * about a commit the user is looking at, with its hash and its subject on the
+ * row they right-clicked. Two different states wore one sentence, and the
+ * wrong one: the graph draws commits from every branch, not just yours, so
+ * asking this of a commit on another branch is an ordinary mistake to make.
+ *
+ * `missing` are the hashes rev-list did not hold; this asks git which of them
+ * exist, so "no such commit" is only ever said about a commit there is none of.
+ */
+export async function explainUnrewritable(run: GitRunner, missing: string[]): Promise<string> {
+  const gone: string[] = []
+  const elsewhere: string[] = []
+  for (const h of missing) {
+    let exists = false
+    try { exists = !!(await run(['rev-parse', '--verify', '--quiet', `${h}^{commit}`])).trim() } catch { /* not a commit */ }
+    ;(exists ? elsewhere : gone).push(h.slice(0, 7))
+  }
+  if (!elsewhere.length) return `No such commit: ${gone.join(', ')}`
+  let where = 'the history you have checked out'
+  try {
+    const branch = (await run(['symbolic-ref', '--short', '-q', 'HEAD'])).trim()
+    if (branch) where = `"${branch}"`
+  } catch { /* detached: the wording above is the true one */ }
+  const subject = elsewhere.length === 1 ? `${elsewhere[0]} is not on` : `${elsewhere.join(', ')} are not on`
+  const also = gone.length ? ` (${gone.join(', ')}: no such commit)` : ''
+  return `${subject} ${where} — rewriting can only remove commits from the branch you are on.${also}`
 }
 
 export function assertRef(ref: string, label = 'reference'): string | null {
