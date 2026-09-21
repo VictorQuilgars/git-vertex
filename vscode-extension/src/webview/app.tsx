@@ -566,6 +566,22 @@ function VertexApp() {
     () => runOp(t('ext.app.rebaseOnto', name), () => window.gitAPI.rebaseOnto(name), true),
   ), [runOp, guardConflict])
 
+  /**
+   * The way out of a request's conflict (#305) — the panel's half of it.
+   *
+   * The base is read from the REMOTE and fetched first: a local branch of that
+   * name may be behind, and merging a stale base resolves a conflict the forge
+   * still has. From there it is the panel's own merge and rebase, guard
+   * included, so a conflict lands where every other conflict does.
+   */
+  const takeBaseIntoHead = useCallback(async (what: 'merge' | 'rebase', baseRef: string) => {
+    const remote = remoteNames[0] ?? 'origin'
+    await window.gitAPI.fetchRemote(remote).catch(() => null)
+    const base = `${remote}/${baseRef}`
+    if (what === 'merge') await handleMergeBranch(base)
+    else await handleRebaseCurrentOnto(base)
+  }, [remoteNames, handleMergeBranch, handleRebaseCurrentOnto])
+
   // Reword works on any commit: HEAD is a plain amend; any other commit goes
   // through a targeted mini-rebase (pick everything, reword just that one),
   // reusing the same interactiveRebase(sequence, messages) infra the
@@ -858,6 +874,13 @@ function VertexApp() {
   }, [runOp])
   const handlePushBranch = useCallback((name: string) =>
     runOp(`Push ${name}`, () => window.gitAPI.pushBranch(name)), [runOp])
+  /** Bring the request's head branch and its upstream back into line (#306). */
+  const syncHeadBranch = useCallback(async (what: 'push' | 'pull', branch: string) => {
+    if (what === 'push') { await handlePushBranch(branch); return }
+    // git-core's own sentence on a refusal — diverged, tracks nothing, already
+    // up to date — because each of the three calls for something different.
+    await runOp(`Pull ${branch}`, () => window.gitAPI.pullBranch(branch))
+  }, [handlePushBranch, runOp])
   const handleSetUpstream = useCallback((name: string) =>
     runOp(t('ext.app.upstreamSet'), () => window.gitAPI.setUpstream(name)), [runOp])
   const handleDeleteRemoteBranch = useCallback(async (ref: string) => {
@@ -1581,6 +1604,8 @@ function VertexApp() {
                 onClose={() => setIssueDetail(null)}
                 onChanged={() => { if (githubRepo) void loadGhLists(githubRepo) }}
                 onCode={(what) => { void pullRequestCode(issueDetail.item, what) }}
+                onTakeBase={(what, baseRef) => { void takeBaseIntoHead(what, baseRef) }}
+                onSyncHead={(what, branch) => { void syncHeadBranch(what, branch) }}
               />
             ) : (
               <IssueDetail

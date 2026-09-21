@@ -419,6 +419,34 @@ export default function App() {
     onCompare: (base, head, axis) => openViewTab({ view: 'compare', a: base, b: head, axis, label: `${base} … ${head}` }),
     onSwitched: () => { void loadRepoData() },
   })
+  /**
+   * The way out of a request's conflict (#305).
+   *
+   * The base is taken from the REMOTE, and fetched first: a local branch of
+   * that name may be behind, and merging a stale base resolves a conflict the
+   * forge still has — the user would come back to the same red line.
+   *
+   * From there it is the app's own merge and rebase, guard, confirmation and
+   * all, so a conflict lands in the conflicts panel with *Resolve all with
+   * AI* like any other.
+   */
+  const takeBaseIntoHead = async (what: 'merge' | 'rebase', baseRef: string) => {
+    const remote = remoteNames[0] ?? 'origin'
+    await window.gitAPI.fetchRemote(remote).catch(() => null)
+    const base = `${remote}/${baseRef}`
+    if (what === 'merge') await handleMergeBranch(base)
+    else await handleRebaseOnto(base)
+  }
+  /** Bring the request's head branch and its upstream back into line (#306). */
+  const syncHeadBranch = async (what: 'push' | 'pull', branch: string) => {
+    if (what === 'push') { await handlePushBranch(branch); return }
+    const r = await window.gitAPI.pullBranch(branch)
+    // git-core's own sentence — "diverged", "tracks no branch", "already up to
+    // date" each call for something different, and "could not pull" for none.
+    if (!r.success) { showToast(t('toast.err', r.error ?? ''), 'err'); return }
+    showToast(r.upToDate ? t('sb.branch.pullUpToDate', branch) : t('sb.branch.pulledNamed', branch, r.moved ?? 0))
+    await loadRepoData()
+  }
   const compactDetails = !!selectedCommit && !conflictResolverFile && !rebaseHash && !viewTab && !issueDetail
     && detailsTakeCenter(windowWidth, repoPath ? sidebarW : 0, rightW)
   // The minimap's block, above the three panes; the graph draws into it.
@@ -989,6 +1017,8 @@ export default function App() {
               onClose={() => setIssueDetail(null)}
               onChanged={() => { if (githubOwnerRepo) void loadGithubLists(githubOwnerRepo) }}
               onCode={what => { void pullRequestCode(issueDetail.item, what) }}
+              onTakeBase={(what, baseRef) => { void takeBaseIntoHead(what, baseRef) }}
+              onSyncHead={(what, branch) => { void syncHeadBranch(what, branch) }}
             />
             ) : (
             <IssueDetail

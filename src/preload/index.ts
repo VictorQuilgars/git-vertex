@@ -109,6 +109,13 @@ const gitAPI = {
   unlockWorktree: (path: string) => invoke('git:unlock-worktree', path),
   copyWorktreeChanges: (from: string, to: string, label: string) => invoke('git:copy-worktree-changes', from, to, label),
   fetchPullRequest: (number: number, opts?: { checkout?: boolean; remote?: string }) => invoke('git:fetch-pull-request', number, opts),
+  // Which files a request would conflict on — the names behind the forge's
+  // boolean (#305). Both sides are read from the remote and no ref is written.
+  pullRequestConflicts: (number: number, opts: { baseRef: string; headSha?: string; remote?: string }) =>
+    invoke('git:pull-request-conflicts', number, opts),
+  // The branch's commits whose change the target already has under another
+  // hash — what a rebase- or squash-merge of a base leaves behind (#307).
+  duplicateCommits: (branch: string, target: string) => invoke('git:duplicate-commits', branch, target),
   listRemoteBranches: () => invoke('git:list-remote-branches'),
   squashFixups: (base: string) => invoke('git:squash-fixups', base),
   listFixups: (base: string) => invoke('git:list-fixups', base),

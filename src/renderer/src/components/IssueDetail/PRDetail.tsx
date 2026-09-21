@@ -75,7 +75,7 @@ interface Comment { author: string; createdAt: string; body: string }
 
 function api(): any { return window.gitAPI as any }
 
-export default function PRDetail({ repo, number, onClose, onChanged, onCode }: {
+export default function PRDetail({ repo, number, onClose, onChanged, onCode, onTakeBase, onSyncHead }: {
   repo: { owner: string; repo: string }
   number: number
   onClose: () => void
@@ -87,6 +87,18 @@ export default function PRDetail({ repo, number, onClose, onChanged, onCode }: {
    * Omitted ⇒ the buttons are not drawn.
    */
   onCode?: (what: 'switch' | 'worktree' | 'changes' | 'compare') => void
+  /**
+   * The way out of a conflict (#305): take the base into the head branch, or
+   * replay the head branch onto it. `base` is the remote's ref — the tip the
+   * forge would merge into, never a local branch of that name.
+   *
+   * Offered only on the checked-out head branch: both of these rewrite the
+   * branch you are standing on, and doing that to a branch somebody is not
+   * looking at is not a button, it is a surprise.
+   */
+  onTakeBase?: (what: 'merge' | 'rebase', base: string) => void
+  /** Bring the head branch level with its upstream when the two have drifted (#306). */
+  onSyncHead?: (what: 'push' | 'pull', branch: string) => void
 }) {
   const { t } = useLang()
   const [pr, setPr] = useState<FullPR | null>(null)
@@ -129,6 +141,23 @@ export default function PRDetail({ repo, number, onClose, onChanged, onCode }: {
   const [cleaning, setCleaning] = useState(false)
   const [allAssignees, setAllAssignees] = useState<string[] | null>(null)
   const [allLabels, setAllLabels] = useState<GithubLabel[] | null>(null)
+  /**
+   * WHICH files conflict (#305) — the names the forge does not give. `null`
+   * means the question has not been put; `asking` that it is in flight. A
+   * result with an `error` is UNKNOWN and says so: an empty list from a
+   * prediction that could not run must never be read as "nothing conflicts".
+   */
+  const [conflicts, setConflicts] = useState<{ files: string[]; error?: string; head?: string; moved?: boolean } | null>(null)
+  const [asking, setAsking] = useState(false)
+  /** Forces a re-ask after the user acted, or asked again. */
+  const [askTick, setAskTick] = useState(0)
+  /**
+   * What THIS machine holds for the request's head branch — `undefined` while
+   * unknown, `null` when there is no local branch of that name (#306). A
+   * request is about the head that was PUSHED; everything else on screen is
+   * about the branch here, and when they differ nothing said so.
+   */
+  const [head, setHead] = useState<{ sha: string; ahead: number; behind: number; current: boolean; upstream?: string } | null | undefined>(undefined)
 
   useEffect(() => {
     let alive = true
@@ -279,6 +308,54 @@ export default function PRDetail({ repo, number, onClose, onChanged, onCode }: {
     // is left decides whether anything is still worth offering.
   }, [pr, cleanup])
 
+  /**
+   * The head branch as THIS machine has it (#306) — one local read, re-taken
+   * whenever the request changes. `null` is a real answer: no branch of that
+   * name here, so there is nothing for the request to disagree with.
+   */
+  useEffect(() => {
+    const ref = pr?.headRef
+    if (!ref) { setHead(undefined); return }
+    let alive = true
+    void (api().getBranches?.() ?? Promise.resolve(null))
+      .then((r: any) => {
+        if (!alive) return
+        const b = ((r?.branches ?? []) as any[]).find(x => !x.remote && x.name === ref)
+        setHead(b
+          ? { sha: b.commit ?? '', ahead: b.ahead ?? 0, behind: b.behind ?? 0, current: !!b.current, upstream: b.upstream }
+          : null)
+      })
+      .catch(() => { if (alive) setHead(undefined) })
+    return () => { alive = false }
+  }, [pr, cleanup])
+
+  /**
+   * WHICH files conflict (#305).
+   *
+   * Asked only once the forge has actually said unmergeable, and re-asked when
+   * the head or the base moves: it reads both sides from the REMOTE, which is
+   * two fetches, and the poll above must not turn that into a heartbeat. Every
+   * dependency is a primitive for the same reason — a poll that changed
+   * nothing re-creates no request.
+   */
+  useEffect(() => {
+    if (!pr || pr.merged || pr.state !== 'open' || pr.mergeable !== false) {
+      setConflicts(null); setAsking(false); return
+    }
+    let alive = true
+    setAsking(true)
+    void Promise.resolve(api().pullRequestConflicts?.(number, { baseRef: pr.baseRef, headSha: pr.headSha }))
+      .then((r: any) => {
+        if (!alive) return
+        // An older host answers `not-implemented`, which carries an error and
+        // no files — and reads as UNKNOWN, never as "nothing conflicts".
+        setConflicts({ files: r?.files ?? [], error: r?.error ?? (r ? undefined : 'not available'), head: r?.head, moved: r?.moved })
+      })
+      .catch((e: any) => { if (alive) setConflicts({ files: [], error: e?.message ?? 'error' }) })
+      .finally(() => { if (alive) setAsking(false) })
+    return () => { alive = false }
+  }, [number, pr?.mergeable, pr?.headSha, pr?.baseRef, pr?.merged, pr?.state, askTick])
+
   const patch = useCallback(async (p: object, apply: () => void) => {
     setBusy(true); setError(null)
     const r = await api().githubUpdateIssue(repo.owner, repo.repo, number, p).catch((e: any) => ({ error: e.message }))
@@ -407,6 +484,36 @@ export default function PRDetail({ repo, number, onClose, onChanged, onCode }: {
               <span className="idv-cost-del">−{pr.deletions}</span>
             </div>
 
+            {/* A request is about the head that was PUSHED; the branch card, the
+                graph and everything else on screen are about the branch HERE.
+                When the two have drifted apart the pane used to show both and
+                connect neither — a card reading "no conflict" of a freshly
+                rebased branch, beside a request reading "conflicts with the
+                base", each true of a different commit (#306). */}
+            {head && head.sha && pr.headSha && head.sha !== pr.headSha && (
+              <div className="idv-elsewhere">
+                <Icon name="info" size={12} />
+                <div className="idv-elsewhere-text">
+                  <div className="idv-elsewhere-head">{t('gh.pr.aboutRemote', head.upstream || `${pr.headRef} on the remote`)}</div>
+                  <div className="idv-elsewhere-why">{t('gh.pr.aboutRemoteCounts', head.ahead, head.behind)}</div>
+                </div>
+                {onSyncHead && (
+                  <div className="idv-elsewhere-acts">
+                    {head.ahead > 0 && (
+                      <button className="idv-btn" disabled={busy} onClick={() => onSyncHead('push', pr.headRef)}>
+                        {t('gh.pr.aboutRemotePush')}
+                      </button>
+                    )}
+                    {head.behind > 0 && (
+                      <button className="idv-btn" disabled={busy} onClick={() => onSyncHead('pull', pr.headRef)}>
+                        {t('gh.pr.aboutRemotePull')}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="idv-cols">
               <div className="idv-main">
                 <div className="idv-block-head">
@@ -476,11 +583,65 @@ export default function PRDetail({ repo, number, onClose, onChanged, onCode }: {
                         : headChecks.pending ? t('gh.pr.checksPending', headChecks.pending, headChecks.total)
                         : t('gh.pr.checksPassed', headChecks.total)}
                     </div>
+                    {/* The forge answers this one with a BOOLEAN. The names are
+                        one merge-tree away, and the row carries their count as
+                        soon as it has them (#305) — until then it says exactly
+                        what it used to, rather than a number it is guessing. */}
                     <div className={`idv-merge-row idv-merge-row--${pr.mergeable === null ? 'unknown' : pr.mergeable ? 'ok' : 'bad'}`}>
                       <Icon name={pr.mergeable === null ? 'clock' : pr.mergeable ? 'check' : 'conflict'} size={12} />
                       {pr.mergeable === null ? t('gh.pr.mergeComputing')
-                        : pr.mergeable ? t('gh.pr.noConflicts') : t('gh.pr.conflicts')}
+                        : pr.mergeable ? t('gh.pr.noConflicts')
+                        : conflicts && !conflicts.error && conflicts.files.length > 0
+                          ? t('gh.pr.conflictsN', conflicts.files.length)
+                          : t('gh.pr.conflicts')}
                     </div>
+                    {pr.mergeable === false && !pr.merged && pr.state === 'open' && (
+                      <div className="idv-conflicts">
+                        {asking && <div className="idv-conflicts-wait">{t('gh.pr.conflictsAsking')}</div>}
+                        {/* A prediction that could not run is UNKNOWN. Saying
+                            "no files" of it would be the same mistake the row
+                            above made, one layer down. */}
+                        {!asking && conflicts?.error && (
+                          <div className="idv-conflicts-unknown">
+                            <span>{t('gh.pr.conflictsUnknown', conflicts.error)}</span>
+                            <button className="idv-btn" onClick={() => setAskTick(n => n + 1)}>{t('gh.pr.conflictsRetry')}</button>
+                          </div>
+                        )}
+                        {!asking && !conflicts?.error && conflicts && conflicts.files.length > 0 && (
+                          <ul className="idv-conflict-files">
+                            {conflicts.files.map(f => (
+                              <li key={f} className="idv-conflict-file" title={f}>
+                                <Icon name="diff" size={11} />
+                                <span className="idv-conflict-path">{f}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {/* The way out. Both of these rewrite the branch you
+                            are standing on, so they are offered on the head
+                            branch and nowhere else — and a fork's head is not
+                            a branch of this repository at all. */}
+                        {onTakeBase && head?.current && (
+                          <div className="idv-conflicts-acts">
+                            {/* Merge first, on purpose: it is the one that rewrites nothing. */}
+                            <button className="idv-btn" disabled={busy} title={t('gh.pr.takeBaseTip', pr.baseRef, pr.headRef)}
+                              onClick={() => onTakeBase('merge', pr.baseRef)}>
+                              {t('gh.pr.takeBase', pr.baseRef)}
+                            </button>
+                            <button className="idv-btn" disabled={busy} title={t('gh.pr.rebaseOnBaseTip', pr.headRef, pr.baseRef)}
+                              onClick={() => onTakeBase('rebase', pr.baseRef)}>
+                              {t('gh.pr.rebaseOnBase', pr.baseRef)}
+                            </button>
+                          </div>
+                        )}
+                        {onTakeBase && head === null && (
+                          <div className="idv-conflicts-note">{t('gh.pr.resolveElsewhere')}</div>
+                        )}
+                        {onTakeBase && head && !head.current && (
+                          <div className="idv-conflicts-note">{t('gh.pr.resolveOnBranch', pr.headRef)}</div>
+                        )}
+                      </div>
+                    )}
                     {/* Where the viewer stands, said before the click. Only a
                         MEASURED permission speaks: `canMerge` is undefined on
                         an older host and null when the lookup failed, and

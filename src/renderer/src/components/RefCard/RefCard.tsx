@@ -122,9 +122,20 @@ export default function RefCard(props: RefCardProps) {
   // made here and not pushed says "merged" of a branch whose pull request is
   // still open, and deleting its remote side would close that request.
   const [onTargetUpstream, setOnTargetUpstream] = useState<boolean | null>(null)
+  /**
+   * The commits the target already holds under another hash (#307).
+   *
+   * A base branch merged with rebase or squash puts COPIES on the target, and
+   * a branch that was stacked on it still carries the originals — which is a
+   * guaranteed conflict in every changelog-shaped file, about a change that is
+   * already in. `git cherry` is the same patch-id test a rebase uses to drop
+   * them, so what is reported here is exactly what the rebase would remove.
+   */
+  const [dupes, setDupes] = useState<{ duplicates: { shortHash: string; subject: string }[]; total: number } | null>(null)
   useEffect(() => {
     setMerge(null)
     setOnTargetUpstream(null)
+    setDupes(null)
     if (!mergeInto) return
     let stale = false
     setMergeLoading(true)
@@ -145,6 +156,15 @@ export default function RefCard(props: RefCardProps) {
         if (ahead === 0 && behind > 0 && targetUpstream) {
           const u = await window.gitAPI.compareBranches(targetUpstream, target.name)
           if (!stale && Array.isArray(u?.ahead)) setOnTargetUpstream(u.ahead.length === 0)
+        }
+        // Only a branch with commits of its own can be carrying a copy, and
+        // the answer is one local `git cherry`. An older host has no such
+        // method: the line is simply not drawn, rather than drawn empty.
+        if (ahead > 0) {
+          const d = await window.gitAPI.duplicateCommits?.(target.name, mergeInto)
+          if (!stale && d && !d.error && Array.isArray(d.duplicates) && d.duplicates.length > 0) {
+            setDupes({ duplicates: d.duplicates, total: d.total ?? ahead })
+          }
         }
       } catch { /* no distance to show: the card says nothing about it */ }
       finally { if (!stale) setMergeLoading(false) }
@@ -393,6 +413,24 @@ export default function RefCard(props: RefCardProps) {
                         <span>{t('refcard.mergesInto')}</span>
                         <strong className="refcard-target">{merge.target}</strong>
                       </div>
+                      {/* The cause, when there is one to name (#307). A copy of
+                          your own commit on the target conflicts on every line
+                          it added — and the conflict itself says nothing about
+                          why, so the reader resolves a clash with themselves. */}
+                      {dupes && (
+                        <div className="refcard-dupes"
+                          title={t('refcard.merge.dupesTip', merge.target,
+                            dupes.duplicates.map(d => `${d.shortHash}  ${d.subject}`).join('\n'))}>
+                          <Icon name="info" size={11} />
+                          <span className="refcard-dupes-text">{t('refcard.merge.dupes', dupes.duplicates.length, merge.target)}</span>
+                          {isCurrent && props.onRebase && (
+                            <button type="button" className="refcard-btn"
+                              onClick={() => props.onRebase!(merge.target)}>
+                              {t('refcard.merge.dupesDrop', merge.target)}
+                            </button>
+                          )}
+                        </div>
+                      )}
                       <div className="refcard-card-foot">
                         {verdictChip && (
                           <span className={`refcard-verdict refcard-verdict--${verdict}`} title={verdictChip.title}>

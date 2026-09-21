@@ -308,6 +308,19 @@ declare global {
     copyWorktreeChanges: (from: string, to: string, label: string) => Promise<R & { leftInStash?: boolean }>
     /** A pull request's head as a local branch, fork included (#290). */
     fetchPullRequest: (number: number, opts?: { checkout?: boolean; remote?: string }) => Promise<R & { branch?: string; diverged?: boolean }>
+    /**
+     * WHICH files a request conflicts on — the names behind the forge's
+     * boolean (#305). Both sides are read from the remote; no ref is written.
+     * `error` means the question could not be put: UNKNOWN, never "clean".
+     */
+    pullRequestConflicts: (number: number, opts: { baseRef: string; headSha?: string; remote?: string })
+      => Promise<{ files: string[]; head?: string; base?: string; moved?: boolean; error?: string }>
+    /**
+     * The branch's commits whose change the target already has under another
+     * hash — what a rebase- or squash-merge of a base leaves behind (#307).
+     */
+    duplicateCommits: (branch: string, target: string)
+      => Promise<{ duplicates: { hash: string; shortHash: string; subject: string }[]; total: number; error?: string }>
     addWorktree: (path: string, ref: string, newBranch?: string) => Promise<R>
     removeWorktree: (path: string, force?: boolean) => Promise<R>
     selectDirectory: (title?: string) => Promise<{ path: string | null }>

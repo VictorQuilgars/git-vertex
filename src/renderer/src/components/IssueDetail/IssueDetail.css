@@ -249,3 +249,43 @@
   display: flex; flex-direction: column; gap: 2px; margin-top: var(--space-sm);
   color: var(--text-secondary); font-size: var(--text-xs);
 }
+
+/* ── Which files conflict, and the way out (#305) ─────────────── */
+/* The side column is 220px: the paths wrap rather than widen it, and the
+   middle of a long one is what gets cut — a path is read by both ends. */
+.idv-conflicts {
+  display: flex; flex-direction: column; gap: var(--space-sm);
+  margin: var(--space-xs) 0 var(--space-sm);
+  padding-left: var(--space-lg);
+  border-left: 2px solid color-mix(in srgb, var(--danger) var(--alpha-muted), transparent);
+}
+.idv-conflicts-wait { color: var(--text-tertiary); font-size: var(--text-xs); font-style: italic; }
+.idv-conflicts-unknown {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-sm);
+  color: var(--text-tertiary); font-size: var(--text-xs);
+}
+.idv-conflict-files { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.idv-conflict-file {
+  display: flex; align-items: center; gap: var(--space-sm); min-width: 0;
+  color: var(--text-secondary); font-size: var(--text-xs);
+}
+.idv-conflict-path {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  direction: rtl; text-align: left;  /* the file name survives, the folders go */
+}
+.idv-conflicts-acts { display: flex; flex-direction: column; gap: var(--space-sm); }
+.idv-conflicts-note { color: var(--text-tertiary); font-size: var(--text-xs); }
+
+/* ── The request is not about what you have (#306) ─────────────── */
+.idv-elsewhere {
+  display: flex; align-items: flex-start; gap: var(--space-sm);
+  margin-top: var(--space-md); padding: var(--space-sm) var(--space-md);
+  border: 1px solid color-mix(in srgb, var(--warning) var(--alpha-muted), transparent);
+  background: color-mix(in srgb, var(--warning) var(--alpha-faint), transparent);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary); font-size: var(--text-xs);
+}
+.idv-elsewhere-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.idv-elsewhere-head { color: var(--text-primary); font-weight: var(--weight-semibold); overflow-wrap: anywhere; }
+.idv-elsewhere-why { color: var(--text-secondary); }
+.idv-elsewhere-acts { display: flex; gap: var(--space-sm); flex-shrink: 0; }

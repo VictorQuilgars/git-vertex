@@ -326,3 +326,62 @@ describe('closing', () => {
     expect(p.onClose).toHaveBeenCalledTimes(3)
   })
 })
+
+// ── The same patch under another hash (#307) ────────────────────
+//
+// A base branch merged with rebase or squash puts a COPY of its commits on the
+// target. A branch stacked on it still carries the originals, and then every
+// changelog-shaped file conflicts over a change that is already in. The card
+// names the cause, because the conflict itself never will.
+
+describe('commits the target already holds', () => {
+  const dupes = (duplicates: any[], total = 3) =>
+    ({ duplicateCommits: jest.fn().mockResolvedValue({ duplicates, total }) })
+
+  test('says how many, and offers the rebase that drops them', async () => {
+    const p = draw({ kind: 'head', name: 'feature/login', hash: H('f') },
+      dupes([{ hash: 'd8aede9'.padEnd(40, '0'), shortHash: 'd8aede9', subject: 'the base work' }]))
+    expect(await screen.findByText('One of these commits is already in main, under another hash')).toBeTruthy()
+    // The branch is the checked-out one, so the rebase is a real offer.
+    const drop = screen.getByText('Rebase onto main to drop them')
+    drop.click()
+    expect(p.onRebase).toHaveBeenCalledWith('main')
+    // Asked about the branch against its target, in that order.
+    expect((window as any).gitAPI.duplicateCommits).toHaveBeenCalledWith('feature/login', 'main')
+  })
+
+  test('the shas and subjects are there to be read, not guessed at', async () => {
+    draw({ kind: 'head', name: 'feature/login', hash: H('f') },
+      dupes([
+        { hash: 'aaaaaaa'.padEnd(40, '0'), shortHash: 'aaaaaaa', subject: 'one' },
+        { hash: 'bbbbbbb'.padEnd(40, '0'), shortHash: 'bbbbbbb', subject: 'two' },
+      ]))
+    await screen.findByText('2 of these commits are already in main, under another hash')
+    const note = document.querySelector('.refcard-dupes')
+    expect(note?.getAttribute('title')).toContain('aaaaaaa  one')
+    expect(note?.getAttribute('title')).toContain('bbbbbbb  two')
+  })
+
+  test('none is the normal answer, and says nothing at all', async () => {
+    draw({ kind: 'head', name: 'feature/login', hash: H('f') }, dupes([]))
+    await screen.findByText('Merges into')
+    expect(document.querySelector('.refcard-dupes')).toBeNull()
+  })
+
+  test('a question that could not be put says nothing either — it is not an answer', async () => {
+    draw({ kind: 'head', name: 'feature/login', hash: H('f') },
+      { duplicateCommits: jest.fn().mockResolvedValue({ duplicates: [], total: 0, error: 'not a repository' }) })
+    await screen.findByText('Merges into')
+    expect(document.querySelector('.refcard-dupes')).toBeNull()
+  })
+
+  test('a branch with nothing of its own is never asked: it can carry no copy', async () => {
+    const api = {
+      compareBranches: jest.fn().mockResolvedValue({ ahead: [], behind: [{}, {}] }),
+      ...dupes([{ hash: 'x'.repeat(40), shortHash: 'xxxxxxx', subject: 'never asked' }]),
+    }
+    draw({ kind: 'head', name: 'spike', hash: H('s') }, api)
+    await screen.findByText('Merges into')
+    expect(api.duplicateCommits).not.toHaveBeenCalled()
+  })
+})

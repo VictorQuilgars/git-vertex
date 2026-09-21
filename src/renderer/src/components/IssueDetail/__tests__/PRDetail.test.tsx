@@ -20,7 +20,8 @@ const FULL_PR = {
   url: 'https://x/pr/42',
 }
 
-function draw(prOverrides: Record<string, any> = {}, apiOverrides: Record<string, any> = {}) {
+function draw(prOverrides: Record<string, any> = {}, apiOverrides: Record<string, any> = {},
+  props: Record<string, any> = {}) {
   const api = installMockGitAPI({
     githubGetPR: jest.fn().mockResolvedValue({ pr: { ...FULL_PR, ...prOverrides } }),
     githubGetChecks: jest.fn().mockResolvedValue({ checks: { total: 5, passed: 5, failed: 0, pending: 0 } }),
@@ -43,7 +44,7 @@ function draw(prOverrides: Record<string, any> = {}, apiOverrides: Record<string
     ...apiOverrides,
   })
   const view = renderWithProviders(
-    <PRDetail repo={{ owner: 'o', repo: 'r' }} number={42} onClose={() => {}} />
+    <PRDetail repo={{ owner: 'o', repo: 'r' }} number={42} onClose={() => {}} {...props} />
   )
   return { api, ...view }
 }
@@ -754,5 +755,129 @@ describe('a finished request offers only what is left to do', () => {
     await screen.findByText('Merged')
     await userEvent.click(await screen.findByText('Delete Work Branches'))
     expect(await screen.findByText(/Remote : not found/)).toBeInTheDocument()
+  })
+})
+
+// ── The files behind "Conflicts with the base" (#305) ───────────
+//
+// The forge answers with a boolean. The pane used to render it and stop, which
+// made it the one state in the app that says something is wrong and offers
+// neither the what nor the how.
+
+const CONFLICTING = { mergeable: false, mergeableState: 'dirty' }
+
+describe('a conflicting request', () => {
+  test('names the files, and the row counts them', async () => {
+    const pullRequestConflicts = jest.fn().mockResolvedValue({
+      files: ['CHANGELOG.md', 'src/main/release-notes.ts'], head: 'abc123', base: 'deadbee',
+    })
+    draw(CONFLICTING, { pullRequestConflicts })
+    expect(await screen.findByText('Conflicts with the base — 2 files')).toBeInTheDocument()
+    expect(screen.getByText('CHANGELOG.md')).toBeInTheDocument()
+    expect(screen.getByText('src/main/release-notes.ts')).toBeInTheDocument()
+    // Both sides read from the remote: the base is a branch NAME, and the head
+    // the forge's own sha, so a prediction about another commit can be spotted.
+    expect(pullRequestConflicts).toHaveBeenCalledWith(42, { baseRef: 'main', headSha: 'abc123' })
+  })
+
+  test('is not asked at all while the forge says it merges cleanly', async () => {
+    const pullRequestConflicts = jest.fn()
+    draw({}, { pullRequestConflicts })
+    expect(await screen.findByText('No conflicts')).toBeInTheDocument()
+    expect(pullRequestConflicts).not.toHaveBeenCalled()
+  })
+
+  test('a prediction that could not run is unknown — never "no files"', async () => {
+    draw(CONFLICTING, {
+      pullRequestConflicts: jest.fn().mockResolvedValue({ files: [], error: 'git 2.37 is too old' }),
+    })
+    expect(await screen.findByText(/Could not tell which files: git 2.37 is too old/)).toBeInTheDocument()
+    // The row keeps the forge's own words rather than claiming a count of zero.
+    expect(screen.getByText('Conflicts with the base')).toBeInTheDocument()
+  })
+
+  test('an older host, which has no such method, reads as unknown too', async () => {
+    draw(CONFLICTING, { pullRequestConflicts: undefined })
+    expect(await screen.findByText(/Could not tell which files/)).toBeInTheDocument()
+  })
+
+  test('the way out is offered on the head branch, merge before rebase', async () => {
+    const onTakeBase = jest.fn()
+    draw(CONFLICTING, {
+      pullRequestConflicts: jest.fn().mockResolvedValue({ files: ['CHANGELOG.md'] }),
+      getBranches: jest.fn().mockResolvedValue({
+        branches: [{ name: 'feat/speed', commit: 'abc123', remote: false, current: true }],
+      }),
+    }, { onTakeBase })
+    const update = await screen.findByText('Update from main')
+    const rebase = screen.getByText('Rebase onto main')
+    // Merge first, on purpose: it is the one that rewrites nothing.
+    expect(update.compareDocumentPosition(rebase) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    await userEvent.click(update)
+    expect(onTakeBase).toHaveBeenCalledWith('merge', 'main')
+  })
+
+  test('on another branch it says which one to stand on, and offers nothing', async () => {
+    draw(CONFLICTING, {
+      pullRequestConflicts: jest.fn().mockResolvedValue({ files: ['CHANGELOG.md'] }),
+      getBranches: jest.fn().mockResolvedValue({
+        branches: [
+          { name: 'feat/speed', commit: 'abc123', remote: false },
+          { name: 'main', commit: 'deadbee', remote: false, current: true },
+        ],
+      }),
+    }, { onTakeBase: jest.fn() })
+    expect(await screen.findByText('Switch to feat/speed to resolve them here')).toBeInTheDocument()
+    expect(screen.queryByText('Update from main')).not.toBeInTheDocument()
+  })
+
+  test("a fork's head is not a branch here, and the pane says so instead", async () => {
+    draw(CONFLICTING, {
+      pullRequestConflicts: jest.fn().mockResolvedValue({ files: ['CHANGELOG.md'] }),
+      getBranches: jest.fn().mockResolvedValue({ branches: [{ name: 'main', commit: 'deadbee', remote: false, current: true }] }),
+    }, { onTakeBase: jest.fn() })
+    expect(await screen.findByText(/resolve it from the one that holds it/)).toBeInTheDocument()
+  })
+})
+
+// ── The request is not always about what you have (#306) ────────
+
+describe('a head that is not the one on this machine', () => {
+  const DIVERGED = {
+    branches: [
+      { name: 'feat/speed', commit: 'localtip', remote: false, current: true, upstream: 'origin/feat/speed', ahead: 2, behind: 2 },
+    ],
+  }
+
+  test('says which reference the request is about, and offers push and pull', async () => {
+    const onSyncHead = jest.fn()
+    draw({}, { getBranches: jest.fn().mockResolvedValue(DIVERGED) }, { onSyncHead })
+    expect(await screen.findByText('This request is about origin/feat/speed, not what you have here')).toBeInTheDocument()
+    expect(screen.getByText(/2 to push, 2 to pull/)).toBeInTheDocument()
+    await userEvent.click(screen.getByText('Push'))
+    expect(onSyncHead).toHaveBeenCalledWith('push', 'feat/speed')
+  })
+
+  test('offers only the direction there is something to do in', async () => {
+    draw({}, {
+      getBranches: jest.fn().mockResolvedValue({
+        branches: [{ name: 'feat/speed', commit: 'localtip', remote: false, current: true, upstream: 'origin/feat/speed', ahead: 3, behind: 0 }],
+      }),
+    }, { onSyncHead: jest.fn() })
+    expect(await screen.findByText(/not what you have here/)).toBeInTheDocument()
+    expect(screen.getByText('Push')).toBeInTheDocument()
+    expect(screen.queryByText('Pull')).not.toBeInTheDocument()
+  })
+
+  test('says nothing when the two agree', async () => {
+    draw()
+    await screen.findByText('Speed up the graph')
+    expect(screen.queryByText(/not what you have here/)).not.toBeInTheDocument()
+  })
+
+  test('says nothing when no branch of that name is here — there is nothing to disagree with', async () => {
+    draw({}, { getBranches: jest.fn().mockResolvedValue({ branches: [{ name: 'main', commit: 'deadbee', remote: false }] }) })
+    await screen.findByText('Speed up the graph')
+    expect(screen.queryByText(/not what you have here/)).not.toBeInTheDocument()
   })
 })
