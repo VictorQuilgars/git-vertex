@@ -119,7 +119,11 @@ export function readAIConfig(gv: Record<string, string>, feature?: AIFeature): A
   else if (trimmed(gv.aiDefaultProvider) && trimmed(gv.aiDefaultModel) && usable(trimmed(gv.aiDefaultProvider))) {
     provider = trimmed(gv.aiDefaultProvider); model = trimmed(gv.aiDefaultModel)
   } else {
-    provider = pinnedProvider || legacyProvider
+    // The last resort answers whatever was asked — the pin drops here when it
+    // cannot serve the feature, and dropping onto the same provider again
+    // would be the same dead end.
+    const last = pinnedProvider || legacyProvider
+    provider = serves(last) ? last : (serves(legacyProvider) ? legacyProvider : 'groq')
     model = gv[MODEL_SETTING[provider] ?? ''] || MODEL_DEFAULTS[provider] || MODEL_DEFAULTS.groq
   }
   const def = providerById(gv, provider)

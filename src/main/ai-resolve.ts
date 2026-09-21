@@ -40,6 +40,17 @@ const keyFor = (s: AISettings, p: string): string => {
 }
 
 /**
+ * Known, and with an answer for THIS feature — the gate without the
+ * credential, for the last resort, which is allowed to have no key (the call
+ * then fails as NO_API_KEY, which says what to do) but not to be unable to
+ * answer at all.
+ */
+const serves = (s: AISettings, p: string, feature?: AIFeature): boolean => {
+  const def = providerById(s, p)
+  return !!def && providerServes(def, feature)
+}
+
+/**
  * Usable = credentialed (or a custom endpoint — keyless local runtimes), AND
  * able to answer THIS feature.
  *
@@ -86,7 +97,15 @@ export function resolveAICall(s: AISettings, feature?: AIFeature): ResolvedAI {
   else if (!fp && fm && usable(s, legacyProvider, feature)) { provider = legacyProvider; model = fm }
   else if (trimmed(s.aiDefaultProvider) && trimmed(s.aiDefaultModel) && usable(s, trimmed(s.aiDefaultProvider), feature)) {
     provider = trimmed(s.aiDefaultProvider); model = trimmed(s.aiDefaultModel)
-  } else { provider = legacyProvider; model = legacyModels[legacyProvider] }
+  } else {
+    // The last resort answers whatever was asked — it is what the three
+    // levels above fall onto — so a provider that serves only some features
+    // cannot be it. `aiProvider` is the pre-rework setting and only ever held
+    // one of the four, but it is a string in a JSON file anybody can edit,
+    // and landing here with a judgement engine would mean no model at all.
+    provider = serves(s, legacyProvider, feature) ? legacyProvider : 'groq'
+    model = legacyModels[provider] ?? legacyModels.groq
+  }
   const def = providerById(s, provider)
   return {
     provider, model,

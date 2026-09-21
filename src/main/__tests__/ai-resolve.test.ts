@@ -168,6 +168,29 @@ describe('a provider that serves only some features', () => {
     expect(r.provider).toBe('groq')
   })
 
+  test('the last resort is never a provider that cannot answer', () => {
+    // Level 4 is what the three above fall onto, so it has to answer whatever
+    // was asked. `aiProvider` predates the rework and only ever held one of
+    // the four — but it is a string in a JSON file, and landing here with a
+    // judgement engine would leave the call with no model at all.
+    const r = resolveAICall({ ...KEY, aiProvider: 'typesafe' }, 'commit')
+    expect(r.provider).toBe('groq')
+    expect(r.model).toBe('llama-3.3-70b-versatile')
+  })
+
+  test('it still answers there for a feature it serves', () => {
+    const r = resolveAICall({ ...KEY, aiProvider: 'typesafe' }, 'search')
+    expect(r).toEqual(expect.objectContaining({ provider: 'typesafe', dialect: 'typesafe' }))
+  })
+
+  test('an unknown legacy provider lands on a real one rather than on nothing', () => {
+    // Falls out of the same gate: an id nothing in the catalog answers to used
+    // to come back paired with `model: undefined`.
+    const r = resolveAICall({ aiGroqKey: 'gsk_x', aiProvider: 'not-a-provider' }, 'commit')
+    expect(r.provider).toBe('groq')
+    expect(r.model).toBe('llama-3.3-70b-versatile')
+  })
+
   test('every feature a catalog entry claims is a real feature', () => {
     // The DIFF_FEATURES arrangement: `AIFeature` is a type, erased before any
     // test can see it, so the union is read out of its own source. A typo in
