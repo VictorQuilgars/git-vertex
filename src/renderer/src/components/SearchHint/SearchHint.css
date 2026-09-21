@@ -66,3 +66,30 @@
 .shint-op { flex: none; width: 56px; font-family: 'JetBrains Mono', monospace; font-size: var(--text-tiny); font-weight: 600; color: var(--accent); }
 .shint-label { flex: 1; min-width: 0; color: var(--text-primary-soft); }
 .shint-example { flex: none; font-family: 'JetBrains Mono', monospace; font-size: var(--text-tiny); color: var(--text-tertiary); }
+
+/* ── Plain language, the panel's first offer ─────────────────────────────────
+   Drawn with the iris the app gives to what the MODEL does, and never as a
+   filled button: the seed's rule. */
+.shint-ask { align-items: center; color: var(--text-primary); }
+.shint-ask .shint-label { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* `--purple-soft` is the seed itself: `--purple` is the darkened cut, for a
+   border or a fill, and a 13px stroke drawn in it disappears. */
+.shint-ask > svg { flex: none; color: var(--purple-soft); }
+.shint-ask:disabled { cursor: default; color: var(--text-tertiary); }
+.shint-ask:disabled > svg { color: var(--text-tertiary); }
+.shint-ask:not(:disabled):hover { background: color-mix(in srgb, var(--purple) var(--alpha-subtle), transparent); }
+.shint-ask--on > svg { color: var(--purple-soft); }
+.shint-key {
+  flex: none;
+  min-width: 18px;
+  padding: 0 var(--space-2xs);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-tiny);
+  line-height: 1.5;
+  text-align: center;
+  color: var(--text-tertiary);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xs);
+}
+.shint-split { height: 1px; margin: var(--space-xs) var(--space-sm); background: var(--border-muted); }

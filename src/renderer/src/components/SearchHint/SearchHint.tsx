@@ -1,13 +1,24 @@
 // What opens under the graph's search field when it takes the focus (#255).
 // The query stays text in the field — typed, pasted, corrected like text — and
-// this panel is where its operators are SEEN: the ones in force, each one
+// this panel is where everything the field can do is SEEN.
+//
+// TWO ways to ask, and the panel shows both because it opens before either is
+// typed. Plain language comes first: it is the one that needs no vocabulary,
+// and it used to be reachable only by finding a small button at the field's
+// right end — so the panel, opening on the very first focus, taught that
+// operators were all there was. Then the operators: the ones in force, each
 // removable on its own, then the ones there are, each with an example; a click
 // on one writes it at the end of the query and leaves the caret after it.
+//
+// The plain-language block appears only where a host answers for it (`onAsk`):
+// the desktop does, the VS Code panel does not, and a row that does nothing is
+// worse than no row.
 //
 // Both toolbars mount it (the desktop's and the panel's): `useSearchHint` is
 // the focus bookkeeping they would otherwise each write.
 import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useLang } from '../../i18n/LanguageContext'
+import { Icon } from '../Icon/Icon'
 import { appendOperator, parseDateBound, parseSearchQuery, removeTerm, type SearchOperator } from '../../utils/searchQuery'
 import './SearchHint.css'
 
@@ -32,17 +43,38 @@ export function useSearchHint() {
   return { open, boxProps: { ref: box, onFocus, onBlur, onKeyDown } }
 }
 
-export default function SearchHint({ open, query, onChange, loading = false }: {
+export default function SearchHint({ open, query, onChange, loading = false, onAsk, asking = false, answered = false }: {
   open: boolean
   query: string
   onChange: (query: string) => void
   /** git is being asked about a `file:`. */
   loading?: boolean
+  /**
+   * Ask the model what the query says, in words. Absent ⇒ this host has no
+   * such search and the block is not drawn at all.
+   */
+  onAsk?: () => void
+  /** The model is being asked right now. */
+  asking?: boolean
+  /** What the graph is showing IS the model's answer to this query. */
+  answered?: boolean
 }) {
   const { t } = useLang()
   const parsed = useMemo(() => parseSearchQuery(query), [query])
-  // A field at the right end of its toolbar — the panel's is — would push the
-  // panel past the window's edge: it then hangs from the field's right side.
+  // What would be asked: the words, without the operators — which is also what
+  // decides whether there is anything to ask at all.
+  const words = parsed.text.trim()
+  // A field at the right end of its toolbar — the panel's is, and the desktop's
+  // too — would push the panel past the window's edge: it then hangs from the
+  // field's right side.
+  //
+  // Measured after EVERY render, not once on opening: the panel is as wide as
+  // what is in it, up to its max, and what is in it changes while it is open.
+  // Measuring only on the way up saw the narrow panel of an empty field, fit
+  // it, and never looked again — so a typed sentence, which is the whole point
+  // of the first row, widened it to the cap and off the screen, taking the
+  // operators' examples and the `↵` with it. Flipping is one-way until it
+  // closes, which is what keeps it from oscillating between the two sides.
   const panel = useRef<HTMLDivElement>(null)
   const [fromEnd, setFromEnd] = useState(false)
   useLayoutEffect(() => {
@@ -50,7 +82,7 @@ export default function SearchHint({ open, query, onChange, loading = false }: {
     const el = panel.current
     if (!el || fromEnd) return
     if (el.offsetLeft + (el.offsetParent as HTMLElement | null ?? el).getBoundingClientRect().left + el.offsetWidth > window.innerWidth - 4) setFromEnd(true)
-  }, [open, fromEnd])
+  })
   if (!open) return null
   // A press in here must not take the focus out of the field it belongs to.
   const keep = (e: React.MouseEvent) => e.preventDefault()
@@ -72,6 +104,23 @@ export default function SearchHint({ open, query, onChange, loading = false }: {
           })}
           {loading && <span className="shint-loading">{t('search.hint.asking')}</span>}
         </div>
+      )}
+      {onAsk && (
+        <>
+          <div className="shint-head">{t('search.ask.title')}</div>
+          <button type="button" className={`shint-row shint-ask${answered ? ' shint-ask--on' : ''}`} tabIndex={-1}
+            disabled={!words || asking} onClick={onAsk}>
+            <Icon name="ai" size={13} />
+            <span className="shint-label">
+              {asking ? t('search.ask.asking')
+                : !words ? t('search.ask.empty')
+                : answered ? t('search.ask.again') : t('search.ask.go', words)}
+            </span>
+            {words && !asking && <kbd className="shint-key">↵</kbd>}
+          </button>
+          {!words && <div className="shint-foot">{t('search.ask.example')}</div>}
+          <div className="shint-split" />
+        </>
       )}
       <div className="shint-head">{t('search.hint.title')}</div>
       {ROWS.map(row => (

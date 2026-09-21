@@ -224,7 +224,7 @@ const fr = {
   'toolbar.update.label': 'Mise à jour',
   'toolbar.settings.tooltip': 'Paramètres',
   'toolbar.openPR.tooltip': 'Ouvrir une Pull Request sur GitHub',
-  'toolbar.search.placeholder': 'Rechercher commits…',
+  'toolbar.search.placeholder': 'Rechercher des commits, ou poser une question…',
   'toolbar.extSearch.tooltip': 'Recherche étendue : cherche aussi dans le contenu des diffs (pas seulement les messages)',
   'search.reach.beyond': (n: number, position: string) => n === 1
     ? `Un résultat est au-delà de ce que le graphe charge, en position ${position}.`
@@ -232,8 +232,8 @@ const fr = {
   'search.reach.unreached': (n: number) => n === 1
     ? `Un résultat est sur une branche que le graphe n'affiche pas.`
     : `${n} résultats sont sur des branches que le graphe n'affiche pas.`,
-  'toolbar.aiSearch.placeholder': 'Rechercher en langage naturel, Entrée pour lancer…',
-  'toolbar.aiSearch.tooltip': "Recherche IA en langage naturel (ex : « les commits qui touchent le CSS du graphe »)",
+  'toolbar.aiSearch.asking': 'Interrogation du modèle…',
+  'toolbar.aiSearch.answered': 'Ces lignes sont la réponse du modèle — modifier la requête revient au filtre',
   'toolbar.undo.tooltip': 'Annuler la dernière action (reset --soft)',
   'toolbar.redo.tooltip': 'Rétablir la dernière action annulée',
   'toolbar.stash.tooltip': 'Remiser les modifications (stash)',
@@ -541,7 +541,13 @@ const fr = {
   'graph.keys.help': 'Afficher cette aide',
   'graph.keys.click': 'Clic',
   'graph.keys.foot': 'Des lettres simples, jamais un accord — et jamais pendant la saisie dans un champ.',
-  'search.hint.label': 'Opérateurs de recherche',
+  'search.hint.label': 'Rechercher des commits',
+  'search.ask.title': 'Demander en clair',
+  'search.ask.empty': 'Décrire les commits recherchés, en une phrase',
+  'search.ask.example': 'Par exemple : les commits qui touchent le CSS du graphe',
+  'search.ask.go': (words: string) => `Demander au modèle « ${words} »`,
+  'search.ask.again': 'Redemander au modèle',
+  'search.ask.asking': 'Interrogation du modèle…',
   'search.hint.title': 'Affiner avec un opérateur',
   'search.hint.foot': 'Les opérateurs se combinent entre eux et avec les mots : author:ana file:src after:1m cache',
   'search.hint.remove': (term: string) => `Retirer ${term}`,
@@ -2513,7 +2519,7 @@ const en: typeof fr = {
   'toolbar.update.label': 'Update',
   'toolbar.settings.tooltip': 'Settings',
   'toolbar.openPR.tooltip': 'Open a Pull Request on GitHub',
-  'toolbar.search.placeholder': 'Search commits…',
+  'toolbar.search.placeholder': 'Search commits, or ask a question…',
   'toolbar.extSearch.tooltip': 'Extended search: also looks inside diff contents (not just messages)',
   'search.reach.beyond': (n: number, position: string) => n === 1
     ? `One hit is beyond what the graph loads, at position ${position}.`
@@ -2521,8 +2527,8 @@ const en: typeof fr = {
   'search.reach.unreached': (n: number) => n === 1
     ? `One hit is on a branch the graph does not show.`
     : `${n} hits are on branches the graph does not show.`,
-  'toolbar.aiSearch.placeholder': 'Search in natural language, Enter to run…',
-  'toolbar.aiSearch.tooltip': 'AI natural-language search (e.g. "commits touching the graph CSS")',
+  'toolbar.aiSearch.asking': 'Asking the model…',
+  'toolbar.aiSearch.answered': "These rows are the model's answer — edit the query to go back to filtering",
   'toolbar.undo.tooltip': 'Undo last action (reset --soft)',
   'toolbar.redo.tooltip': 'Redo last undone action',
   'toolbar.stash.tooltip': 'Stash changes',
@@ -2829,7 +2835,13 @@ const en: typeof fr = {
   'graph.keys.help': 'Show this reference',
   'graph.keys.click': 'Click',
   'graph.keys.foot': 'Plain letters, never a chord — and never while typing in a field.',
-  'search.hint.label': 'Search operators',
+  'search.hint.label': 'Search commits',
+  'search.ask.title': 'Ask in plain language',
+  'search.ask.empty': 'Describe the commits you are after, in a sentence',
+  'search.ask.example': 'For example: the commits that touch the graph CSS',
+  'search.ask.go': (words: string) => `Ask the model for "${words}"`,
+  'search.ask.again': 'Ask the model again',
+  'search.ask.asking': 'Asking the model…',
   'search.hint.title': 'Narrow with an operator',
   'search.hint.foot': 'Operators combine with each other and with the words: author:ana file:src after:1m cache',
   'search.hint.remove': (term: string) => `Remove ${term}`,
