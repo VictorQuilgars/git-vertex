@@ -71,6 +71,20 @@ interface Checks { total: number; passed: number; failed: number; pending: numbe
 const sameChecks = (a: Checks | null, b: Checks): boolean =>
   !!a && a.total === b.total && a.passed === b.passed
   && a.failed === b.failed && a.pending === b.pending
+/**
+ * The same commit, from two sides that name it differently. The forge always
+ * gives the full 40 characters; a branch read here carries what
+ * `%(objectname:short)` printed — seven, usually. Comparing them with `!==`
+ * says "different" of one commit, every time, and #306's banner told anyone
+ * whose head branch still existed that their request was about something else
+ * — under a line reading "0 to push, 0 to pull", which is the opposite.
+ *
+ * Neither side is trusted to be the long one: it is a prefix test in whichever
+ * direction the lengths fall.
+ */
+const sameCommit = (a: string, b: string): boolean =>
+  !!a && !!b && (a.startsWith(b) || b.startsWith(a))
+
 interface Comment { author: string; createdAt: string; body: string }
 
 function api(): any { return window.gitAPI as any }
@@ -490,7 +504,7 @@ export default function PRDetail({ repo, number, onClose, onChanged, onCode, onT
                 connect neither — a card reading "no conflict" of a freshly
                 rebased branch, beside a request reading "conflicts with the
                 base", each true of a different commit (#306). */}
-            {head && head.sha && pr.headSha && head.sha !== pr.headSha && (
+            {head && head.sha && pr.headSha && !sameCommit(head.sha, pr.headSha) && (
               <div className="idv-elsewhere">
                 <Icon name="info" size={12} />
                 <div className="idv-elsewhere-text">
@@ -825,7 +839,7 @@ export default function PRDetail({ repo, number, onClose, onChanged, onCode, onT
                             return ((r?.branches ?? []) as any[])
                               .filter(b => !b.remote && b.name !== pr.headRef
                                 && typeof b.commit === 'string'
-                                && (b.commit.startsWith(pr.headSha) || pr.headSha.startsWith(b.commit)))
+                                && sameCommit(b.commit, pr.headSha))
                               .map(b => b.name)
                           })()
 
