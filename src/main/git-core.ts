@@ -910,10 +910,18 @@ export async function fastForwardBranch(run: GitRunner, branch: string): Promise
 /** Every remote-tracking branch, as `origin/main` — what an upstream is picked from. */
 export async function remoteBranchNames(run: GitRunner): Promise<string[]> {
   try {
-    const raw = await run(['for-each-ref', '--format=%(refname:short)', 'refs/remotes'])
     // `origin/HEAD` is a symbolic ref to the remote's default branch, not a
     // branch anybody tracks: offering it as an upstream sets a moving target.
-    return raw.split('\n').map(s => s.trim()).filter(s => s && !/\/HEAD$/.test(s))
+    //
+    // ⚠️ It is dropped by `%(symref)` — empty on every ordinary ref — and NOT
+    // by its name. `%(refname:short)` prints `refs/remotes/origin/HEAD` as
+    // plain **`origin`**, so a filter on `/HEAD$` matches nothing and the
+    // remote's own name was offered in a list of branches (#308).
+    const raw = await run(['for-each-ref', '--format=%(refname:short)%09%(symref)', 'refs/remotes'])
+    return raw.split('\n')
+      .map(line => line.split('\t'))
+      .filter(([name, symref]) => name?.trim() && !symref?.trim())
+      .map(([name]) => name.trim())
   } catch { return [] }
 }
 
@@ -1198,5 +1206,302 @@ export async function fetchPullRequestHead(
     // The head IS fetched and waiting on its branch — name it, rather than
     // reporting the whole thing as a failure with nothing to show for it.
     return { success: false, branch: local, error: reason(e) }
+  }
+}
+
+// ── Conflicts, predicted ────────────────────────────────────────
+//
+// `git merge-tree --write-tree` answers "would this conflict, and where"
+// without touching the working tree, the index or any ref. It answers by its
+// EXIT CODE — 1 means "would conflict", and the conflicted paths are on
+// stdout — which a runner that throws on a non-zero exit cannot pass on.
+//
+// Hence the second runner below. Both services already had it privately, as
+// `execRaw`, which is how this family came to be written out twice: the
+// prediction could not be expressed over the ordinary runner, so it stayed on
+// the hosts and drifted there. One more line of adapter per host buys the
+// same single implementation everything else in this file has.
+//
+// Nothing here blocks on its own failure. A prediction that could not run is
+// UNKNOWN — a bad ref, a git too old, a remote that will not answer — and a
+// caller must never read it as "will conflict": refusing an operation because
+// a check could not be made is worse than the conflict it was guarding.
+
+export interface GitExit { code: number; stdout: string; stderr: string }
+
+/** Run git and report its exit code rather than throwing on it. */
+export type GitRawRunner = (args: string[]) => Promise<GitExit>
+
+export interface ConflictPrediction {
+  /**
+   * The paths that would clash. Empty is CLEAN **or** "could not tell" — read
+   * `error` before concluding anything from an empty list.
+   */
+  files: string[]
+  error?: string
+}
+
+/**
+ * The paths off a `merge-tree --name-only` answer, or `null` when what came
+ * back is not one.
+ *
+ * Its stdout is the merged tree's OID, then one conflicted path per line, then
+ * a blank line and messages for people. Only the first block is ours, and only
+ * from its second line — the machine format, so nothing here depends on git's
+ * language.
+ *
+ * ⚠️ The OID is CHECKED, and that is not ceremony. `merge-tree` exits **1**
+ * both for "these conflict" and for "I could not merge those at all" — an
+ * unknown ref, a commit that is not one — and the second prints a sentence
+ * where the tree should be. Read as a conflict list it yields no paths, which
+ * every caller then reads as A CLEAN MERGE: a typo in a ref name answered
+ * "nothing will conflict". Both services shipped that for as long as they had
+ * this code. An answer with no tree is a failure, and says so.
+ */
+function conflictedPaths(stdout: string): string[] | null {
+  const [head] = stdout.split('\n\n')
+  const lines = head.split('\n')
+  if (!/^[0-9a-f]{40,64}$/.test((lines[0] ?? '').trim())) return null
+  return lines.slice(1).map(s => s.trim()).filter(Boolean)
+}
+
+/** git's own words for a failure, or the output it left instead. */
+function exitReason(r: GitExit, fallback: string): string {
+  return (r.stderr || r.stdout || fallback).trim()
+}
+
+/**
+ * Would reconciling `theirs` into `ours` conflict, and on which files — a DRY
+ * RUN that writes no ref and touches no file. Pass `mergeBase` to pin the
+ * 3-way base: a cherry-pick uses the commit's parent, a revert the commit
+ * itself; omit it for a plain merge and git finds the base.
+ *
+ * For a REBASE this is only a heuristic — it models one merge of the two tips,
+ * not the replay — so `predictRebaseConflicts` exists beside it. Needs git 2.38.
+ */
+export async function predictConflicts(
+  runRaw: GitRawRunner, theirs: string, ours = 'HEAD', mergeBase?: string,
+): Promise<ConflictPrediction> {
+  const refs: [string, string][] = [[theirs, 'theirs'], [ours, 'ours']]
+  if (mergeBase) refs.push([mergeBase, 'merge-base'])
+  for (const [ref, label] of refs) {
+    const bad = assertRef(ref, label)
+    if (bad) return { files: [], error: bad }
+  }
+  try {
+    const args = ['merge-tree', '--write-tree', '--name-only']
+    if (mergeBase) args.push(`--merge-base=${mergeBase}`)
+    args.push(ours, theirs)
+    const r = await runRaw(args)
+    if (r.code === 0) return { files: [] }                       // clean
+    if (r.code === 1) {
+      const files = conflictedPaths(r.stdout)                    // …or no merge at all
+      if (files) return { files }
+    }
+    return { files: [], error: exitReason(r, 'merge-tree failed') }
+  } catch (e) {
+    return { files: [], error: reason(e) }
+  }
+}
+
+/** Past this many commits a replay is not simulated — see `predictRebaseConflicts`. */
+export const REBASE_SIMULATION_CAP = 100
+
+export interface RebasePrediction extends ConflictPrediction {
+  /** The short hash of the first commit whose replay conflicts. */
+  atCommit?: string
+}
+
+/**
+ * Would rebasing `branch` onto `upstream` conflict — answered by SIMULATING the
+ * replay, commit by commit, with no working tree involved. Each
+ * `merge-tree --write-tree` writes its merged tree to the object database and
+ * prints the OID, which becomes the base of the next step: exactly what a real
+ * rebase does.
+ *
+ * That is why it is not `predictConflicts(branch, upstream)`. A change made in
+ * one commit and undone in a later one nets to nothing for a merge of the two
+ * tips, and still conflicts on the way through. The answer is the conflicted
+ * files of the FIRST commit that fails, with its hash — the one a person would
+ * land on.
+ */
+export async function predictRebaseConflicts(
+  runRaw: GitRawRunner, upstream: string, branch = 'HEAD',
+): Promise<RebasePrediction> {
+  const bad = assertRef(upstream, 'upstream') ?? assertRef(branch, 'branch')
+  if (bad) return { files: [], error: bad }
+  try {
+    // What a default `git rebase` would replay, oldest first: the non-merge
+    // commits of upstream..branch, parents before children.
+    const listed = await runRaw(['rev-list', '--reverse', '--topo-order', '--no-merges', `${upstream}..${branch}`])
+    if (listed.code !== 0) return { files: [], error: exitReason(listed, 'rev-list failed') }
+    const commits = listed.stdout.split('\n').map(s => s.trim()).filter(Boolean)
+    if (commits.length === 0) return { files: [] }                       // nothing to replay
+    // Hundreds of merge-tree calls is not a pre-flight check any more: past the
+    // cap, fall back to the cheap tip-merge and its heuristic.
+    if (commits.length > REBASE_SIMULATION_CAP) return predictConflicts(runRaw, branch, upstream)
+    const start = await runRaw(['rev-parse', `${upstream}^{commit}`])
+    let current = start.stdout.trim()
+    if (!current) return { files: [], error: `Unknown upstream: ${upstream}` }
+    for (const c of commits) {
+      const r = await runRaw(['merge-tree', '--write-tree', '--name-only', `--merge-base=${c}^`, current, c])
+      if (r.code === 0) { current = r.stdout.trim().split('\n')[0]; continue }  // clean → the next base
+      if (r.code === 1) {
+        const files = conflictedPaths(r.stdout)
+        if (files) return { files, atCommit: c.slice(0, 7) }
+      }
+      return { files: [], error: exitReason(r, 'merge-tree failed') }           // bail out, never block
+    }
+    return { files: [] }                                                        // the whole replay is clean
+  } catch (e) {
+    return { files: [], error: reason(e) }
+  }
+}
+
+export interface PullRequestConflicts extends ConflictPrediction {
+  /** The head the prediction ran on — what the remote publishes for the request now. */
+  head?: string
+  /** The base's tip on the REMOTE, which is what the forge would merge into. */
+  base?: string
+  /** The request's head moved since the forge last answered: `head` is the newer one. */
+  moved?: boolean
+}
+
+/**
+ * Which files a pull request would conflict on — the question the forge answers
+ * with a boolean.
+ *
+ * A forge says *mergeable: false* and stops there. The names are one
+ * `merge-tree` away, and this is the one that gets them, for a request whose
+ * head is in a FORK as much as one whose head is a branch here: GitHub
+ * publishes every request's head under `refs/pull/<n>/head` (#290).
+ *
+ * Both sides are read from the REMOTE, and neither is written to a ref:
+ * `git fetch <remote> <ref>` leaves its answer in `FETCH_HEAD`, which is read
+ * before the next fetch overwrites it — base first, head second, because that
+ * is the order they are needed in. A local branch of the base's name is not
+ * consulted at all: it may be behind, and a prediction against a stale base is
+ * a prediction about nothing.
+ *
+ * `headSha` — what the forge said the head was — is compared with what came
+ * back. When they differ the request moved between the two answers, and the
+ * caller is told rather than left to present a prediction about one commit as
+ * a statement about another.
+ */
+export async function pullRequestConflicts(
+  run: GitRunner, runRaw: GitRawRunner,
+  opts: { remote: string; number: number; baseRef: string; headSha?: string },
+): Promise<PullRequestConflicts> {
+  const { remote, number, baseRef, headSha } = opts
+  if (!Number.isInteger(number) || number <= 0) return { files: [], error: `${number} is not a pull request number` }
+  const bad = assertRef(remote, 'remote') ?? assertRef(baseRef, 'base')
+  if (bad) return { files: [], error: bad }
+  let base: string
+  let head: string
+  try {
+    await run(['fetch', remote, baseRef])
+    base = (await run(['rev-parse', 'FETCH_HEAD'])).trim()
+  } catch (e) {
+    return { files: [], error: `could not read ${remote}/${baseRef}: ${reason(e)}` }
+  }
+  try {
+    await run(['fetch', remote, `refs/pull/${number}/head`])
+    head = (await run(['rev-parse', 'FETCH_HEAD'])).trim()
+  } catch (e) {
+    return { files: [], error: `could not read the head of #${number} from ${remote}: ${reason(e)}` }
+  }
+  if (!base || !head) return { files: [], error: `${remote} answered with no commit` }
+  const moved = !!headSha && headSha !== head
+  const r = await predictConflicts(runRaw, head, base)
+  return { ...r, head, base, ...(moved ? { moved } : {}) }
+}
+
+// ── The same patch, under another hash ──────────────────────────
+//
+// A branch merged with REBASE or SQUASH does not put its commits on the
+// target: it puts COPIES there, same patch, new hash, the merge's own date. A
+// branch that was stacked on that one still carries the originals. Both sides
+// then add the same lines in the same place, and every changelog-shaped file
+// conflicts — over a change that is already in, twice.
+//
+// `git cherry` is the answer to it, and it is patch-id underneath: `-` marks a
+// commit whose change the upstream already has, `+` one it does not. It is not
+// a guess from subjects or dates, and it is the same test `git rebase` uses to
+// drop those commits — so what this reports is exactly what a rebase would
+// remove.
+
+export interface DuplicateCommit {
+  hash: string
+  shortHash: string
+  subject: string
+}
+
+export interface DuplicateCommits {
+  /** The branch's commits whose change the target already has, oldest first. */
+  duplicates: DuplicateCommit[]
+  /** How many commits the branch has that the target lacks, duplicates included. */
+  total: number
+  error?: string
+}
+
+/**
+ * The commits `branch` carries that `target` already holds under another hash.
+ *
+ * Empty is the normal answer and says nothing is wrong. An `error` means the
+ * question could not be put — never that there are none.
+ */
+export async function duplicateCommits(
+  run: GitRunner, branch: string, target: string,
+): Promise<DuplicateCommits> {
+  const bad = assertRef(branch, 'branch') ?? assertRef(target, 'target')
+  if (bad) return { duplicates: [], total: 0, error: bad }
+  try {
+    // `-v` puts the subject after the hash. A merge commit has no patch to
+    // compare, and `git cherry` leaves them out of its own accord.
+    const out = await run(['cherry', '-v', target, branch])
+    const rows = out.split('\n').map(s => s.trimEnd()).filter(Boolean)
+    const duplicates: DuplicateCommit[] = []
+    for (const row of rows) {
+      const m = /^([+-])\s+([0-9a-f]{7,40})\s*(.*)$/.exec(row)
+      if (!m) continue
+      if (m[1] !== '-') continue
+      duplicates.push({ hash: m[2], shortHash: m[2].slice(0, 7), subject: m[3] })
+    }
+    return { duplicates, total: rows.length }
+  } catch (e) {
+    return { duplicates: [], total: 0, error: reason(e) }
+  }
+}
+
+// ── Pointing a branch at a remote branch ────────────────────────
+
+/**
+ * Set a branch's upstream, and say the one refusal that matters in our own
+ * words.
+ *
+ * `git branch --set-upstream-to` answers a remote branch that is not there
+ * with eight lines of hint, ending in two suggestions — fetch it, or
+ * `git push -u`. The second is almost always the answer: the branch has never
+ * been published, which is exactly the state git puts you in when it points a
+ * new branch at whatever it was created from (`git checkout -b x origin/main`
+ * tracks `origin/main`, and `origin/x` does not exist). One sentence, naming
+ * the act that fixes it, instead of a page of advice about both.
+ */
+export async function setBranchUpstream(
+  run: GitRunner, branch: string, upstream: string,
+): Promise<{ success: boolean; error?: string }> {
+  const bad = assertRef(branch, 'branch') ?? assertRef(upstream, 'upstream')
+  if (bad) return { success: false, error: bad }
+  // `--verify --quiet` exits 1 rather than printing when the ref is unknown,
+  // which the runner turns into a rejection: absent, not an error to report.
+  const known = await run(['rev-parse', '--verify', '--quiet', `refs/remotes/${upstream}`]).catch(() => '')
+  if (!known.trim()) {
+    return { success: false, error: `${upstream} is not on the remote — publish ${branch} to create it` }
+  }
+  try {
+    await run(['branch', `--set-upstream-to=${upstream}`, branch])
+    return { success: true }
+  } catch (e) {
+    return { success: false, error: reason(e) }
   }
 }

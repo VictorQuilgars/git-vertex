@@ -33,7 +33,12 @@ export interface RefCardActions {
   onFetch?: () => void
   /** Push a branch that is not checked out, or publish one that tracks nothing. */
   onPushBranch?: (name: string) => void
-  onSetUpstream?: (name: string) => void
+  /**
+   * The pencil: point this branch at a remote branch, the one it already
+   * tracks offered as the starting point. It used to be handed a branch and
+   * nothing else, which could only ever set `<remote>/<same name>` (#308).
+   */
+  onSetUpstream?: (name: string, currentUpstream?: string) => void
   onCompare?: (name: string) => void
   /** Merge `name` into the current branch / rebase the current branch onto `name`. */
   onMerge?: (name: string) => void
@@ -122,9 +127,20 @@ export default function RefCard(props: RefCardProps) {
   // made here and not pushed says "merged" of a branch whose pull request is
   // still open, and deleting its remote side would close that request.
   const [onTargetUpstream, setOnTargetUpstream] = useState<boolean | null>(null)
+  /**
+   * The commits the target already holds under another hash (#307).
+   *
+   * A base branch merged with rebase or squash puts COPIES on the target, and
+   * a branch that was stacked on it still carries the originals — which is a
+   * guaranteed conflict in every changelog-shaped file, about a change that is
+   * already in. `git cherry` is the same patch-id test a rebase uses to drop
+   * them, so what is reported here is exactly what the rebase would remove.
+   */
+  const [dupes, setDupes] = useState<{ duplicates: { shortHash: string; subject: string }[]; total: number } | null>(null)
   useEffect(() => {
     setMerge(null)
     setOnTargetUpstream(null)
+    setDupes(null)
     if (!mergeInto) return
     let stale = false
     setMergeLoading(true)
@@ -145,6 +161,15 @@ export default function RefCard(props: RefCardProps) {
         if (ahead === 0 && behind > 0 && targetUpstream) {
           const u = await window.gitAPI.compareBranches(targetUpstream, target.name)
           if (!stale && Array.isArray(u?.ahead)) setOnTargetUpstream(u.ahead.length === 0)
+        }
+        // Only a branch with commits of its own can be carrying a copy, and
+        // the answer is one local `git cherry`. An older host has no such
+        // method: the line is simply not drawn, rather than drawn empty.
+        if (ahead > 0) {
+          const d = await window.gitAPI.duplicateCommits?.(target.name, mergeInto)
+          if (!stale && d && !d.error && Array.isArray(d.duplicates) && d.duplicates.length > 0) {
+            setDupes({ duplicates: d.duplicates, total: d.total ?? ahead })
+          }
         }
       } catch { /* no distance to show: the card says nothing about it */ }
       finally { if (!stale) setMergeLoading(false) }
@@ -260,6 +285,14 @@ export default function RefCard(props: RefCardProps) {
     // Its generic Push can open the modal and send commits without an upstream.
     const publish = props.onPushBranch ? () => props.onPushBranch!(target.name) : undefined
     if (up.state === 'unpublished') btn('publish', t('refcard.publish'), publish)
+    // Tracking somebody else's branch: Push is the one thing NOT to offer.
+    // git refuses a bare push whose upstream is named differently, and the
+    // reading behind the button — "3 to push" — was a distance from another
+    // branch all along. Publishing under its own name is what was meant.
+    else if (up.state === 'elsewhere') {
+      btn('publish', t('refcard.publish'), publish, t('refcard.publishAsTip', target.name))
+      btn('fetch', t('refcard.fetch'), props.onFetch)
+    }
     else if (up.state === 'missing') {
       btn('delete', t('refcard.deleteLocal'), props.onDelete && !isCurrent ? () => props.onDelete!(target.name) : undefined)
       // Gone because its request was merged: publishing it would bring back a finished branch.
@@ -273,6 +306,7 @@ export default function RefCard(props: RefCardProps) {
     return out
   }
   const upstreamStatus = !up ? '' : up.state === 'missing' ? (mergedByPR ? t('refcard.up.deletedAfterMerge', mergedByPR.number) : t('refcard.up.missing'))
+    : up.state === 'elsewhere' ? t('refcard.up.elsewhere', up.name ?? '', target.name)
     : up.state === 'diverged' ? t('refcard.up.diverged')
     : up.state === 'behind' ? t('refcard.up.toPull', up.behind)
     : up.state === 'ahead' ? t('refcard.up.toPush', up.ahead)
@@ -359,18 +393,29 @@ export default function RefCard(props: RefCardProps) {
                     <div className="refcard-card-head">
                       <Icon name="cloud" size={14} className="refcard-card-icon" />
                       <span>{t('refcard.upstream')}</span>
-                      {up.name
+                      {/* What this branch IS on the remote — which, when it
+                          tracks a branch of another name, is nothing. Naming
+                          `origin/main` here read as "this branch's remote is
+                          main", and the honest answer to that is Unpublished:
+                          what it tracks is said below, where an explanation
+                          belongs. Frightening somebody out of pushing is a
+                          worse failure than saying too little (#308). */}
+                      {up.name && up.state !== 'elsewhere'
                         ? <button type="button" className="refcard-token" disabled={!props.onSetUpstream}
-                            title={t('refcard.changeUpstream', up.name)} onClick={() => props.onSetUpstream?.(target.name)}>
+                            title={t('refcard.changeUpstream', up.name)} onClick={() => props.onSetUpstream?.(target.name, up.name)}>
                             {up.name}{props.onSetUpstream && <Icon name="pencil" size={11} />}
                           </button>
                         : <button type="button" className="refcard-token refcard-token--muted" disabled={!props.onSetUpstream}
-                            title={t('refcard.setUpstream')} onClick={() => props.onSetUpstream?.(target.name)}>
-                            {t('refcard.unpublished')}
+                            title={up.name ? t('refcard.changeUpstream', up.name) : t('refcard.setUpstream')}
+                            onClick={() => props.onSetUpstream?.(target.name, up.name)}>
+                            {t('refcard.unpublished')}{props.onSetUpstream && <Icon name="pencil" size={11} />}
                           </button>}
                     </div>
                     <div className="refcard-card-foot">
-                      {up.state !== 'unpublished' && (
+                      {/* A distance chip with no distance in it is an empty
+                          box: `elsewhere` is the one state that can be level
+                          with what it tracks and still have something to say. */}
+                      {up.state !== 'unpublished' && (up.state !== 'elsewhere' || up.ahead > 0 || up.behind > 0) && (
                         <span className={`refcard-track refcard-track--${up.state}`}
                           title={up.state === 'level' ? t('refcard.track.level', target.name, up.name ?? '')
                             : up.state === 'missing' ? t('refcard.track.missing', target.name, up.name ?? '')
@@ -393,6 +438,24 @@ export default function RefCard(props: RefCardProps) {
                         <span>{t('refcard.mergesInto')}</span>
                         <strong className="refcard-target">{merge.target}</strong>
                       </div>
+                      {/* The cause, when there is one to name (#307). A copy of
+                          your own commit on the target conflicts on every line
+                          it added — and the conflict itself says nothing about
+                          why, so the reader resolves a clash with themselves. */}
+                      {dupes && (
+                        <div className="refcard-dupes"
+                          title={t('refcard.merge.dupesTip', merge.target,
+                            dupes.duplicates.map(d => `${d.shortHash}  ${d.subject}`).join('\n'))}>
+                          <Icon name="info" size={11} />
+                          <span className="refcard-dupes-text">{t('refcard.merge.dupes', dupes.duplicates.length, merge.target)}</span>
+                          {isCurrent && props.onRebase && (
+                            <button type="button" className="refcard-btn"
+                              onClick={() => props.onRebase!(merge.target)}>
+                              {t('refcard.merge.dupesDrop', merge.target)}
+                            </button>
+                          )}
+                        </div>
+                      )}
                       <div className="refcard-card-foot">
                         {verdictChip && (
                           <span className={`refcard-verdict refcard-verdict--${verdict}`} title={verdictChip.title}>

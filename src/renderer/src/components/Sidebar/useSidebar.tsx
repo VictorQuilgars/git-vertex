@@ -7,6 +7,7 @@ import { loadGhFilters, saveGhFilters, type GhSavedFilter, type GhFilterStore } 
 import { folderPaths, type BranchNode } from './branchTree'
 import { readLayout, writeLayout, hasPaths, matchesFilter, type SbLayout, type SbLayoutView } from './sidebarLayout'
 import { usePullRequestCode } from '../../hooks/usePullRequestCode'
+import { useChangeUpstream } from '../../hooks/useChangeUpstream'
 import { isRefHidden, type RefFamily } from '../../utils/graphVisibility'
 import { useLang } from '../../i18n/LanguageContext'
 import { type SidebarView, type ReflogEntry, type Contributor, type ChangelogEntry, type NoteEntry, type RemoteEntry, type SubmoduleEntry, type WorktreeEntry, type AgentEntry, type SidebarProps } from './types'
@@ -366,22 +367,16 @@ export function useSidebar(props: SidebarProps) {
     showToast(r.upToDate ? t('sb.branch.pullUpToDate', name) : t('sb.branch.pulledNamed', name, r.moved ?? 0))
     onRefresh?.()
   }
+  const changeUpstream = useChangeUpstream({ t, showToast, showPrompt, onDone: onRefresh })
+
   /**
    * Point a branch at any remote branch (#280) — `Set Upstream` always set
    * `<default remote>/<same name>`, which is the only upstream it could ever
    * give you. The remote branches are listed in the prompt rather than left
    * to be typed from memory.
    */
-  const handleChangeUpstreamRow = async (name: string) => {
-    const { branches: remotes } = await window.gitAPI.listRemoteBranches()
-    const current = branches.find(b => b.name === name)?.upstream ?? ''
-    const shown = remotes.slice(0, 40).join('\n')
-    const target = await showPrompt(shown ? `${t('sb.branch.upstreamPrompt')}\n\n${shown}` : t('sb.branch.upstreamPrompt'), current)
-    if (!target || target === current) return
-    const r = await window.gitAPI.setUpstream(name, target.trim())
-    if (r.success) { showToast(t('sb.branch.upstreamSet', name, target.trim())); onRefresh?.() }
-    else showToast(t('toast.err', r.error ?? ''), 'err')
-  }
+  const handleChangeUpstreamRow = (name: string) =>
+    changeUpstream(name, branches.find(b => b.name === name)?.upstream ?? '')
   /** Fold the `fixup!` / `squash!` commits in (#280) — it refuses when there are none. */
   const handleSquashFixupsRow = async (base: string) => {
     const r = await window.gitAPI.squashFixups(base)

@@ -6,6 +6,7 @@ import { issueRefUrl } from '../utils/issueRef'
 import { isRefHidden } from '../utils/graphVisibility'
 import { remoteUrl } from '../utils/remoteUrl'
 import { canonicalRef, publishedNameFor } from '../components/ContextMenu/branchRefs'
+import { tracksOwnBranch } from '../components/RefCard/ref-card-model'
 import { buildBranchMenu, type BranchMenuExtras } from '../components/ContextMenu/branchMenu'
 import { revealSection } from '../components/Sidebar/Section'
 import { MenuItemDef } from '../components/ContextMenu/ContextMenu'
@@ -64,6 +65,15 @@ export function useAppActions(app: AppChrome & RepoSession & AppGithub & AppConf
     setLoading(true)
     const { upstream } = await window.gitAPI.getUpstream()
     setLoading(false)
+    // An upstream is not enough: git refuses a bare push whose upstream is a
+    // branch of ANOTHER NAME, and will not guess which of the two you meant
+    // (#308). That is the state `git checkout -b x origin/main` leaves you in,
+    // so it is common rather than exotic — and the modal is where the remote
+    // and the target branch are chosen, which is exactly what is missing.
+    if (upstream && currentBranch && !tracksOwnBranch(currentBranch, upstream)) {
+      setPushModalOpen(true)
+      return
+    }
     if (upstream) {
       // upstream configured → push direct
       const r = await window.gitAPI.push()

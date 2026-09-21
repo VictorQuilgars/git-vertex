@@ -262,6 +262,11 @@ export const ARG_RULES: Record<string, ArgSpec[]> = {
   'git:unlock-worktree': ['absPath'],
   'git:copy-worktree-changes': ['absPath', 'absPath', null],
   'git:fetch-pull-request': [null, { remote: 'remote' }],
+  // The base is a branch NAME on the remote (`main`), not a rev this clone can
+  // resolve. `headSha` needs no rule: it is the forge's own, and is only ever
+  // compared with what came back — it never reaches a command line.
+  'git:pull-request-conflicts': [null, { baseRef: 'refName', remote: 'remote' }],
+  'git:duplicate-commits': ['rev', 'rev'],
   'app:open-terminal': ['absPath'],
   'app:reveal-in-file-manager': ['absPath'],
   'git:gitflow-start': [null, 'refName'],

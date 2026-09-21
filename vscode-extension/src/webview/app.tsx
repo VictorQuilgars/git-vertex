@@ -26,6 +26,8 @@ import CommitGraph from '../../../src/renderer/src/components/CommitGraph/Commit
 import RightPanel from '../../../src/renderer/src/components/RightPanel/RightPanel'
 import RefCard from '../../../src/renderer/src/components/RefCard/RefCard'
 import { useRefCard } from '../../../src/renderer/src/components/RefCard/useRefCard'
+import { tracksOwnBranch } from '../../../src/renderer/src/components/RefCard/ref-card-model'
+import { useChangeUpstream } from '../../../src/renderer/src/hooks/useChangeUpstream'
 import { useSearchOperators } from '../../../src/renderer/src/app/useSearchOperators'
 import { authorOfQuery, authorQuery } from '../../../src/renderer/src/utils/searchQuery'
 import type { ConflictKind, StashScope } from '../../../src/renderer/src/types'
@@ -566,6 +568,22 @@ function VertexApp() {
     () => runOp(t('ext.app.rebaseOnto', name), () => window.gitAPI.rebaseOnto(name), true),
   ), [runOp, guardConflict])
 
+  /**
+   * The way out of a request's conflict (#305) — the panel's half of it.
+   *
+   * The base is read from the REMOTE and fetched first: a local branch of that
+   * name may be behind, and merging a stale base resolves a conflict the forge
+   * still has. From there it is the panel's own merge and rebase, guard
+   * included, so a conflict lands where every other conflict does.
+   */
+  const takeBaseIntoHead = useCallback(async (what: 'merge' | 'rebase', baseRef: string) => {
+    const remote = remoteNames[0] ?? 'origin'
+    await window.gitAPI.fetchRemote(remote).catch(() => null)
+    const base = `${remote}/${baseRef}`
+    if (what === 'merge') await handleMergeBranch(base)
+    else await handleRebaseCurrentOnto(base)
+  }, [remoteNames, handleMergeBranch, handleRebaseCurrentOnto])
+
   // Reword works on any commit: HEAD is a plain amend; any other commit goes
   // through a targeted mini-rebase (pick everything, reword just that one),
   // reusing the same interactiveRebase(sequence, messages) infra the
@@ -858,6 +876,16 @@ function VertexApp() {
   }, [runOp])
   const handlePushBranch = useCallback((name: string) =>
     runOp(`Push ${name}`, () => window.gitAPI.pushBranch(name)), [runOp])
+  /** Bring the request's head branch and its upstream back into line (#306). */
+  const syncHeadBranch = useCallback(async (what: 'push' | 'pull', branch: string) => {
+    if (what === 'push') { await handlePushBranch(branch); return }
+    // git-core's own sentence on a refusal — diverged, tracks nothing, already
+    // up to date — because each of the three calls for something different.
+    await runOp(`Pull ${branch}`, () => window.gitAPI.pullBranch(branch))
+  }, [handlePushBranch, runOp])
+  // The reference card's pencil: the act the side bar's Change Upstream…
+  // offers, with the remote branches listed (#308).
+  const changeUpstream = useChangeUpstream({ t, showToast, showPrompt, onDone: loadRepoData })
   const handleSetUpstream = useCallback((name: string) =>
     runOp(t('ext.app.upstreamSet'), () => window.gitAPI.setUpstream(name)), [runOp])
   const handleDeleteRemoteBranch = useCallback(async (ref: string) => {
@@ -1158,7 +1186,25 @@ function VertexApp() {
     () => window.gitAPI.predictConflicts('@{u}'),   // merge of the already-known upstream tip (pre-fetch)
     () => runOp('Pull', () => window.gitAPI.pull()),
   ), [runOp, guardConflict])
-  const handlePush = useCallback(() => runOp('Push', () => window.gitAPI.push()), [runOp])
+  /**
+   * Push — with the one check git makes and then refuses on (#308).
+   *
+   * A bare `git push` whose upstream is a branch of ANOTHER NAME is refused:
+   * git will not guess whether you meant that branch or this one's own. It is
+   * the state `git checkout -b x origin/main` leaves behind, so it is common.
+   * The panel has no push dialog to choose in, so it asks the one question
+   * that matters and publishes under the branch's own name.
+   */
+  const handlePush = useCallback(async () => {
+    const { upstream } = await window.gitAPI.getUpstream().catch(() => ({ upstream: null }))
+    if (upstream && currentBranch && !tracksOwnBranch(currentBranch, upstream)) {
+      const ok = await window.gitAPI.uiConfirm(t('ext.app.publishNotItsUpstream', currentBranch, upstream))
+      if (!ok) return
+      await runOp(`Publish ${currentBranch}`, () => window.gitAPI.pushBranch(currentBranch))
+      return
+    }
+    await runOp('Push', () => window.gitAPI.push())
+  }, [runOp, currentBranch])
   const handleUndo = useCallback(() => runOp(t('ext.app.undone'), () => window.gitAPI.undoLastAction()), [runOp])
   const handleRedo = useCallback(() => runOp(t('ext.app.redone'), () => window.gitAPI.redoLastAction()), [runOp])
   const handleStash = useCallback(() => runOp(t('ext.app.stashCreated'), () => window.gitAPI.createStash()), [runOp])
@@ -1581,6 +1627,8 @@ function VertexApp() {
                 onClose={() => setIssueDetail(null)}
                 onChanged={() => { if (githubRepo) void loadGhLists(githubRepo) }}
                 onCode={(what) => { void pullRequestCode(issueDetail.item, what) }}
+                onTakeBase={(what, baseRef) => { void takeBaseIntoHead(what, baseRef) }}
+                onSyncHead={(what, branch) => { void syncHeadBranch(what, branch) }}
               />
             ) : (
               <IssueDetail
@@ -1756,7 +1804,7 @@ function VertexApp() {
                     onPush={handlePush}
                     onFetch={handleFetch}
                     onPushBranch={handlePushBranch}
-                    onSetUpstream={handleSetUpstream}
+                    onSetUpstream={(name, current) => { void changeUpstream(name, current ?? '') }}
                     onCompare={(name) => window.gitAPI.openCompare(currentBranch, name)}
                     onMerge={handleMergeBranch}
                     onRebase={handleRebaseCurrentOnto}

@@ -117,6 +117,13 @@ export class GitService {
    */
   private run: core.GitRunner = (args) => this.git.raw(args)
 
+  /**
+   * The same contract for the commands whose NON-ZERO EXIT is the answer:
+   * `merge-tree` exits 1 to mean "would conflict" and puts the paths on stdout,
+   * which `run` above would reject on and throw away.
+   */
+  private runRaw: core.GitRawRunner = (args) => this.execRaw(args)
+
   constructor(repoPath: string) {
     this.repoPath = repoPath
     this.git = simpleGit(repoPath).env(simpleGitEnv())
@@ -372,65 +379,29 @@ export class GitService {
     })
   }
 
-  // Predict whether reconciling `theirs` into `ours` (default HEAD) would
-  // conflict, and on which files — a DRY RUN via `git merge-tree` that never
-  // touches the working tree, index or any ref. `mergeBase` pins the 3-way base
-  // (cherry-pick = commit's parent, revert = the commit). Requires git ≥ 2.38.
-  // Only the machine name-only output is parsed, so it is locale-independent.
-  // Prediction failures return no files and must NOT be treated as a conflict.
-  async predictConflicts(theirs: string, ours = 'HEAD', mergeBase?: string): Promise<{ files: string[]; error?: string }> {
-    for (const [ref, label] of ([[theirs, 'theirs'], [ours, 'ours'], ...(mergeBase ? [[mergeBase, 'merge-base']] : [])] as [string, string][])) {
-      const bad = this.assertRef(ref, label)
-      if (bad) return { files: [], error: bad }
-    }
-    try {
-      const args = ['merge-tree', '--write-tree', '--name-only']
-      if (mergeBase) args.push(`--merge-base=${mergeBase}`)
-      args.push(ours, theirs)
-      const { code, stdout, stderr } = await this.execRaw(args)
-      if (code === 0) return { files: [] }
-      if (code === 1) {
-        const [head] = stdout.split('\n\n')
-        const files = head.split('\n').slice(1).map(s => s.trim()).filter(Boolean)
-        return { files }
-      }
-      return { files: [], error: (stderr || stdout || 'merge-tree failed').trim() }
-    } catch (e: any) {
-      return { files: [], error: e.message }
-    }
+  // ── The conflict family: predicted, and for a pull request (#305) ──
+  // One implementation, in git-core, which the desktop runs too; this is the
+  // adapter. `runRaw` rather than `run` because merge-tree answers by its exit
+  // code — the core says why.
+
+  async predictConflicts(theirs: string, ours = 'HEAD', mergeBase?: string): Promise<core.ConflictPrediction> {
+    return core.predictConflicts(this.runRaw, theirs, ours, mergeBase)
   }
 
-  // Accurately predict whether rebasing `branch` (default HEAD) onto `upstream`
-  // will conflict — by SIMULATING the replay commit by commit without a working
-  // tree. Each `merge-tree --write-tree` writes the merged tree to the object DB
-  // and prints its OID, fed as the base of the next step, exactly like a real
-  // rebase — so a conflict that only surfaces mid-replay is caught, and the
-  // false positives/negatives of a one-shot tip-merge are avoided.
-  async predictRebaseConflicts(upstream: string, branch = 'HEAD'): Promise<{ files: string[]; error?: string; atCommit?: string }> {
-    const badU = this.assertRef(upstream, 'upstream'); if (badU) return { files: [], error: badU }
-    const badB = this.assertRef(branch, 'branch'); if (badB) return { files: [], error: badB }
-    try {
-      const listed = await this.execRaw(['rev-list', '--reverse', '--topo-order', '--no-merges', `${upstream}..${branch}`])
-      if (listed.code !== 0) return { files: [], error: (listed.stderr || 'rev-list failed').trim() }
-      const commits = listed.stdout.split('\n').map(s => s.trim()).filter(Boolean)
-      if (commits.length === 0) return { files: [] }
-      if (commits.length > 100) return this.predictConflicts(branch, upstream)
-      let current = (await this.execRaw(['rev-parse', `${upstream}^{commit}`])).stdout.trim()
-      if (!current) return { files: [], error: `Unknown upstream: ${upstream}` }
-      for (const c of commits) {
-        const r = await this.execRaw(['merge-tree', '--write-tree', '--name-only', `--merge-base=${c}^`, current, c])
-        if (r.code === 0) { current = r.stdout.trim().split('\n')[0]; continue }
-        if (r.code === 1) {
-          const [head] = r.stdout.split('\n\n')
-          const files = head.split('\n').slice(1).map(s => s.trim()).filter(Boolean)
-          return { files, atCommit: c.slice(0, 7) }
-        }
-        return { files: [], error: (r.stderr || r.stdout || 'merge-tree failed').trim() }
-      }
-      return { files: [] }
-    } catch (e: any) {
-      return { files: [], error: e.message }
-    }
+  async predictRebaseConflicts(upstream: string, branch = 'HEAD'): Promise<core.RebasePrediction> {
+    return core.predictRebaseConflicts(this.runRaw, upstream, branch)
+  }
+
+  async pullRequestConflicts(
+    number: number, opts: { baseRef: string; headSha?: string; remote?: string },
+  ): Promise<core.PullRequestConflicts> {
+    const remote = opts.remote ?? (await this.getDefaultRemote()).remote
+    if (!remote) return { files: [], error: 'No remote configured' }
+    return core.pullRequestConflicts(this.run, this.runRaw, { ...opts, remote, number })
+  }
+
+  async duplicateCommits(branch: string, target: string): Promise<core.DuplicateCommits> {
+    return core.duplicateCommits(this.run, branch, target)
   }
 
   // ── Write operations ───────────────────────────────────────────
@@ -1872,16 +1843,13 @@ exit 0
   }
 
   async setUpstream(branch: string, upstream?: string): Promise<{ success: boolean; error?: string }> {
-    try {
-      let target = upstream
-      if (!target) {
-        const { remote } = await this.getDefaultRemote()
-        if (!remote) return { success: false, error: 'No remote configured' }
-        target = `${remote}/${branch}`
-      }
-      await this.git.raw(['branch', `--set-upstream-to=${target}`, branch])
-      return { success: true }
-    } catch (e: any) { return { success: false, error: e.message } }
+    let target = upstream
+    if (!target) {
+      const { remote } = await this.getDefaultRemote()
+      if (!remote) return { success: false, error: 'No remote configured' }
+      target = `${remote}/${branch}`
+    }
+    return core.setBranchUpstream(this.run, branch, target)
   }
 
   async getUpstream(): Promise<{ upstream: string | null }> {

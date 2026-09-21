@@ -23,6 +23,18 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 🏷 A card goes when its reference does
 - A reference's card **closes when the branch or tag it names is deleted**. Deleting a branch from the card's own Delete button left the card on screen with every button live — Switch, Merge, Rebase, Delete again — on a branch git no longer had.
+
+### 🧩 A conflicting pull request says WHICH files
+- The forge answers "would this merge" with a **boolean**, and the pane used to render it and stop: *Conflicts with the base*, naming nothing, offering nothing. It now **lists the conflicted paths** — a fork's request included — reading both sides from the **remote** and writing no ref. Under them, the two ways out: **Update from base**, then **Rebase onto base**, on the checked-out head branch. Either lands in the conflicts panel, **Resolve all with AI** and all. A prediction that could not run says *could not tell*, never *no files*.
+
+### 🪞 A request that is not about what you have says so
+- A request is about the head that was **pushed**; the cards beside it are about the branch **here**. When those drift apart the pane now says **this request is about \`origin/<branch>\`, not what you have here** — with how far, and the **Push** or **Pull** that closes it. Before this, a freshly rebased branch read *no conflict* beside a request reading *conflicts*, both true, of two different commits.
+
+### 🧬 The same patch under another hash
+- A base branch merged with **rebase** or **squash** puts **copies** of its commits on the target — same patch, new hash — and a branch stacked on it still carries the originals, which is a conflict in every changelog over a change that is already in. A branch's card now says **how many of its commits the target already has**, with their shas, and offers **Rebase onto \`main\` to drop them**.
+
+### 🚩 A branch created from main is not a published branch
+- \`git checkout -b feature origin/main\` makes git track **origin/main**, and the card used to read that as published: *3 to push*, with a **Push** git refuses because the upstream's name is not the branch's. The card now says **what it tracks**, keeps the distance for what it is, and offers **Publish** — the branch's own push, which gives it an upstream of its own name. The **pencil** now opens the same picker as the side bar's *Change Upstream…*, remote branches listed — it used to be able to set only \`<remote>/<same name>\`, which on an unpublished branch does not exist. And the heading says **Unpublished** instead of naming what it happens to track, which read as *this branch's remote is main*.
 `,
   '1.36.0': `## What's new in 1.36.0
 

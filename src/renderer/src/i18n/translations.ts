@@ -562,6 +562,8 @@ const fr = {
   'refcard.setUpstream': 'Non publiée — définir l\'upstream…',
   'refcard.changeUpstream': (name: string) => `${name} — changer d'upstream…`,
   'refcard.up.missing': 'Absente du remote',
+  // #308 — git fait suivre à une branche neuve ce dont elle est issue.
+  'refcard.up.elsewhere': (upstream: string, branch: string) => `Suit ${upstream} — ${branch} n'est pas sur le remote`,
   'refcard.up.diverged': 'Divergée',
   'refcard.up.toPull': (n: number) => `${n} à tirer`,
   'refcard.up.toPush': (n: number) => `${n} à pousser`,
@@ -571,6 +573,7 @@ const fr = {
   'refcard.track.apart': (branch: string, behind: number, ahead: number, upstream: string) =>
     `${branch} a ${behind} commit${behind !== 1 ? 's' : ''} de retard et ${ahead} d'avance sur ${upstream}`,
   'refcard.publish': 'Publier',
+  'refcard.publishAsTip': (branch: string) => `Pousser ${branch} sous son propre nom et la faire suivre`,
   'refcard.pull': 'Pull',
   'refcard.push': 'Push',
   'refcard.forcePush': 'Push forcé',
@@ -589,6 +592,13 @@ const fr = {
   'refcard.merge.based': (target: string) => `Basée sur ${target}`,
   'refcard.merge.basedWith': (target: string, n: number) => `Basée sur ${target}, avec ${n} nouveau${n !== 1 ? 'x' : ''} commit${n !== 1 ? 's' : ''}`,
   'refcard.merge.behind': (target: string, n: number) => `${n} commit${n !== 1 ? 's' : ''} de retard sur ${target}`,
+  // #307 — les commits que la cible a déjà, sous un autre hash.
+  'refcard.merge.dupes': (n: number, target: string) =>
+    n === 1 ? `Un de ces commits est déjà dans ${target}, sous un autre hash`
+      : `${n} de ces commits sont déjà dans ${target}, sous un autre hash`,
+  'refcard.merge.dupesTip': (target: string, list: string) =>
+    `Un merge en rebase ou en squash de la branche de base en a posé une COPIE sur ${target} : même patch, hash différent. Un rebase sur ${target} les retire.\n\n${list}`,
+  'refcard.merge.dupesDrop': (target: string) => `Rebaser sur ${target} pour les retirer`,
   'refcard.merge': 'Merge',
   'refcard.rebase': 'Rebase',
   'refcard.mergeTip': (target: string, branch: string) => `Fusionner ${target} dans ${branch} — ${target} ne change pas`,
@@ -735,6 +745,23 @@ const fr = {
   'gh.pr.checksPending': (p: number, n: number) => `${p} check${p > 1 ? 's' : ''} en cours sur ${n}`,
   'gh.pr.noConflicts': 'Aucun conflit',
   'gh.pr.conflicts': 'Conflits avec la base',
+  // #305 — les fichiers derrière le booléen de la forge.
+  'gh.pr.conflictsN': (n: number) => `Conflits avec la base — ${n} fichier${n > 1 ? 's' : ''}`,
+  'gh.pr.conflictsAsking': 'Lecture des fichiers en conflit…',
+  'gh.pr.conflictsUnknown': (why: string) => `Impossible de dire lesquels : ${why}`,
+  'gh.pr.conflictsRetry': 'Réessayer',
+  'gh.pr.takeBase': (base: string) => `Reprendre ${base}`,
+  'gh.pr.takeBaseTip': (base: string, head: string) => `Fusionner ${base} dans ${head} et résoudre ici`,
+  'gh.pr.rebaseOnBase': (base: string) => `Rebaser sur ${base}`,
+  'gh.pr.rebaseOnBaseTip': (head: string, base: string) => `Rejouer ${head} sur ${base} et résoudre ici`,
+  'gh.pr.resolveOnBranch': (branch: string) => `Basculer sur ${branch} pour les résoudre ici`,
+  'gh.pr.resolveElsewhere': "La tête de cette requête n'est pas une branche de ce dépôt : à résoudre depuis le dépôt qui la porte",
+  // #306 — la requête ne parle pas forcément de ce qu'on a en local.
+  'gh.pr.aboutRemote': (ref: string) => `Cette requête parle de ${ref}, pas de ce que vous avez ici`,
+  'gh.pr.aboutRemoteCounts': (ahead: number, behind: number) =>
+    `${ahead} à pousser, ${behind} à tirer — ce qui est affiché plus bas vient de la forge`,
+  'gh.pr.aboutRemotePush': 'Pousser',
+  'gh.pr.aboutRemotePull': 'Tirer',
   'gh.pr.mergeComputing': 'Mergeabilité en cours de calcul…',
   'gh.pr.reviewers': 'Relecteurs',
   'gh.pr.view': 'Voir la pull request',
@@ -2230,6 +2257,8 @@ const fr = {
   'ext.app.remoteBranchDeleted': 'Branche distante supprimée',
   'ext.app.branchReset': 'Branche réinitialisée',
   'ext.app.upstreamSet': 'Branche amont définie',
+  'ext.app.publishNotItsUpstream': (branch: string, upstream: string) =>
+    `${branch} suit ${upstream}, qui n'est pas une branche de son nom — git refuse un push simple.\n\nPublier ${branch} sous son propre nom ?`,
   'ext.app.commitDeleted': 'Commit supprimé',
   'ext.app.commitMoved': 'Commit déplacé',
   'ext.app.commitSelected': 'Commit sélectionné pour comparaison',
@@ -2821,6 +2850,8 @@ const en: typeof fr = {
   'refcard.setUpstream': 'Unpublished — Set Upstream…',
   'refcard.changeUpstream': (name: string) => `${name} — Change Upstream…`,
   'refcard.up.missing': 'Missing from the remote',
+  // #308 — git points a new branch at whatever it was created from.
+  'refcard.up.elsewhere': (upstream: string, branch: string) => `Tracks ${upstream} — ${branch} is not on the remote`,
   'refcard.up.diverged': 'Diverged',
   'refcard.up.toPull': (n: number) => `${n} to pull`,
   'refcard.up.toPush': (n: number) => `${n} to push`,
@@ -2830,6 +2861,7 @@ const en: typeof fr = {
   'refcard.track.apart': (branch: string, behind: number, ahead: number, upstream: string) =>
     `${branch} is ${behind} commit${behind !== 1 ? 's' : ''} behind, ${ahead} commit${ahead !== 1 ? 's' : ''} ahead of ${upstream}`,
   'refcard.publish': 'Publish',
+  'refcard.publishAsTip': (branch: string) => `Push ${branch} under its own name and track it`,
   'refcard.pull': 'Pull',
   'refcard.push': 'Push',
   'refcard.forcePush': 'Force Push',
@@ -2848,6 +2880,13 @@ const en: typeof fr = {
   'refcard.merge.based': (target: string) => `Based on ${target}`,
   'refcard.merge.basedWith': (target: string, n: number) => `Based on ${target} with ${n} new commit${n !== 1 ? 's' : ''}`,
   'refcard.merge.behind': (target: string, n: number) => `Behind ${target} by ${n} commit${n !== 1 ? 's' : ''}`,
+  // #307 — the commits the target already has, under another hash.
+  'refcard.merge.dupes': (n: number, target: string) =>
+    n === 1 ? `One of these commits is already in ${target}, under another hash`
+      : `${n} of these commits are already in ${target}, under another hash`,
+  'refcard.merge.dupesTip': (target: string, list: string) =>
+    `A rebase- or squash-merge of the base branch put a COPY of them on ${target} — same patch, different hash. A rebase onto ${target} drops them.\n\n${list}`,
+  'refcard.merge.dupesDrop': (target: string) => `Rebase onto ${target} to drop them`,
   'refcard.merge': 'Merge',
   'refcard.rebase': 'Rebase',
   'refcard.mergeTip': (target: string, branch: string) => `Merge ${target} into ${branch} — ${target} is not changed`,
@@ -2993,6 +3032,23 @@ const en: typeof fr = {
   'gh.pr.checksPending': (p: number, n: number) => `${p} of ${n} check${n > 1 ? 's' : ''} pending`,
   'gh.pr.noConflicts': 'No conflicts',
   'gh.pr.conflicts': 'Conflicts with the base',
+  // #305 — the files behind the forge's boolean.
+  'gh.pr.conflictsN': (n: number) => `Conflicts with the base — ${n} file${n > 1 ? 's' : ''}`,
+  'gh.pr.conflictsAsking': 'Reading which files…',
+  'gh.pr.conflictsUnknown': (why: string) => `Could not tell which files: ${why}`,
+  'gh.pr.conflictsRetry': 'Try again',
+  'gh.pr.takeBase': (base: string) => `Update from ${base}`,
+  'gh.pr.takeBaseTip': (base: string, head: string) => `Merge ${base} into ${head} and resolve here`,
+  'gh.pr.rebaseOnBase': (base: string) => `Rebase onto ${base}`,
+  'gh.pr.rebaseOnBaseTip': (head: string, base: string) => `Replay ${head} onto ${base} and resolve here`,
+  'gh.pr.resolveOnBranch': (branch: string) => `Switch to ${branch} to resolve them here`,
+  'gh.pr.resolveElsewhere': "This request's head is not a branch of this repository — resolve it from the one that holds it",
+  // #306 — the request is not always about what this machine holds.
+  'gh.pr.aboutRemote': (ref: string) => `This request is about ${ref}, not what you have here`,
+  'gh.pr.aboutRemoteCounts': (ahead: number, behind: number) =>
+    `${ahead} to push, ${behind} to pull — what is read below is the forge's`,
+  'gh.pr.aboutRemotePush': 'Push',
+  'gh.pr.aboutRemotePull': 'Pull',
   'gh.pr.mergeComputing': 'Mergeability still computing…',
   'gh.pr.reviewers': 'Reviewers',
   'gh.pr.view': 'View Pull Request',
@@ -4492,6 +4548,8 @@ const en: typeof fr = {
   'ext.app.remoteBranchDeleted': 'Remote branch deleted',
   'ext.app.branchReset': 'Branch reset',
   'ext.app.upstreamSet': 'Upstream set',
+  'ext.app.publishNotItsUpstream': (branch: string, upstream: string) =>
+    `${branch} tracks ${upstream}, which is not a branch of its own name — git refuses a bare push.\n\nPublish ${branch} under its own name?`,
   'ext.app.commitDeleted': 'Commit dropped',
   'ext.app.commitMoved': 'Commit moved',
   'ext.app.commitSelected': 'Commit selected for compare',

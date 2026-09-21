@@ -409,6 +409,16 @@ export function registerGitHandlers(): void {
     return state.gitService.fetchPullRequest(number, opts ?? {})
   })
 
+  handle('git:pull-request-conflicts', async (_event, number: number, opts: { baseRef: string; headSha?: string; remote?: string }) => {
+    if (!state.gitService) return { files: [], error: 'No repo open' }
+    return state.gitService.pullRequestConflicts(number, opts ?? { baseRef: '' })
+  })
+
+  handle('git:duplicate-commits', async (_event, branch: string, target: string) => {
+    if (!state.gitService) return { duplicates: [], total: 0, error: 'No repo open' }
+    return state.gitService.duplicateCommits(branch, target)
+  })
+
   handle('git:copy-worktree-changes', async (_event, from: string, to: string, label: string) => {
     if (!state.gitService) return { success: false, error: 'No repo open' }
     return state.gitService.copyWorktreeChanges(from, to, label)

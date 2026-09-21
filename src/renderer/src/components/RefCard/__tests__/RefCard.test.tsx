@@ -326,3 +326,130 @@ describe('closing', () => {
     expect(p.onClose).toHaveBeenCalledTimes(3)
   })
 })
+
+// ── The same patch under another hash (#307) ────────────────────
+//
+// A base branch merged with rebase or squash puts a COPY of its commits on the
+// target. A branch stacked on it still carries the originals, and then every
+// changelog-shaped file conflicts over a change that is already in. The card
+// names the cause, because the conflict itself never will.
+
+describe('commits the target already holds', () => {
+  const dupes = (duplicates: any[], total = 3) =>
+    ({ duplicateCommits: jest.fn().mockResolvedValue({ duplicates, total }) })
+
+  test('says how many, and offers the rebase that drops them', async () => {
+    const p = draw({ kind: 'head', name: 'feature/login', hash: H('f') },
+      dupes([{ hash: 'd8aede9'.padEnd(40, '0'), shortHash: 'd8aede9', subject: 'the base work' }]))
+    expect(await screen.findByText('One of these commits is already in main, under another hash')).toBeTruthy()
+    // The branch is the checked-out one, so the rebase is a real offer.
+    const drop = screen.getByText('Rebase onto main to drop them')
+    drop.click()
+    expect(p.onRebase).toHaveBeenCalledWith('main')
+    // Asked about the branch against its target, in that order.
+    expect((window as any).gitAPI.duplicateCommits).toHaveBeenCalledWith('feature/login', 'main')
+  })
+
+  test('the shas and subjects are there to be read, not guessed at', async () => {
+    draw({ kind: 'head', name: 'feature/login', hash: H('f') },
+      dupes([
+        { hash: 'aaaaaaa'.padEnd(40, '0'), shortHash: 'aaaaaaa', subject: 'one' },
+        { hash: 'bbbbbbb'.padEnd(40, '0'), shortHash: 'bbbbbbb', subject: 'two' },
+      ]))
+    await screen.findByText('2 of these commits are already in main, under another hash')
+    const note = document.querySelector('.refcard-dupes')
+    expect(note?.getAttribute('title')).toContain('aaaaaaa  one')
+    expect(note?.getAttribute('title')).toContain('bbbbbbb  two')
+  })
+
+  test('none is the normal answer, and says nothing at all', async () => {
+    draw({ kind: 'head', name: 'feature/login', hash: H('f') }, dupes([]))
+    await screen.findByText('Merges into')
+    expect(document.querySelector('.refcard-dupes')).toBeNull()
+  })
+
+  test('a question that could not be put says nothing either — it is not an answer', async () => {
+    draw({ kind: 'head', name: 'feature/login', hash: H('f') },
+      { duplicateCommits: jest.fn().mockResolvedValue({ duplicates: [], total: 0, error: 'not a repository' }) })
+    await screen.findByText('Merges into')
+    expect(document.querySelector('.refcard-dupes')).toBeNull()
+  })
+
+  test('a branch with nothing of its own is never asked: it can carry no copy', async () => {
+    const api = {
+      compareBranches: jest.fn().mockResolvedValue({ ahead: [], behind: [{}, {}] }),
+      ...dupes([{ hash: 'x'.repeat(40), shortHash: 'xxxxxxx', subject: 'never asked' }]),
+    }
+    draw({ kind: 'head', name: 'spike', hash: H('s') }, api)
+    await screen.findByText('Merges into')
+    expect(api.duplicateCommits).not.toHaveBeenCalled()
+  })
+})
+
+// ── A branch that tracks somebody else's branch (#308) ──────────
+//
+// `git checkout -b feature origin/main` points feature at origin/main, and
+// the card read that as published: "3 to push", with a Push button git
+// refuses because the upstream's name is not the branch's.
+
+describe('an upstream that is a branch of another name', () => {
+  const tracksMain = [
+    { name: 'feature/login', current: true, remote: false, commit: 'fffffff', label: 'add the form',
+      upstream: 'origin/main', ahead: 3, behind: 0 },
+    { name: 'main', current: false, remote: false, commit: 'mmmmmmm', label: 'base' },
+    { name: 'remotes/origin/main', current: false, remote: true, commit: 'mmmmmmm', label: 'base' },
+  ] as any[]
+
+  test('offers Publish, and never the Push git would refuse', async () => {
+    const p = draw({ kind: 'head', name: 'feature/login', hash: H('f') }, {}, { branches: tracksMain })
+    await screen.findByText('Merges into')
+    const labels = buttons()
+    expect(labels).toContain('Publish')
+    expect(labels).not.toContain('Push')
+    // Publishing is the branch's own push, which sets the tracking too.
+    screen.getByText('Publish').click()
+    expect(p.onPushBranch).toHaveBeenCalledWith('feature/login')
+    expect(p.onPush).not.toHaveBeenCalled()
+  })
+
+  test('says what it tracks instead of counting what there is to push', async () => {
+    draw({ kind: 'head', name: 'feature/login', hash: H('f') }, {}, { branches: tracksMain })
+    await screen.findByText('Merges into')
+    expect(screen.getByText('Tracks origin/main — feature/login is not on the remote')).toBeTruthy()
+    expect(screen.queryByText('3 to push')).toBeNull()
+    // The distance is still shown — it is true, it is just not "to push".
+    expect(document.querySelector('.refcard-track--elsewhere')?.textContent).toContain('3↑')
+  })
+
+  // Naming origin/main where the branch's own remote name goes read as "this
+  // branch's remote is main", which is exactly the thing to be afraid of.
+  test('the heading says Unpublished, not the branch it happens to track', async () => {
+    draw({ kind: 'head', name: 'feature/login', hash: H('f') }, {}, { branches: tracksMain })
+    await screen.findByText('Merges into')
+    const token = document.querySelector('.refcard-token')
+    expect(token?.textContent).toBe('Unpublished')
+    expect(token?.className).toContain('refcard-token--muted')
+    // It is still the way to change it, and it says which one it would change.
+    expect(token?.getAttribute('title')).toContain('origin/main')
+  })
+
+  test('the pencil hands over the upstream it already has, to start from', async () => {
+    const p = draw({ kind: 'head', name: 'feature/login', hash: H('f') }, {}, { branches: tracksMain })
+    await screen.findByText('Merges into')
+    ;(document.querySelector('.refcard-token') as HTMLElement).click()
+    expect(p.onSetUpstream).toHaveBeenCalledWith('feature/login', 'origin/main')
+  })
+
+  test('a branch that tracks its own counterpart is untouched', async () => {
+    draw({ kind: 'head', name: 'feature/login', hash: H('f') }, {}, {
+      branches: [
+        { name: 'feature/login', current: true, remote: false, commit: 'fffffff', label: 'x',
+          upstream: 'origin/feature/login', ahead: 3, behind: 0 },
+        ...tracksMain.slice(1),
+      ],
+    })
+    await screen.findByText('Merges into')
+    expect(buttons()).toContain('Push')
+    expect(screen.getByText('3 to push')).toBeTruthy()
+  })
+})
