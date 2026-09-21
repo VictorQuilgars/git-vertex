@@ -5,7 +5,7 @@
 // (gitVertex.aiProvider / aiApiKey / aiModel), falling back to the shared
 // gvSettings store (same keys as the desktop app) if present.
 import * as vscode from 'vscode'
-import { providerById, providerCredential, providerUsable, authHeaders, type AIDialect } from '../../src/renderer/src/utils/aiProviders'
+import { providerById, providerCredential, providerUsable, providerServes, authHeaders, type AIDialect } from '../../src/renderer/src/utils/aiProviders'
 
 export interface AIConfig {
   provider: string; apiKey: string; model: string
@@ -81,9 +81,18 @@ export function readAIConfig(gv: Record<string, string>, feature?: AIFeature): A
     const def = providerById(gv, p)
     return def ? providerCredential(gv, def) : ''
   }
+  // Two gates, and the second is why this is not just `providerUsable`: a
+  // provider may answer only some features. The desktop's
+  // resolveAICall applies the same pair, and the two have to agree — this
+  // service and git-service are already two implementations of one contract
+  // that have drifted before.
+  const serves = (p: string) => {
+    const def = providerById(gv, p)
+    return !!def && providerServes(def, feature)
+  }
   const usable = (p: string) => {
     const def = providerById(gv, p)
-    return !!def && providerUsable(gv, def)
+    return !!def && providerUsable(gv, def) && providerServes(def, feature)
   }
   const legacyProvider = (gv.aiProvider || 'groq').toLowerCase()
 
@@ -97,7 +106,12 @@ export function readAIConfig(gv: Record<string, string>, feature?: AIFeature): A
   const pinnedModel = userSetting(cfg, 'aiModel')
   const fp = feature ? trimmed(gv[`aiFeatureProvider:${feature}`]) : ''
   const fm = feature ? trimmed(gv[`aiFeatureModel:${feature}`]) : ''
-  if (pinnedModel) {
+  // The pin shortcuts everything it CAN — a provider that has no answer for
+  // this feature is not a preference this can honour, so it falls through
+  // exactly as a pinned provider without a key already does (that returns
+  // null below). Pinning a judgement engine would otherwise send a commit
+  // message prompt to an endpoint that replies with probabilities.
+  if (pinnedModel && serves(pinnedProvider || legacyProvider)) {
     provider = pinnedProvider || legacyProvider
     model = pinnedModel
   } else if (fp && fm && usable(fp)) { provider = fp; model = fm }

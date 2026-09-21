@@ -1,13 +1,13 @@
-import { parseCustomProviders, providerUsable, providerCredential, allProviders, AI_PROVIDER_CATALOG } from '../utils/aiProviders'
+import { parseCustomProviders, providerUsable, providerServes, providerCredential, allProviders, AI_PROVIDER_CATALOG } from '../utils/aiProviders'
 
 // #169 — providers are DATA over three dialects. The catalog is code; the
 // customs are user JSON, and malformed input costs the entry, never the
 // feature (the autolink rule).
 
 describe('the catalog', () => {
-  test('every entry knows its dialect, and the openai-compat ones their base', () => {
+  test('every entry knows its dialect, and the ones spoken elsewhere their base', () => {
     for (const p of AI_PROVIDER_CATALOG) {
-      if (p.dialect === 'openai-compat') expect(p.baseUrl).toMatch(/^https:\/\//)
+      if (p.dialect === 'openai-compat' || p.dialect === 'typesafe') expect(p.baseUrl).toMatch(/^https:\/\//)
       expect(p.keySetting).toBeTruthy()
     }
   })
@@ -42,6 +42,49 @@ describe('the customs blob', () => {
 
   test.each(['{not json', '42', '"a string"'])('garbage (%s) is an empty list', raw => {
     expect(parseCustomProviders(raw)).toEqual([])
+  })
+})
+
+describe('serves — what a provider has an answer for', () => {
+  const generative = AI_PROVIDER_CATALOG.find(p => p.id === 'groq')!
+  const judge = AI_PROVIDER_CATALOG.find(p => p.id === 'typesafe')!
+
+  test('a def that names no features serves them all, asked or not', () => {
+    expect(providerServes(generative, 'commit')).toBe(true)
+    expect(providerServes(generative, 'search')).toBe(true)
+    expect(providerServes(generative, undefined)).toBe(true)
+  })
+
+  test('a def that names its features serves those and refuses the rest', () => {
+    expect(providerServes(judge, 'search')).toBe(true)
+    expect(providerServes(judge, 'filter')).toBe(true)
+    expect(providerServes(judge, 'commit')).toBe(false)
+    expect(providerServes(judge, 'conflict')).toBe(false)
+  })
+
+  test('no feature named is not a refusal — it is the question not being asked', () => {
+    // A call with no feature is the one runAIPrompt makes for the odd jobs
+    // that belong to no setting. Reading that as "serves nothing" would make
+    // the default pair unresolvable for them.
+    expect(providerServes(judge, undefined)).toBe(true)
+  })
+
+  test('only the judgement engine is restricted, so far', () => {
+    // Not a style rule: every other entry answers a prompt with prose, and
+    // an entry that quietly grew a `features` list would silently stop
+    // being offered on features it used to serve.
+    expect(AI_PROVIDER_CATALOG.filter(p => p.features).map(p => p.id)).toEqual(['typesafe'])
+  })
+
+  test('a custom entry is never restricted — the blob cannot carry features', () => {
+    // Customs speak openai-compat by construction (#169). Letting a user
+    // hand-write `features` would let them hide a provider from a feature
+    // with no control on screen to put it back.
+    const [c] = parseCustomProviders(JSON.stringify([
+      { id: 'custom-x', baseUrl: 'https://gw/v1', features: ['search'] },
+    ]))
+    expect(c.features).toBeUndefined()
+    expect(providerServes(c, 'commit')).toBe(true)
   })
 })
 

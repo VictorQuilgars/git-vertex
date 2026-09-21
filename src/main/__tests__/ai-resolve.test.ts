@@ -1,4 +1,7 @@
+import * as fs from 'fs'
+import * as path from 'path'
 import { resolveAICall, appendInstructions } from '../ai-resolve'
+import { AI_PROVIDER_CATALOG } from '../../renderer/src/utils/aiProviders'
 
 // #70 — the contract both hosts implement: no active provider, every choice
 // a (provider, model) pair, a pair without its key falling through, and the
@@ -113,6 +116,71 @@ describe('providers beyond the original four (#169)', () => {
       aiDefaultProvider: 'custom-ollama', aiDefaultModel: 'qwen2.5-coder:7b',
     })
     expect(r.provider).toBe('groq')  // the broken custom fell through to legacy
+  })
+})
+
+describe('a provider that serves only some features', () => {
+  const KEY = { aiTypesafeKey: 'ts_x', aiGroqKey: 'gsk_x' }
+
+  test('it resolves for a feature it serves, dialect and base carried over', () => {
+    const r = resolveAICall({
+      ...KEY,
+      aiDefaultProvider: 'groq', aiDefaultModel: 'llama-3.3-70b-versatile',
+      'aiFeatureProvider:search': 'typesafe', 'aiFeatureModel:search': 'jev-latest',
+    }, 'search')
+    expect(r).toEqual(expect.objectContaining({
+      provider: 'typesafe', model: 'jev-latest', apiKey: 'ts_x',
+      dialect: 'typesafe', baseUrl: 'https://api.typesafe.ai/v1',
+    }))
+  })
+
+  test('a pair on a feature it cannot serve falls through, exactly like a lost key', () => {
+    // The picker will not offer this, so it can only arrive from a hand-edited
+    // settings.json or from a `features` list that grew after the pair was
+    // written. Either way it must not reach the wire: asking a judgement
+    // engine for a commit message gets a probability where prose was wanted.
+    const r = resolveAICall({
+      ...KEY,
+      aiDefaultProvider: 'groq', aiDefaultModel: 'llama-3.3-70b-versatile',
+      'aiFeatureProvider:commit': 'typesafe', 'aiFeatureModel:commit': 'jev-latest',
+    }, 'commit')
+    expect(r).toEqual(expect.objectContaining({
+      provider: 'groq', model: 'llama-3.3-70b-versatile', dialect: 'openai-compat',
+    }))
+  })
+
+  test('as the DEFAULT pair it serves what it can and falls through for the rest', () => {
+    const s = {
+      ...KEY,
+      aiProvider: 'groq', aiGroqModel: 'llama-3.3-70b-versatile',
+      aiDefaultProvider: 'typesafe', aiDefaultModel: 'jev-latest',
+    }
+    expect(resolveAICall(s, 'filter').provider).toBe('typesafe')
+    expect(resolveAICall(s, 'explain').provider).toBe('groq')
+  })
+
+  test('without its key it falls through even on a feature it serves', () => {
+    const r = resolveAICall({
+      aiGroqKey: 'gsk_x',
+      aiDefaultProvider: 'groq', aiDefaultModel: 'llama-3.3-70b-versatile',
+      'aiFeatureProvider:search': 'typesafe', 'aiFeatureModel:search': 'jev-latest',
+    }, 'search')
+    expect(r.provider).toBe('groq')
+  })
+
+  test('every feature a catalog entry claims is a real feature', () => {
+    // The DIFF_FEATURES arrangement: `AIFeature` is a type, erased before any
+    // test can see it, so the union is read out of its own source. A typo in
+    // a `features` list would otherwise be a provider silently offered
+    // nowhere — and `providerServes` would answer false for ever.
+    const src = fs.readFileSync(path.join(__dirname, '../ai-resolve.ts'), 'utf8')
+    const m = src.match(/export type AIFeature =([\s\S]*?)\n\n/)
+    expect(m).not.toBeNull()
+    const known = [...m![1].matchAll(/'([a-z]+)'/g)].map(x => x[1])
+    expect(known).toContain('search')
+    for (const p of AI_PROVIDER_CATALOG) {
+      for (const f of p.features ?? []) expect(known).toContain(f)
+    }
   })
 })
 
