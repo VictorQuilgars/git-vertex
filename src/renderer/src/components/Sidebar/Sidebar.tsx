@@ -23,7 +23,6 @@ import { ContributorsSection } from './sections/ContributorsSection'
 import { OverviewSection } from './sections/OverviewSection'
 import { PrsSection } from './sections/PrsSection'
 import { IssuesSection } from './sections/IssuesSection'
-import { KeptSection } from './sections/KeptSection'
 import './Sidebar.css'
 
 // Kept on this module for the hosts that import them from here.
@@ -138,7 +137,6 @@ export default function Sidebar(props: SidebarProps) {
               the recent branches, what waits on the user, what to start
               (single-view only). */}
           {view === 'overview' && <OverviewSection s={s} />}
-          {(view === 'overview' || !single) && repoPath && props.onOpenKept && <KeptSection repo={repoPath} onOpen={props.onOpenKept} />}
 
           {/* AGENTS — inside the AI view in the panel, which is where "what
               the model is doing here" belongs. The desktop's AI stack does not

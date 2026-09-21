@@ -192,9 +192,12 @@
   transition: border-color var(--dur-fast), width var(--dur-base);
 }
 .tb-search:focus-within { border-color: var(--accent); color: var(--text-secondary); width: 380px; }
-/* AI mode active: purple ring + wider even when unfocused, NL queries are long */
-.tb-search.tb-search--ai { border-color: color-mix(in srgb, var(--purple) var(--alpha-half), transparent); }
+/* The model has answered: purple ring, and wider even unfocused — the sentence
+   that was asked is still in the field and is longer than a filter. */
+.tb-search.tb-search--ai { border-color: color-mix(in srgb, var(--purple) var(--alpha-half), transparent); width: 380px; }
 .tb-search.tb-search--ai:focus-within { border-color: var(--purple); width: 420px; }
+/* Not a button: what the rows on screen ARE. */
+.tb-search-ai { display: flex; align-items: center; gap: var(--space-2xs); flex-shrink: 0; color: var(--purple-soft); font-size: var(--text-tiny); }
 .tb-search input { flex: 1; background: none; border: none; outline: none; color: var(--text-primary); font-size: var(--text-sm); }
 .tb-search input::placeholder { color: var(--text-disabled); }
 .tb-clear { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: var(--text-md); padding: 0; line-height: 1; transition: color var(--dur-fast); }
@@ -228,8 +231,6 @@
 }
 .tb-ext-search:hover { border-color: var(--border-default); color: var(--text-primary-soft); background: var(--surface-sunken); }
 .tb-ext-search.active { border-color: color-mix(in srgb, var(--accent-emphasis) var(--alpha-visible), transparent); color: var(--accent); background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); }
-/* AI search variant: purple when active, matching the AI accents elsewhere */
-.tb-ai-search.active { border-color: color-mix(in srgb, var(--purple) var(--alpha-visible), transparent); color: var(--purple-soft); background: color-mix(in srgb, var(--purple-deep) var(--alpha-subtle), transparent); }
 
 /* Fetch time */
 .tb-fetch-time {

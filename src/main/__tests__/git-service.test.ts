@@ -2448,9 +2448,71 @@ describe('GitService', () => {
       build()
       const msgs = await messages(['refs/heads/side', 'refs/tags/*', 'refs/stash'])
       expect(msgs).toEqual(['B', 'A'])
-      // Hiding the branch you are on cannot empty the graph: --all carries HEAD
+      // Hiding the branch you are on cannot empty the graph: HEAD is collected
       // whatever the excludes say, which is why the chip stays too.
       expect(await messages(['refs/heads/main'])).toContain('B')
+    })
+
+    // ── A ref the app has no name for ───────────────────────────────────────
+    // The page used to be collected with `--all` — every ref under `refs/` —
+    // while a chip can only ever say branch, remote branch, tag or stash,
+    // which is also the only set git decorates. So a ref outside them gave a
+    // row with an empty `%D`: nothing in the side bar, no filter able to hide
+    // it, and every action refused. `git filter-branch` leaves exactly such a
+    // ref behind, and a squash-merged branch's originals then sat in the graph
+    // for good, belonging to nothing, with *Drop* answering "Commit not found"
+    // about a commit whose hash was on the row that had just been clicked.
+    test('a filter-branch backup puts no rows in the graph', async () => {
+      build()
+      // The commit only `v-orphan` reaches, re-hung under refs/original.
+      const orphan = execSync(`cd ${tempDir} && git rev-parse v-orphan`).toString().trim()
+      execSync(`cd ${tempDir} && git tag -d v-orphan && git update-ref refs/original/refs/heads/gone ${orphan}`)
+      const msgs = await messages()
+      expect(msgs).toEqual(expect.arrayContaining(['A', 'B', 'C']))
+      expect(msgs).not.toContain('D')
+      // And nothing else crept back with it: every row can name itself.
+      expect(msgs.some(m => m.startsWith('WIP on main'))).toBe(true)
+    })
+
+    test('a detached working tree keeps its HEAD in the graph', async () => {
+      // The one thing `--all` gave that the families do not: it examines every
+      // working tree. A worktree's side bar row goes to its HEAD, so a
+      // detached one would send the graph somewhere it has no row for.
+      build()
+      const orphan = execSync(`cd ${tempDir} && git rev-parse v-orphan`).toString().trim()
+      execSync(`cd ${tempDir} && git tag -d v-orphan && git worktree add -q --detach ${tempDir}-wt ${orphan}`)
+      try {
+        expect(await messages()).toContain('D')
+      } finally {
+        execSync(`cd ${tempDir} && git worktree remove --force ${tempDir}-wt`)
+      }
+    })
+  })
+
+  // ── What a rewrite says about a commit it cannot touch ────────────────────
+  describe('dropCommits — a commit the branch does not hold', () => {
+    test('it says which branch, instead of that the commit does not exist', async () => {
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'a')
+      execSync(`cd ${tempDir} && git add . && git commit -qm A`)
+      execSync(`cd ${tempDir} && git checkout -qb side`)
+      fs.writeFileSync(path.join(tempDir, 'c.txt'), 'c')
+      execSync(`cd ${tempDir} && git add . && git commit -qm C`)
+      const onSide = execSync(`cd ${tempDir} && git rev-parse HEAD`).toString().trim()
+      execSync(`cd ${tempDir} && git checkout -q main`)
+
+      const r = await git.dropCommits([onSide])
+      expect(r.success).toBe(false)
+      expect(r.error).toContain(onSide.slice(0, 7))
+      expect(r.error).toContain('"main"')
+      expect(r.error).not.toContain('No such commit')
+    })
+
+    test('a commit that really is not there is still said to be missing', async () => {
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'a')
+      execSync(`cd ${tempDir} && git add . && git commit -qm A`)
+      const r = await git.dropCommits(['0123456789abcdef0123456789abcdef01234567'])
+      expect(r.success).toBe(false)
+      expect(r.error).toBe('No such commit: 0123456')
     })
   })
 

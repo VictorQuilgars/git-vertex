@@ -88,6 +88,8 @@ export type ViewTab =
   | { view: 'stash'; index: number; message: string }
   | { view: 'fileDiff'; target: CenterDiffTarget }
   | { view: 'settings' }
+  /** What this repository keeps: its kept searches and comparisons (Memory). */
+  | { view: 'memory' }
 
 export interface AppTab { id: string; kind: TabKind; path?: string; name?: string; body?: ViewTab }
 
@@ -98,6 +100,7 @@ export function viewTabName(body: ViewTab, t: (k: any, ...a: any[]) => string): 
     case 'fileHistory': return t('tabs.history', body.file.split('/').pop() ?? body.file)
     case 'stash': return t('tabs.stash', body.index)
     case 'settings': return t('tabs.settings')
+    case 'memory': return t('tabs.memory')
     case 'fileDiff': {
       const name = body.target.filePath.split('/').pop() ?? body.target.filePath
       return body.target.type === 'commit'
@@ -107,13 +110,14 @@ export function viewTabName(body: ViewTab, t: (k: any, ...a: any[]) => string): 
   }
 }
 
-export function viewTabIcon(body: ViewTab): 'compare' | 'history' | 'stash' | 'diff' | 'gear' {
+export function viewTabIcon(body: ViewTab): 'compare' | 'history' | 'stash' | 'diff' | 'gear' | 'bookmark' {
   switch (body.view) {
     case 'compare': return 'compare'
     case 'fileHistory': return 'history'
     case 'stash': return 'stash'
     case 'fileDiff': return 'diff'
     case 'settings': return 'gear'
+    case 'memory': return 'bookmark'
   }
 }
 
@@ -137,9 +141,9 @@ export function sameView(a: ViewTab, b: ViewTab): boolean {
   if (a.view === 'fileHistory' && b.view === 'fileHistory') return a.file === b.file
   if (a.view === 'stash' && b.view === 'stash') return a.index === b.index
   if (a.view === 'fileDiff' && b.view === 'fileDiff') return sameDiffTarget(a.target, b.target)
-  // One settings tab: it shows the whole of a thing, so a second one would
-  // be the same tab twice.
-  return a.view === 'settings'
+  // One settings tab, one memory page: each shows the whole of a thing, so a
+  // second one would be the same tab twice.
+  return a.view === 'settings' || a.view === 'memory'
 }
 
 /** The same file, of the same version — a staged diff is not the unstaged one. */

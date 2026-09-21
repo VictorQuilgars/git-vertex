@@ -744,7 +744,13 @@
 }
 
 /* ── Tree view ───────────────────────────────────────────── */
+/* `--tree-gutter` is the row's left inset, which the depth is ADDED to (see
+   TreeFileRow). It is the left padding of the FLAT LIST this tree toggles
+   with, so switching between the two readings does not move the rows
+   sideways: `.st-file-row` here, `.rp-file-row` in the commit's files,
+   `.stx-row` in the embedded staging list. */
 .st-tr {
+  --tree-gutter: var(--space-md);
   display: flex;
   align-items: center;
   gap: var(--space-xs);
@@ -752,6 +758,8 @@
   transition: background var(--dur-fast);
   min-width: 0;
 }
+/* The commit's files: its list reading is `.rp-file-row`, inset one step more. */
+.rp-file-list .st-tr { --tree-gutter: var(--space-xl); }
 .st-tr:hover { background: var(--surface-hover); }
 .st-tr.st-selected { background: var(--surface-info) !important; }
 
@@ -1684,7 +1692,7 @@
 .stx-check-spacer { width: 14px; flex-shrink: 0; }
 .stx-master { margin-right: var(--space-2xs); }
 /* In the checkbox tree, drop the row's own left padding chevron spacing tweak */
-.stx-row.st-tr { gap: var(--space-sm); }
+.stx-row.st-tr { gap: var(--space-sm); --tree-gutter: var(--space-lg); }
 .stx-row.st-tr-dir .st-tr-tri { margin-left: 0; }
 
 /* "Add co-author" — a quiet button in the collapsed commit options, beside the

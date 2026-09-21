@@ -78,14 +78,15 @@ export function collectTreeFiles(n: TreeNode): string[] {
 // a tri-state checkbox that stages/unstages every descendant at once.
 export function CheckTreeRow({ node, depth, ctx }: { node: TreeNode; depth: number; ctx: StageTreeCtx }) {
   const [open, setOpen] = React.useState(true)
-  const indent = depth * 10
+  // Added to the row's gutter, never in place of it — see TreeFileRow.
+  const indent = (extra = 0) => `calc(var(--tree-gutter) + ${depth * 10 + extra}px)`
   if (node.isFile) {
     const state = ctx.stateByPath.get(node.fullPath) ?? 'unstaged'
     const staged = state === 'staged'
     const selected = ctx.selectedPath === node.fullPath
     return (
       <div className={`stx-row st-tr st-clickable ${selected ? 'st-selected' : ''}`}
-        style={{ paddingLeft: indent + 4 }}
+        style={{ paddingLeft: indent(4) }}
         onClick={() => ctx.onSelect(node.fullPath, staged ? 'staged' : 'unstaged')}
         onContextMenu={ctx.onContextMenu && (e => ctx.onContextMenu!(e, node.fullPath))}>
         <IndetCheckbox className="stx-check" checked={staged} indeterminate={state === 'partial'}
@@ -108,7 +109,7 @@ export function CheckTreeRow({ node, depth, ctx }: { node: TreeNode; depth: numb
   const noneStaged = states.every(s => s === 'unstaged')
   return (
     <>
-      <div className="stx-row st-tr st-tr-dir" style={{ paddingLeft: indent }} onClick={() => setOpen(o => !o)}>
+      <div className="stx-row st-tr st-tr-dir" style={{ paddingLeft: indent() }} onClick={() => setOpen(o => !o)}>
         <IndetCheckbox className="stx-check" checked={allStaged} indeterminate={!allStaged && !noneStaged}
           onChange={() => allStaged ? ctx.onUnstage(files) : ctx.onStage(files)} />
         <span className="st-tr-tri">{open ? '▼' : '▶'}</span>

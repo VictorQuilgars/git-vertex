@@ -57,6 +57,10 @@ const SHARED: Record<string, string> = {
   isTagOnRemote: 'tagOnRemote',
   restoreConflict: 'restoreConflict',
   getLog: 'log',
+  // The rest of the log family, moved with the memory page: a kept search
+  // asked again, and the commits a set of hashes names.
+  searchCommits: 'searchCommits',
+  commitsByHash: 'commitsByHash',
   pullBranch: 'fastForwardBranch',
   listRemoteBranches: 'remoteBranchNames',
   squashFixups: 'squashFixups',

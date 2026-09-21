@@ -6,6 +6,7 @@ import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { PullMode, type BranchInfo } from '../../types'
 import { Icon } from '../Icon/Icon'
 import SearchHint, { useSearchHint } from '../SearchHint/SearchHint'
+import { parseSearchQuery } from '../../utils/searchQuery'
 import { Brand } from '../BrandMark/BrandMark'
 
 interface ToolbarProps {
@@ -39,6 +40,10 @@ interface ToolbarProps {
   searchOpsLoading?: boolean
   onSearch: (q: string) => void
   keepSearch?: React.ReactNode
+  /** A kept search, put back in the field (the panel under it lists them). */
+  onOpenKept?: (entry: import('../../hooks/useKept').KeptEntry) => void
+  /** The Memory page: every kept thing, with what it holds. */
+  onOpenMemory?: () => void
   onUndo: () => void
   onRedo: () => void
   onFetch: () => void
@@ -61,11 +66,16 @@ interface ToolbarProps {
   extendedSearch?: boolean
   extendedSearchLoading?: boolean
   onToggleExtendedSearch?: () => void
-  // AI natural-language search — toggled with the ✨ button, runs on Enter.
+  /**
+   * AI natural-language search. There is no mode to arm first: the field takes
+   * a sentence the way it takes words, `Enter` asks the model about it, and the
+   * hint panel says so from its first line. `aiSearch` is therefore an ANSWER
+   * being shown, not a switch the user threw — which is why nothing here
+   * toggles it and editing the query leaves it.
+   */
   aiSearch?: boolean
   aiSearchLoading?: boolean
-  onToggleAiSearch?: () => void
-  onAiSearchSubmit?: () => void
+  onAskAi?: () => void
   onSettings?: () => void
   updateReady?: boolean
   onInstallUpdate?: () => void
@@ -106,14 +116,14 @@ function TBtn({ icon, label, onClick, disabled, title, accent, active }: {
 }
 
 export default function Toolbar({
-  repoPath, currentBranch, searchQuery, searchMatches, searchOpsLoading, onSearch, keepSearch,
+  repoPath, currentBranch, searchQuery, searchMatches, searchOpsLoading, onSearch, keepSearch, onOpenKept, onOpenMemory,
   repoName, recentRepos = [], onOpenRepo, onClone, onSetRepo, onRemoveRecent,
   branches = [], onGoTo,
   onUndo, onRedo, onFetch, onPush, onPull, pullMode, onSetPullMode, onCreateBranch,
   onStash, onPop, onTerminal, stashCount = 0, minimapShown = false, onToggleMinimap,
   loading,
   extendedSearch, extendedSearchLoading, onToggleExtendedSearch,
-  aiSearch, aiSearchLoading, onToggleAiSearch, onAiSearchSubmit,
+  aiSearch, aiSearchLoading, onAskAi,
   onGitflow,
   topRow = true
 }: ToolbarProps) {
@@ -450,14 +460,35 @@ export default function Toolbar({
       {/* Secondary right cluster */}
       <div className="tb-right">
         <div className={`tb-search${aiSearch ? ' tb-search--ai' : ''}`} {...searchHint.boxProps}>
-          {/* The operators, under the field while it has the focus — not in the
-              model's mode, where the query is a sentence and not a filter. */}
-          <SearchHint open={searchHint.open && !aiSearch} query={searchQuery} onChange={onSearch} loading={searchOpsLoading} />
+          {/* Everything the field can do, under it while it has the focus: the
+              question in words FIRST, then the operators. It stays up once the
+              model has answered — a click on an operator edits the query, and
+              editing the query is what comes back to filtering. */}
+          <SearchHint open={searchHint.open} query={searchQuery} onChange={onSearch} loading={searchOpsLoading}
+            onAsk={onAskAi} asking={aiSearchLoading} answered={aiSearch}
+            repo={repoPath} onOpenKept={onOpenKept} onOpenMemory={onOpenMemory} />
           <Icon name="search" size={13} />
           <input type="text"
-            placeholder={aiSearch ? t('toolbar.aiSearch.placeholder') : t('toolbar.search.placeholder')}
+            placeholder={t('toolbar.search.placeholder')}
             value={searchQuery} onChange={e => onSearch(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && aiSearch && !aiSearchLoading) onAiSearchSubmit?.() }} />
+            onKeyDown={e => {
+              // Enter has nothing else to mean here — the filter is live as it
+              // is typed — so it is the plain-language question's key.
+              if (e.key !== 'Enter' || !onAskAi || aiSearchLoading) return
+              if (!parseSearchQuery(searchQuery).text.trim()) return
+              e.preventDefault()
+              onAskAi()
+            }} />
+          {/* The model answered, or is answering: a STATE, not a control. What
+              leaves it is editing the query, which the × does too. */}
+          {(aiSearch || aiSearchLoading) && (
+            <span className="tb-search-ai">
+              {/* Titled on the icon, not on the span: that is what names it for
+                  a screen reader, and doing both announces it twice. */}
+              <Icon name="ai" size={13} title={t(aiSearchLoading ? 'toolbar.aiSearch.asking' : 'toolbar.aiSearch.answered')} />
+              {aiSearchLoading && '…'}
+            </span>
+          )}
           {searchQuery && searchMatches != null && searchMatches >= 0 && (
             <span className={`tb-search-count${searchMatches === 0 ? ' tb-search-count--none' : ''}`}>
               {searchMatches}
@@ -472,12 +503,6 @@ export default function Toolbar({
                 /* code chevrons: search inside diffs/code, not just messages */
                 <Icon name="editor" size={15} />
               )}
-            </button>
-          )}
-          {onToggleAiSearch && (
-            <button className={`tb-ext-search tb-ai-search ${aiSearch ? 'active' : ''}`}
-              onClick={onToggleAiSearch} title={t('toolbar.aiSearch.tooltip')}>
-              {aiSearchLoading ? '…' : '✨'}
             </button>
           )}
         </div>

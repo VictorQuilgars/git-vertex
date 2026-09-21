@@ -148,6 +148,10 @@ const gitAPI = {
   // Extended search & branch comparison
   searchInDiffs: (query: string) => invoke('git:search-in-diffs', query),
   locateInHistory: (hashes: string[], options?: { all?: boolean; refs?: string[]; excludes?: string[] }) => invoke('git:locate-in-history', hashes, options),
+  // What a kept search finds NOW, and what its kept hashes are — the memory page.
+  searchCommits: (query: { text?: string; authors?: string[]; after?: string; before?: string; paths?: string[]; maxCount?: number }) =>
+    invoke('git:search-commits', query),
+  commitsByHash: (hashes: string[]) => invoke('git:commits-by-hash', hashes),
   compareBranches: (current: string, other: string) => invoke('git:compare-branches', current, other),
   // Interactive Rebase
   getRebaseSequence: (baseHash: string) => invoke('git:get-rebase-sequence', baseHash),

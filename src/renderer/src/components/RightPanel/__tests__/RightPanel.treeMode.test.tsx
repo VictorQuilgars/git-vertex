@@ -54,3 +54,36 @@ describe('StagingView — Tree mode', () => {
     expect(actions.length).toBeGreaterThan(0)
   })
 })
+
+// ── The tree's left gutter ──────────────────────────────────────────────────
+// The depth was written straight into `paddingLeft`, which REPLACES the row's
+// own left padding rather than adding to it. Every level below the first had
+// an indent large enough to stand in for the missing gutter, so only the top
+// one showed it: a top-level folder's disclosure triangle sat at 0, flush
+// against the panel's edge, while the flat reading of the very same files —
+// one click away on the same bar — started a gutter in. It is `--tree-gutter`
+// plus the depth now, the property being declared beside each list's own left
+// padding so the two readings line up and both follow the density.
+describe('StagingView — the tree keeps the row’s left gutter', () => {
+  /** The tree row whose own name is `text` — `main` is also the branch, off in the chrome. */
+  const padOf = (text: string) => {
+    const row = [...document.querySelectorAll('.st-tr')].find(
+      r => r.querySelector('.st-tr-dirname, .st-tr-name')?.textContent === text)
+    if (!row) throw new Error(`no tree row named ${text}`)
+    return (row as HTMLElement).style.paddingLeft
+  }
+
+  test('a top-level folder is a gutter in, not against the edge', async () => {
+    renderTreeMode()
+    await waitFor(() => expect(screen.getAllByText('src').length).toBeGreaterThan(0))
+    expect(padOf('src')).toBe('calc(var(--tree-gutter) + 0px)')
+  })
+
+  test('the depth is added to the gutter, and a file clears its folder’s triangle', async () => {
+    renderTreeMode()
+    await waitFor(() => expect(screen.getAllByText('git-service.ts').length).toBeGreaterThan(0))
+    // src › main › git-service.ts — one level down, then the file under it.
+    expect(padOf('main')).toBe('calc(var(--tree-gutter) + 10px)')
+    expect(padOf('git-service.ts')).toBe('calc(var(--tree-gutter) + 24px)')
+  })
+})

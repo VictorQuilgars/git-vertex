@@ -1,6 +1,6 @@
 import simpleGit, { SimpleGit, LogResult, StatusResult } from 'simple-git'
-import { readFileSync } from 'fs'
-import { resolve } from 'path'
+import { readFileSync, readdirSync, statSync } from 'fs'
+import { resolve, join as pathJoin } from 'path'
 import { getGitBinary, isSimpleGitSafeBinary } from './git-binary'
 import * as core from './git-core'
 import type { CompareAxis, FileChange } from './git-core'
@@ -252,7 +252,7 @@ export class GitService {
     }
   }
 
-  async getLog(options: { maxCount?: number; all?: boolean; refs?: string[]; excludes?: string[] } = {}): Promise<{ commits: CommitNode[] }> {
+  async getLog(options: core.RefScope & { maxCount?: number } = {}): Promise<{ commits: CommitNode[] }> {
     // Freshly-initialized repo (no commit yet): plain `git log` exits 128.
     // An empty history is a valid state — the UI shows the WIP node so the
     // user can stage and create the very first commit.
@@ -271,7 +271,7 @@ export class GitService {
     // the panel's page is the same page.
     let commits: CommitNode[]
     try {
-      commits = await core.log(this.run, { ...options, maxCount: options.maxCount ?? 200, numstat: true })
+      commits = await core.log(this.run, { ...(await this.refScope(options)), maxCount: options.maxCount ?? 200, numstat: true })
     } catch (e) {
       // The belief above was wrong, or something else is: check properly, and
       // answer an empty history rather than throwing when that is the truth.
@@ -1087,10 +1087,11 @@ export class GitService {
       const ranked = hashes.map(h => ({
         h, i: order.findIndex(o => o.startsWith(h) || h.startsWith(o)),
       }))
-      if (ranked.some(r => r.i === -1)) return { success: false, error: 'Commit not found' }
+      const missing = ranked.filter(r => r.i === -1).map(r => r.h)
+      if (missing.length) return { success: false, error: await core.explainUnrewritable(this.run, missing) }
       const oldest = ranked.reduce((a, b) => (b.i > a.i ? b : a)).h
       const picks = await this.buildPickSequence(`${oldest}^`)
-      if (picks.length === 0) return { success: false, error: 'Commit not found' }
+      if (picks.length === 0) return { success: false, error: `Nothing to rewrite from ${oldest.slice(0, 7)}` }
       const dropped = (p: string) => hashes.some(h => p.startsWith(h) || h.startsWith(p))
       const sequence = picks.map(p => ({
         action: dropped(p.hash) ? 'drop' : 'pick',
@@ -1112,7 +1113,7 @@ export class GitService {
       const base = direction === 'down' ? `${hash}^^` : `${hash}^`
       const picks = await this.buildPickSequence(base)
       const idx = picks.findIndex(p => p.hash.startsWith(hash) || hash.startsWith(p.hash))
-      if (idx === -1) return { success: false, error: 'Commit not found' }
+      if (idx === -1) return { success: false, error: await core.explainUnrewritable(this.run, [hash]) }
       const swapWith = direction === 'up' ? idx + 1 : idx - 1
       if (swapWith < 0 || swapWith >= picks.length) {
         return { success: false, error: 'Move not possible' }
@@ -2284,7 +2285,7 @@ exit 0
   // ── Extended search ─────────────────────────────────────────
 
   async searchInDiffs(query: string): Promise<{ hashes: string[] }> {
-    return core.searchInDiffs(this.run, query)
+    return core.searchInDiffs(this.run, query, await this.refScope({ all: true }))
   }
 
   /**
@@ -2294,16 +2295,62 @@ exit 0
    * history, on purpose: the point is to know how far a hit is, and a page's
    * --max-count would only say that it is further than the page.
    */
-  async locateInHistory(hashes: string[], options: { all?: boolean; refs?: string[]; excludes?: string[] } = {}): Promise<{ positions: Record<string, number> }> {
+  /**
+   * What the graph is collected from, with the HEAD of every OTHER working
+   * tree added — the one thing `--all` gave that the named families do not,
+   * because `--all` examines every working tree and a collector does not.
+   *
+   * A worktree on a branch is already in `--branches`; a DETACHED one is not,
+   * and its side bar row goes to its HEAD, so without this that click would
+   * have nowhere to land. Prunable rows are left out: their directory is gone
+   * and git drops them on the next prune. One `worktree list --porcelain`,
+   * which reads `.git/worktrees` and touches no object.
+   */
+  private async refScope(options: core.RefScope): Promise<core.RefScope> {
+    if (!options.all || !this.hasLinkedWorktrees()) return options
+    try {
+      const { worktrees } = await core.worktrees(this.run)
+      const detached = worktrees
+        .filter(w => !w.isMain && !w.prunable && w.branch === '(detached)' && w.head)
+        .map(w => w.head)
+      return detached.length ? { ...options, extraRevs: detached } : options
+    } catch {
+      // Unreadable: the families are still the right answer.
+      return options
+    }
+  }
+
+  /**
+   * Are there any linked working trees at all? Asked of the DISK, because the
+   * answer is no for most repositories and `worktree list --porcelain` costs a
+   * process — 7 ms against the 9 ms a 500-row page costs, on every refresh and
+   * every "load more", to learn that there is nothing to add.
+   *
+   * `.git` is a directory in a normal repository and linked trees live under
+   * it; it is a FILE inside a linked tree, which is itself proof that there
+   * are some. Anything unreadable answers yes, so the doubt costs a process
+   * rather than a missing row.
+   */
+  private hasLinkedWorktrees(): boolean {
+    try {
+      const dot = pathJoin(this.repoPath, '.git')
+      if (!statSync(dot).isDirectory()) return true
+      return readdirSync(pathJoin(dot, 'worktrees')).length > 0
+    } catch (e: any) {
+      // No `.git/worktrees` is the common case and the only "no" here.
+      return e?.code !== 'ENOENT'
+    }
+  }
+
+  async locateInHistory(hashes: string[], options: core.RefScope = {}): Promise<{ positions: Record<string, number> }> {
     const positions: Record<string, number> = {}
     const wanted = new Set(hashes)
     if (!wanted.size || !(await this.hasHead())) return { positions }
-    const args = ['rev-list', '--date-order']
-    if (options.refs && options.refs.length) args.push(...options.refs)
-    else if (options.all) {
-      if (options.excludes) args.push(...options.excludes.map(g => `--exclude=${g}`))
-      args.push('--all')
-    } else args.push('HEAD')
+    // The same refs as getLog, built by the same function: this answers WHERE
+    // the graph would show a hit, and a wider collection here would place hits
+    // on rows the graph does not draw.
+    const scope = await this.refScope(options)
+    const args = ['rev-list', '--date-order', ...(options.all || options.refs?.length ? core.refArgs(scope) : ['HEAD'])]
     try {
       const out = await this.git.raw(args)
       let position = 0, found = 0
@@ -2348,7 +2395,7 @@ exit 0
 
   // ── Contributors ───────────────────────────────────────────
   async getContributors(limit?: number): Promise<{ contributors: core.Contributor[] }> {
-    return core.contributors(this.run, { limit })
+    return core.contributors(this.run, { limit, scope: await this.refScope({ all: true }) })
   }
 
   /** The full hash a branch, a tag or any revision stands for — null when it names no commit. */
@@ -2358,7 +2405,25 @@ exit 0
 
   /** The commits that touched a path or a folder — the search field's `file:`. */
   async searchByFile(paths: string[]): Promise<{ hashes: string[]; error?: string }> {
-    return core.commitsTouching(this.run, paths)
+    return core.commitsTouching(this.run, paths, await this.refScope({ all: true }))
+  }
+
+  /**
+   * The commits a KEPT search finds now — the query asked of git over
+   * the whole history, not of the page the graph happens to hold. The same
+   * refs the graph is drawn from, so a hit is a row the graph could show.
+   */
+  async searchCommits(query: core.CommitQuery): Promise<{ commits: core.LogCommit[]; error?: string }> {
+    return core.searchCommits(this.run, query, await this.refScope({ all: true }))
+  }
+
+  /**
+   * What these hashes are — subject, author, date, refs. A hash the repository
+   * no longer has comes back missing rather than failing the call, which is
+   * how the memory page knows a kept commit was rewritten away.
+   */
+  async commitsByHash(hashes: string[]): Promise<{ commits: core.LogCommit[] }> {
+    return { commits: await core.commitsByHash(this.run, hashes) }
   }
 
   /** What a tag is — its commit, and the annotation of an annotated one. */

@@ -19,6 +19,7 @@ import DetailsToggle from './DetailsToggle'
 import { planReach } from '../../../src/renderer/src/app/search-reach'
 import { LOG_PAGE, StashPreview } from '../../../src/renderer/src/app/shared'
 import AIReadingTab from './AIReadingTab'
+import MemoryTab from './MemoryTab'
 import SettingsModal from '../../../src/renderer/src/components/SettingsModal/SettingsModal'
 import ThemeGallery from '../../../src/renderer/src/components/ThemeGallery/ThemeGallery'
 import ThemeBuilder from '../../../src/renderer/src/components/ThemeBuilder/ThemeBuilder'
@@ -1484,10 +1485,6 @@ function VertexApp() {
           <Sidebar
             view={activeView}
             repoPath={repoPath ?? null}
-            onOpenKept={entry => {
-              if (entry.kind === 'comparison') void window.gitAPI.openCompare(entry.a, entry.b, entry.axis)
-              else { setQuery(entry.query); keptSearch.restore(entry) }
-            }}
             repoName={repoName}
             currentBranch={currentBranch}
             branches={branches}
@@ -1855,6 +1852,11 @@ function VertexApp() {
           search={keptSearch.restored ?? { kind: 'search', query: searchQuery, ai: false, hashes: null,
             requiredHashes: searchOps.requiredHashes === null ? null : [...searchOps.requiredHashes] }} />}
 
+        onOpenKept={entry => {
+          if (entry.kind === 'comparison') void window.gitAPI.openCompare(entry.a, entry.b, entry.axis)
+          else { setQuery(entry.query); keptSearch.restore(entry) }
+        }}
+        onOpenMemory={() => { void (window.gitAPI as any).openMemoryTab?.() }}
         onFetch={handleFetch}
         onPull={handlePull}
         onPush={handlePush}
@@ -2152,6 +2154,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                           ? <CommitMsgEditorView boot={boot} />
                           : boot?.mode === 'ai' && boot.aiKind
                             ? <AIReadingTab kind={boot.aiKind} aiKey={boot.aiKey} label={boot.aiLabel} />
+                          : boot?.mode === 'memory'
+                            ? <MemoryTab />
                           : boot?.mode === 'themes'
                             ? <ThemeGallery />
                           : boot?.mode === 'welcome'

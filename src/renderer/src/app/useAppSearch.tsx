@@ -16,11 +16,23 @@ import type { AppUpdates } from './useAppUpdates'
 import type { AppActions } from './useAppActions'
 
 export function useAppSearch(app: AppChrome & RepoSession & AppGithub & AppConflicts & AppAi & AppTabs & AppUpdates & AppActions) {
-  const { t, showToast, repoPath, commits, branches, setSelectedCommit, notedHashes, stashes, tags, loadRepoData, aiSearchHashes, setAiSearchHashes, setAiSearchLoading, handleOpenRepo, handleFetch, handlePush, handlePull, handleCheckout, handleCreateBranch, handleMergeBranch, handleApplyStash, logLimitRef, growHistory, showAllRef, soloRef, visibilityRef, setDeepLinkHash } = app
+  const { t, showToast, repoPath, commits, branches, setSelectedCommit, notedHashes, setNotedHashes, stashes, tags, loadRepoData, aiSearchHashes, setAiSearchHashes, setAiSearchLoading, handleOpenRepo, handleFetch, handlePush, handlePull, handleCheckout, handleCreateBranch, handleMergeBranch, handleApplyStash, logLimitRef, growHistory, showAllRef, soloRef, visibilityRef, setDeepLinkHash } = app
 
   const [searchQuery, setQuery] = useState<string>('')
   const keptSearch = useKeptSearch(repoPath)
-  const setSearchQuery = (query: string) => { keptSearch.clear(); setQuery(query) }
+  /**
+   * Editing the field is how one leaves the model's answer. There is no mode
+   * to turn off: asking put the answer on screen, touching the query takes it
+   * off and gives the live text filter back — which is the feedback one is
+   * looking for while typing, and the only way `aiSearch` can be a fact about
+   * what is shown rather than a switch to remember having thrown.
+   */
+  const setSearchQuery = (query: string) => {
+    keptSearch.clear()
+    app.setAiSearch(false)
+    setAiSearchHashes(null)
+    setQuery(query)
+  }
   const restoreSearch = (entry: KeptEntry) => {
     if (entry.kind !== 'search') return
     setExtendedSearch(false)
@@ -35,6 +47,47 @@ export function useAppSearch(app: AppChrome & RepoSession & AppGithub & AppConfl
   const [extendedSearchLoading, setExtendedSearchLoading] = useState(false)
   const [repoSearch, setRepoSearch] = useState('')
   const [paletteOpen, setPaletteOpen] = useState(false)
+  // ── The search belongs to the repository it was typed in ──
+  //
+  // Everything else about a repository comes back with its tab: its page, its
+  // selection, how far it had been loaded. The search did not — it was state
+  // of the WINDOW — so switching tabs left the words typed in the repository
+  // you had just left sitting in the field, the graph of the one you had just
+  // opened greyed out underneath them, and the count reading 0 about commits
+  // nobody had searched for. It is kept per repository here and comes back
+  // with the tab, which is what the tab already promises about everything
+  // else. (The panel has no tabs and clears it on a switch instead —
+  // webview/app.tsx.)
+  //
+  // `restored` is not in here: useKeptSearch already holds the kept search
+  // against its repository, and answers null for any other.
+  type SearchState = { query: string; ai: boolean; aiHashes: Set<string> | null; extended: boolean; noted: Set<string> | null }
+  const BLANK: SearchState = { query: '', ai: false, aiHashes: null, extended: false, noted: null }
+  const perRepo = useRef(new Map<string, SearchState>())
+  const shownRepo = useRef<string | null | undefined>(undefined)
+  // What is on screen right now, read at the moment the repository changes —
+  // the effect below runs after the render that changed it, and a value
+  // captured in its closure would be the new repository's.
+  const live = useRef<SearchState>(BLANK)
+  live.current = { query: searchQuery, ai: app.aiSearch, aiHashes: aiSearchHashes, extended: extendedSearch, noted: notedHashes }
+  useEffect(() => {
+    const left = shownRepo.current
+    shownRepo.current = repoPath
+    // The first render has left nothing behind yet.
+    if (left === undefined || left === repoPath) return
+    if (left) perRepo.current.set(left, live.current)
+    // A repository whose tab was closed is forgotten with it, like its page.
+    for (const path of perRepo.current.keys()) {
+      if (path !== repoPath && !app.tabs.some(tab => tab.path === path)) perRepo.current.delete(path)
+    }
+    const back = (repoPath && perRepo.current.get(repoPath)) || BLANK
+    setQuery(back.query)
+    app.setAiSearch(back.ai)
+    setAiSearchHashes(back.aiHashes)
+    setExtendedSearch(back.extended)
+    setNotedHashes(back.noted)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repoPath])
   // The query's operators (#255): `file:` is git's to answer, and the searches
   // below are given the words of the query, not its operators.
   const searchOps = useSearchOperators(keptSearch.restored ? '' : searchQuery, repoPath)
@@ -109,6 +162,11 @@ export function useAppSearch(app: AppChrome & RepoSession & AppGithub & AppConfl
     }
   }, [repoPath, showToast, t, setSelectedCommit, growHistory, setDeepLinkHash])
   // ── AI natural-language search ─────────────────────────────
+  // Asked, not armed: the field takes a sentence the way it takes words and
+  // `Enter` (or the panel's first row) sends it. `aiSearch` goes true only
+  // when the model has answered — from then on the rows ARE that answer, so
+  // the graph is given neither the sentence to match as text nor the
+  // operators to narrow by, until the query is edited again.
   const runAiSearch = useCallback(async () => {
     if (!searchQuery.trim() || !repoPath) return
     keptSearch.clear()
@@ -119,12 +177,14 @@ export function useAppSearch(app: AppChrome & RepoSession & AppGithub & AppConfl
         showToast(r.error === 'NO_API_KEY' ? t('toast.noAiKey') : r.error, 'err')
         return
       }
+      app.setAiSearch(true)
       setAiSearchHashes(new Set(r.hashes ?? []))
     } catch (e: any) {
       showToast(e?.message ?? t('toast.aiError'), 'err')
     } finally {
       setAiSearchLoading(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, repoPath, showToast])
   // Host-side matches handed to the graph (OR-ed with its local text filter):
   // diff extended-search hits + AI natural-language hits.
@@ -189,7 +249,7 @@ export function useAppSearch(app: AppChrome & RepoSession & AppGithub & AppConfl
 
   const restored = keptSearch.restored
   const searchSnapshot: KeptSearch = restored ?? {
-    kind: 'search', query: searchQuery, ai: app.aiSearch,
+    kind: 'search', query: searchQuery, ai: app.aiSearch, diffs: extendedSearch,
     hashes: graphSearchHashes === null ? null : [...graphSearchHashes],
     requiredHashes: searchOps.requiredHashes === null ? null : [...searchOps.requiredHashes],
   }

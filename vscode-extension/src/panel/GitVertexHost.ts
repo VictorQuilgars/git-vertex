@@ -785,6 +785,25 @@ export class GitVertexHost implements vscode.Disposable {
         }
         return { success: true, opened: 'window' }
       }
+      // What this repository keeps — the Memory page, in a tab. The desktop
+      // opens the same page in its own tab strip; here the panel is too narrow
+      // for a list of commits beside a list of names, like everything else
+      // that needs room (the staging editor, a comparison, a reading).
+      case 'openMemoryTab': {
+        if (this._repoPath) openGitVertexMemoryTab(this._extensionUri, this._state, this._repoPath)
+        return { success: true }
+      }
+      // A commit shown in the GRAPH VIEW, asked from another tab: the memory
+      // page lives in an editor tab, and the graph it wants to move is the
+      // panel's. The command is the one the blame gutter and the links
+      // already go through, so the view is focused the same way.
+      case 'revealCommit': {
+        const ref = String(args[0] ?? '').trim()
+        if (!ref) return { success: false, error: 'No commit' }
+        try { await vscode.commands.executeCommand('gitVertex.revealCommit', ref) }
+        catch (e: any) { return { success: false, error: e?.message ?? String(e) } }
+        return { success: true }
+      }
       // A stash's contents, in a tab — the desktop opens the same view as one.
       case 'openStashTab': {
         if (this._repoPath && typeof args[0] === 'number') {
@@ -1910,6 +1929,43 @@ export function openGitVertexStashTab(
     stashPanels.delete(key)
   })
   stashPanels.set(key, panel)
+}
+
+// ── The Memory page, in a tab ─────────────────────────────────────
+// One per repository: the page shows everything that repository keeps, so a
+// second tab of it would be the same tab twice — the rule the desktop's own
+// tab strip follows for it (shared.tsx::sameView).
+const MEMORY_VIEW_TYPE = 'gitVertex.memory'
+const memoryPanels = new Map<string, vscode.WebviewPanel>()
+
+export function openGitVertexMemoryTab(
+  extensionUri: vscode.Uri,
+  state: vscode.Memento,
+  repoPath: string,
+): void {
+  const existing = memoryPanels.get(repoPath)
+  if (existing) { existing.reveal(existing.viewColumn); return }
+
+  const panel = vscode.window.createWebviewPanel(
+    MEMORY_VIEW_TYPE,
+    'Memory',
+    vscode.ViewColumn.Active,
+    {
+      enableScripts: true,
+      retainContextWhenHidden: true,
+      localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')],
+    },
+  )
+  panel.iconPath = vscode.Uri.joinPath(extensionUri, 'images', 'icon.png')
+
+  const host = new GitVertexHost(panel.webview, extensionUri, state, { mode: 'memory' }, () => panel.dispose())
+  host.setRepo(repoPath)
+
+  panel.onDidDispose(() => {
+    host.dispose()
+    memoryPanels.delete(repoPath)
+  })
+  memoryPanels.set(repoPath, panel)
 }
 
 // The rich 3-way ConflictResolver (A/B line picking + base + manual edit) now

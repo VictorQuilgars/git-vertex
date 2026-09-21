@@ -152,13 +152,19 @@ export function TreeFileRow({ node, depth, onAction, actionIcon, actionTitle, on
 }) {
   const { t } = useLang()
   const [open, setOpen] = React.useState(true)
-  const indent = depth * 10
+  // The depth ADDS to the row's own left gutter — it does not replace it.
+  // Written as `paddingLeft` alone it did, and a top-level folder's triangle
+  // then sat at 0, flush against the panel's edge, with only the indent of the
+  // levels under it standing in for the gutter everywhere else. `--tree-gutter`
+  // is declared beside the row's padding in the stylesheet, per list, so a
+  // tree lines up with the flat list it toggles with and follows the density.
+  const indent = (extra = 0) => `calc(var(--tree-gutter) + ${depth * 10 + extra}px)`
 
   if (node.isFile) {
     return (
       <div
         className={`st-tr st-clickable ${isSelected ? 'st-selected' : ''}`}
-        style={{ paddingLeft: indent + 4 }}
+        style={{ paddingLeft: indent(4) }}
         onClick={() => onSelect?.(node.fullPath)}
         onContextMenu={onContextMenu && (e => onContextMenu(e, node.fullPath))}
       >
@@ -181,7 +187,7 @@ export function TreeFileRow({ node, depth, onAction, actionIcon, actionTitle, on
 
   return (
     <>
-      <div className="st-tr st-tr-dir" style={{ paddingLeft: indent }} onClick={() => setOpen(o => !o)}>
+      <div className="st-tr st-tr-dir" style={{ paddingLeft: indent() }} onClick={() => setOpen(o => !o)}>
         <span className="st-tr-tri">{open ? '▼' : '▶'}</span>
         <span className="st-tr-dirname">{node.name}</span>
         {stats && (

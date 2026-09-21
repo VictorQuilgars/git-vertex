@@ -595,6 +595,16 @@ export function registerGitHandlers(): void {
     if (!state.gitService) return { hashes: [] }
     return state.gitService.searchByFile(paths)
   })
+  // A kept search, asked again — of git, over the whole history, rather than
+  // of the page the graph holds (the memory page).
+  handle('git:search-commits', async (_event, query: any) => {
+    if (!state.gitService) return { commits: [] }
+    return state.gitService.searchCommits(query ?? {})
+  })
+  handle('git:commits-by-hash', async (_event, hashes: string[]) => {
+    if (!state.gitService) return { commits: [] }
+    return state.gitService.commitsByHash(hashes ?? [])
+  })
   handle('git:locate-in-history', async (_event, hashes: string[], options?: { all?: boolean; refs?: string[]; excludes?: string[] }) => {
     if (!state.gitService) return { positions: {} }
     return state.gitService.locateInHistory(hashes, options)
