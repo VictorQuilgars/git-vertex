@@ -334,3 +334,264 @@ export async function searchCommitsByJudgement(
   const hashes = rankHits(results.map(r => ('hits' in r ? r.hits : []) as JudgedHit[]))
   return failed.length ? { hashes, partial: failed.length } : { hashes }
 }
+
+// ── The filter query ───────────────────────────────────────────
+//
+// A filter described in words becomes a GitHub search query. The prose path
+// asks a model to COMPOSE that string and then unwraps whatever came back —
+// first non-empty line, fences stripped, quotes stripped — and the renderer
+// re-validates it, because a model given a vocabulary uses words outside it.
+// Its prompt carries three corrective sentences, each one measured against a
+// wrong answer: that every term is AND-ed and there is no OR, that `base:`
+// and `head:` match by prefix, that `@me` stands for the signed-in user.
+//
+// Here nothing is composed by the model. Code holds the vocabulary — the same
+// `ghFilters` the editor validates against — and asks one question per
+// qualifier: a closed set is its own options, a free value is chosen from the
+// words the person actually typed. The answer is assembled here, so the query
+// is valid by CONSTRUCTION rather than by inspection, and the first corrective
+// sentence has nothing left to correct: code joins with spaces, so there was
+// never an OR to forbid.
+
+import { ghFilterKeys, ghFilterValues, KEY_SYNTAX } from '../renderer/src/components/Sidebar/ghFilters'
+
+/** The option that means the request did not ask for this qualifier. */
+export const FILTER_NONE = '(not asked for)'
+
+/** Qualifiers whose value is a person, so `@me` is always worth offering. */
+const USER_KEYS = new Set([
+  'author', 'assignee', 'involves', 'mentions', 'review-requested', 'reviewed-by',
+])
+/** Qualifiers whose value is a date expression rather than a word. */
+const DATE_KEYS = new Set(['created', 'updated'])
+
+/**
+ * The words a value could be taken from — the request's own.
+ *
+ * A judgement engine selects, it does not write, so a `label:` or an
+ * `author:` can only be one of these. Quoted runs come through whole, since a
+ * label is often two words, and everything is offered rather than filtered by
+ * a stop list: the engine is better at knowing that "les" is not an author
+ * than a list of French and English articles would be.
+ */
+export function requestCandidates(request: string): string[] {
+  const out: string[] = []
+  const quoted = /"([^"]{1,60})"|'([^']{1,60})'|«\s*([^»]{1,60})\s*»/g
+  let rest = request
+  for (const m of request.matchAll(quoted)) {
+    const v = (m[1] ?? m[2] ?? m[3]).trim()
+    if (v) out.push(v)
+    rest = rest.replace(m[0], ' ')
+  }
+  for (const w of rest.split(/[^\p{L}\p{N}_@./-]+/u)) {
+    const v = w.replace(/^[-.]+|[-.]+$/g, '')
+    if (v.length >= 2 && !out.includes(v)) out.push(v)
+  }
+  return out.slice(0, 40)
+}
+
+/**
+ * The date expressions a request could mean, as GitHub spells them.
+ *
+ * Relative periods are computed here because only code knows what "today" is
+ * on this machine, and an engine asked to do the arithmetic would be asked to
+ * WRITE a date. Any literal date in the request is offered too.
+ */
+export function dateCandidates(today: string, request: string): string[] {
+  const t = new Date(`${today}T00:00:00Z`)
+  const back = (days: number) => {
+    const d = new Date(t)
+    d.setUTCDate(d.getUTCDate() - days)
+    return `>=${d.toISOString().slice(0, 10)}`
+  }
+  const out = [back(1), back(7), back(30), back(90), `>=${today.slice(0, 4)}-01-01`]
+  for (const m of request.matchAll(/\d{4}-\d{2}-\d{2}/g)) {
+    if (!out.includes(`>=${m[0]}`)) out.push(`>=${m[0]}`)
+  }
+  return out
+}
+
+/**
+ * One question per qualifier, plus one per candidate word for the free text.
+ *
+ * Every question names the request and what the qualifier means — the lesson
+ * the commit search paid for: a question whose meaning lives somewhere else is
+ * one the engine cannot answer, and its verdicts collapse into a band.
+ */
+export function filterQueryQuestions(
+  kind: 'prs' | 'issues', described: string, today: string,
+): { state: unknown; questions: Record<string, JudgeQuestion> } {
+  const request = described.trim()
+  const section = kind === 'prs' ? 'pull requests' : 'issues'
+  const candidates = requestCandidates(request)
+  const state = { today, section, request }
+  const questions: Record<string, JudgeQuestion> = {}
+
+  // The person, asked as WHO and as WHAT THEY ARE TO IT — two questions, not
+  // six. Asked one qualifier at a time they compete blindly: measured,
+  // "mes pull requests encore ouvertes" put author:@me at 0.31 and
+  // assignee:@me at 0.28, which is not an engine that cannot read the
+  // sentence, it is six questions each unaware that the others exist. These
+  // dimensions are not independent, and splitting them destroyed the
+  // relationship being judged.
+  const roles = ghFilterKeys(kind).filter(k => USER_KEYS.has(k))
+  if (roles.length) {
+    questions['q:who'] = {
+      type: 'choice',
+      instructions: `A developer described a filter for ${section}: "${request}". `
+        + 'Is it about a particular person, and which one?',
+      criteria: {
+        '@me': 'the developer themselves — "mine", "my", "me", "I"',
+        ...Object.fromEntries(candidates.map(c => [c, null as string | null])),
+        [FILTER_NONE]: 'the request is not about any particular person',
+      },
+    }
+    questions['q:role'] = {
+      type: 'choice',
+      instructions: `A developer described a filter for ${section}: "${request}". `
+        + 'If it is about a person, what is that person TO the item?',
+      criteria: {
+        ...Object.fromEntries(roles.map(k => [k, KEY_SYNTAX[k].label])),
+        [FILTER_NONE]: 'the request is not about a person at all',
+      },
+    }
+  }
+
+  for (const key of ghFilterKeys(kind)) {
+    if (USER_KEYS.has(key)) continue
+    const closed = ghFilterValues(key, kind)
+    const options = closed.length ? [...closed]
+      : DATE_KEYS.has(key) ? dateCandidates(today, request)
+      : [...candidates]
+    if (!options.length) continue
+    const { label, syntax } = KEY_SYNTAX[key]
+    questions[`q:${key}`] = {
+      type: 'choice',
+      instructions: `A developer described a filter for ${section}: "${request}". `
+        + `Does it ask to narrow by ${label} (${syntax})? If it does, which value does it mean?`,
+      criteria: {
+        ...Object.fromEntries(options.map(o => [o, null as string | null])),
+        // The escape hatch, and the answer most questions should get: a
+        // request names two or three qualifiers out of sixteen.
+        [FILTER_NONE]: `the request says nothing about ${label}`,
+      },
+    }
+  }
+
+  // What is left is free text, which GitHub matches in the title and body. One
+  // noul a word rather than one choice: several words can be search terms at
+  // once, and a choice would make them compete.
+  for (const [i, word] of candidates.entries()) {
+    questions[`t:${i}`] = {
+      type: 'noul',
+      instructions: `A developer described a filter for ${section}: "${request}". `
+        + `Should "${word}" be matched as free text in the title and body?`,
+      criteria: {
+        true: `"${word}" is part of what they are looking for, and is not a person, a branch, a label or a date`,
+        false: `"${word}" is grammar, or it belongs to one of the filter's qualifiers rather than to its text`,
+      },
+    }
+  }
+  return { state, questions }
+}
+
+/**
+ * How sure a qualifier's answer must be before it reaches the query.
+ *
+ * Measured over nine described filters: what the request actually said came
+ * back at 0.91 to 1.00 — `draft:true` 0.99, `status:failure` 0.99,
+ * `sort:updated` 1.00 — and everything invented sat at 0.24 to 0.48:
+ * `review:none` 0.24, `involves:ma` 0.31, `head:main` 0.41, `state:closed`
+ * 0.40. The gap is wide and empty, so the cut goes in the middle of it.
+ *
+ * Erring high is the right way to err here. A qualifier too many silently
+ * narrows a search to nothing, and nothing is exactly what a missing filter
+ * also looks like; a qualifier too few leaves a query the person can see is
+ * incomplete and finish by hand, in a field built for typing.
+ */
+export const FILTER_CONFIDENCE = 0.7
+
+/**
+ * How likely a word must be to be searched for as free text.
+ *
+ * Same measurement: the words that were the point came back at 0.90 and 0.92
+ * ("theme", "picker"), and the grammar and the already-captured words at 0.43
+ * to 0.65 ("PR", "relecture", "CI", "échoué"). 0.65 is the highest a wrong
+ * one reached, so the cut sits above it.
+ */
+export const FILTER_TEXT = 0.8
+
+/**
+ * The query, assembled here.
+ *
+ * Nothing the engine said is copied into a key: a value that is not one of the
+ * options offered is dropped, so a token the section's vocabulary does not
+ * have cannot be written. `state:` steps aside for `is:`, which says the same
+ * thing and more.
+ */
+export function readFilterAnswers(
+  answers: Record<string, JudgeAnswer> | undefined,
+  kind: 'prs' | 'issues', described: string, today: string,
+): string {
+  const { questions } = filterQueryQuestions(kind, described, today)
+  const tokens: string[] = []
+  const taken = new Set<string>()
+
+  // The person first, from the two answers that describe them together. Both
+  // have to be sure: a role without a name filters by nobody, and a name
+  // without a role cannot be written as a qualifier at all.
+  const who = answers?.['q:who']
+  const role = answers?.['q:role']
+  const sure = (a: JudgeAnswer | undefined) =>
+    a?.choice && a.choice !== FILTER_NONE && (a.confidence ?? 1) >= FILTER_CONFIDENCE
+  if (sure(who) && sure(role) && ghFilterKeys(kind).includes(role!.choice!)) {
+    tokens.push(`${role!.choice}:${who!.choice}`)
+    taken.add(who!.choice!.toLowerCase())
+  }
+
+  for (const key of ghFilterKeys(kind)) {
+    if (USER_KEYS.has(key)) continue
+    const q = questions[`q:${key}`]
+    const a = answers?.[`q:${key}`]
+    if (!q || !a?.choice || a.choice === FILTER_NONE) continue
+    // Offered, or not written: this is what makes the query valid by
+    // construction rather than by the validator catching it afterwards.
+    if (!(a.choice in (q as { criteria: Record<string, unknown> }).criteria)) continue
+    if ((a.confidence ?? 1) < FILTER_CONFIDENCE) continue
+    if (key === 'state' && answers?.['q:is']?.choice && answers['q:is'].choice !== FILTER_NONE) continue
+    tokens.push(`${key}:${a.choice}`)
+    taken.add(a.choice.toLowerCase())
+  }
+
+  const candidates = requestCandidates(described.trim())
+  for (const [i, word] of candidates.entries()) {
+    const p = answers?.[`t:${i}`]?.noul
+    if (typeof p !== 'number' || p < FILTER_TEXT) continue
+    // A word already spent as a qualifier's value is not also free text.
+    if (taken.has(word.toLowerCase())) continue
+    tokens.push(/\s/.test(word) ? `"${word}"` : word)
+  }
+  return tokens.join(' ')
+}
+
+/**
+ * A described filter, composed as a query — ONE implementation, both products.
+ *
+ * The same arrangement as the commit search: the host supplies its policy (its
+ * key, its retry, its logging) and the composition is here, against the very
+ * vocabulary the editor validates. There is no answer to unwrap and no token
+ * to refuse, because nothing was written by the engine.
+ */
+export async function filterQueryByJudgement(
+  run: JudgeRun, kind: 'prs' | 'issues', described: string, today: string,
+): Promise<{ query?: string; error?: string }> {
+  if (!described.trim()) return { error: 'nothing to describe' }
+  const { state, questions } = filterQueryQuestions(kind, described, today)
+  const r = await run(state, questions)
+  if (r.error) return { error: r.error }
+  const query = readFilterAnswers(r.answers, kind, described, today)
+  // Every qualifier came back unsure and no word was worth searching for. An
+  // empty query is not a filter, and putting one in the field would read as
+  // success — the same refusal the prose path gives for an empty answer.
+  return query ? { query } : { error: 'nothing in that description could be expressed as a filter' }
+}

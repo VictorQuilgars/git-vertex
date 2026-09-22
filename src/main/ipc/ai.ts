@@ -15,7 +15,7 @@ import { readFileSync, writeFileSync } from 'fs'
 import { state } from '../app-state'
 import { readSettings, writeSettings } from '../settings-store'
 import { runAIPrompt, runJudge, featureDialect, diffOptsFor, AI_CONFLICT_MAX_CHARS, explCachePath, readExplCache, saveExplanation, rawGit, runFeature, noteStore, changelogStore } from '../ai-runtime'
-import { searchCommitsByJudgement } from '../ai-judge'
+import { searchCommitsByJudgement, filterQueryByJudgement } from '../ai-judge'
 
 
 
@@ -171,6 +171,12 @@ export function registerAiHandlers(): void {
 
   handle('ai:filter-query', async (_e, kind: 'prs' | 'issues', described: string, vocabulary: string) => {
     if (!described.trim()) return { error: 'nothing to describe' }
+    // The judgement path composes the query from the vocabulary rather than
+    // asking for one back, so it never sees the rendered `vocabulary` string.
+    if (featureDialect('filter') === 'typesafe') {
+      return filterQueryByJudgement((st, qs) => runJudge(st, qs, 'filter'),
+        kind, described, new Date().toISOString().slice(0, 10))
+    }
     const what = kind === 'prs' ? 'pull requests' : 'issues'
     const prompt = [
       `You write GitHub search queries that filter ${what}.`,

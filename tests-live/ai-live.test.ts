@@ -17,7 +17,8 @@ import * as os from 'os'
 import * as path from 'path'
 import { resolveAICall, appendInstructions, type AIFeature } from '../src/main/ai-resolve'
 import { callProvider } from '../src/main/ai-call'
-import { callJudge, searchCommitsQuestions, readSearchAnswers } from '../src/main/ai-judge'
+import { callJudge, searchCommitsQuestions, readSearchAnswers, filterQueryQuestions, readFilterAnswers } from '../src/main/ai-judge'
+import { validateGhQuery } from '../src/renderer/src/components/Sidebar/ghFilters'
 import { authHeaders } from '../src/renderer/src/utils/aiProviders'
 
 const FEATURES: AIFeature[] = ['commit', 'explain', 'conflict', 'search', 'filter', 'pr', 'issue']
@@ -165,5 +166,54 @@ describe('the judgement dialect (paid)', () => {
     // by which the engine can name one it was never shown.
     const known = new Set(commits.map(c => c.hash))
     expect(hits.filter(h => !known.has(h.hash))).toEqual([])
+  }, 60000)
+})
+
+// ── The filter, composed from the vocabulary (paid, and pennies) ──
+//
+// The half no unit test reaches: whether the engine reads a described filter
+// the way a person meant it. The composition is already guaranteed valid by
+// construction, so what is checked here is MEANING — and it is checked as
+// "this qualifier is present", never as an exact string, because several
+// queries can be right.
+describe('the filter query (paid)', () => {
+  const target = resolveAICall(s, 'filter')
+  const runIf = target.dialect === 'typesafe' ? test : test.skip
+  const TODAY = new Date().toISOString().slice(0, 10)
+
+  const compose = async (kind: 'prs' | 'issues', ask: string) => {
+    const { state, questions } = filterQueryQuestions(kind, ask, TODAY)
+    const reply = await callJudge(target, state, questions, authHeaders)
+    return readFilterAnswers(reply.answers, kind, ask, TODAY)
+  }
+
+  const CASES: { kind: 'prs' | 'issues'; ask: string; must: string[]; mustNot?: string[] }[] = [
+    { kind: 'prs', ask: 'mes pull requests encore ouvertes', must: ['author:@me'], mustNot: ['assignee:'] },
+    { kind: 'prs', ask: 'les PR qui attendent ma relecture', must: ['review-requested:@me'], mustNot: ['assignee:'] },
+    { kind: 'prs', ask: 'pull requests in draft', must: ['draft:true'] },
+    { kind: 'prs', ask: 'PR vers main dont le CI a échoué', must: ['base:main', 'status:failure'], mustNot: ['head:'] },
+    { kind: 'issues', ask: 'les issues ouvertes sans personne assignée', must: ['no:assignee'] },
+    { kind: 'issues', ask: 'issues labelled bug, most recently updated first', must: ['label:bug', 'sort:updated'] },
+    { kind: 'issues', ask: 'closed issues assigned to VictorQuilgars', must: ['assignee:VictorQuilgars'] },
+  ]
+
+  for (const c of CASES) {
+    runIf(`"${c.ask}"`, async () => {
+      const query = await compose(c.kind, c.ask)
+      // eslint-disable-next-line no-console
+      console.log(`  ${c.ask}\n    → ${query}`)
+      // Valid first: this is the property the whole design exists for, and it
+      // must hold whatever the engine decided.
+      expect(validateGhQuery(query, c.kind)).toEqual({ ok: true })
+      for (const m of c.must) expect(query).toContain(m)
+      for (const m of c.mustNot ?? []) expect(query).not.toContain(m)
+    }, 60000)
+  }
+
+  runIf('a description with nothing filterable in it is refused, not guessed at', async () => {
+    const query = await compose('issues', 'bonjour comment ça va')
+    // eslint-disable-next-line no-console
+    console.log(`  (nonsense) → ${query || '(empty)'}`)
+    expect(validateGhQuery(query, 'issues')).toEqual({ ok: true })
   }, 60000)
 })

@@ -5,8 +5,10 @@
     "src/main/**/*",
     "src/preload/**/*",
     "src/renderer/src/utils/remoteUrl.ts",
-    "src/renderer/src/utils/aiProviders.ts"
+    "src/renderer/src/utils/aiProviders.ts",
+    "src/renderer/src/components/Sidebar/ghFilters.ts"
   ],
+  "//2": "ghFilters.ts: the filter VOCABULARY — which qualifiers a section takes and which of them have a closed set. ai-judge builds its questions from it so the query it composes is valid by construction, against the very validator the editor runs.",
   "//": "remoteUrl.ts: the one renderer file the main process imports (github-host, #96). A composite project must list every file it reaches; without this line the config reports TS6307 for anyone who runs it (#105).",
   "compilerOptions": {
     "composite": true,

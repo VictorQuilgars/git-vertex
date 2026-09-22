@@ -45,7 +45,7 @@ import { readOversize, oversizeMessage } from '../../src/main/ai-oversize'
 // the prose one lives here in a second copy, and the four prompts that were
 // arranged that way drifted word by word until #185 P2 moved them.
 import {
-  callJudge, searchCommitsByJudgement,
+  callJudge, searchCommitsByJudgement, filterQueryByJudgement,
   type JudgeQuestion, type JudgeAnswer,
 } from '../../src/main/ai-judge'
 
@@ -419,6 +419,10 @@ export async function aiFilterQuery(
   headroom?: HeadroomStore,
 ): Promise<{ query?: string; error?: string }> {
   if (!described.trim()) return { error: 'nothing to describe' }
+  if (cfg.dialect === 'typesafe') {
+    return filterQueryByJudgement((st, qs) => runJudge(cfg, st, qs),
+      kind, described, new Date().toISOString().slice(0, 10))
+  }
   const what = kind === 'prs' ? 'pull requests' : 'issues'
   const prompt = [
     `You write GitHub search queries that filter ${what}.`,

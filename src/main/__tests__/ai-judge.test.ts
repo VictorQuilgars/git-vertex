@@ -271,3 +271,163 @@ describe('the search both products run', () => {
     expect(r.hashes).toEqual([H(0), H(1), H(2), H(3), H(4)])
   })
 })
+
+describe('the filter query, composed rather than written', () => {
+  const {
+    filterQueryQuestions, readFilterAnswers, requestCandidates, dateCandidates,
+    FILTER_NONE, FILTER_CONFIDENCE, FILTER_TEXT,
+  } = require('../ai-judge')
+  const { validateGhQuery, ghFilterKeys } = require('../../renderer/src/components/Sidebar/ghFilters')
+  const TODAY = '2026-09-22'
+  const choice = (c: string, confidence = 1) => ({ type: 'choice', choice: c, confidence })
+  const none = (confidence = 1) => choice(FILTER_NONE, confidence)
+
+  test('every qualifier of the section is asked about, and only its own values offered', () => {
+    const { questions } = filterQueryQuestions('prs', 'anything', TODAY)
+    // `review` is a pull request's, `milestone` is an issue's — asking a
+    // section about a qualifier it does not have is how an invalid token gets
+    // written in the first place.
+    expect(Object.keys(questions['q:review'].criteria).sort())
+      .toEqual(['approved', 'changes_requested', 'none', FILTER_NONE].sort())
+    expect(questions['q:milestone']).toBeUndefined()
+    expect(filterQueryQuestions('issues', 'anything', TODAY).questions['q:review']).toBeUndefined()
+  })
+
+  test('the person is one WHO and one ROLE, never six competing questions', () => {
+    // Measured: asked a qualifier at a time, "mes pull requests encore
+    // ouvertes" put author:@me at 0.31 and assignee:@me at 0.28 — six
+    // questions none of which knew the others existed. Split this way both
+    // came back above 0.9.
+    const { questions } = filterQueryQuestions('prs', 'mes pull requests', TODAY)
+    expect(Object.keys(questions['q:role'].criteria)).toContain('review-requested')
+    expect(Object.keys(questions['q:who'].criteria)).toContain('@me')
+    for (const k of ['author', 'assignee', 'involves', 'reviewed-by']) {
+      expect(questions[`q:${k}`]).toBeUndefined()
+    }
+  })
+
+  test('a free value can only be a word the person typed', () => {
+    const { questions } = filterQueryQuestions('prs', 'PR vers main', TODAY)
+    const opts = Object.keys(questions['q:base'].criteria)
+    expect(opts).toContain('main')
+    expect(opts).toEqual(expect.arrayContaining(['PR', 'vers', 'main', FILTER_NONE]))
+  })
+
+  test('every question names the request — the lesson the search paid for', () => {
+    const { questions } = filterQueryQuestions('issues', 'open bugs', TODAY)
+    for (const q of Object.values(questions) as any[]) {
+      expect(q.instructions).toContain('"open bugs"')
+    }
+  })
+
+  test('a value the engine was never offered is dropped, not written', () => {
+    // The guarantee the prose path buys with a validator and a regex: here a
+    // token outside the vocabulary cannot be composed at all.
+    const q = readFilterAnswers({
+      'q:is': choice('merged'), 'q:label': choice('not-a-word-we-offered'),
+    } as any, 'prs', 'merged pull requests', TODAY)
+    expect(q).toBe('is:merged')
+    expect(validateGhQuery(q, 'prs').ok).toBe(true)
+  })
+
+  test('an unsure qualifier stays out', () => {
+    // Erring high: a qualifier too many narrows a search to nothing, and
+    // nothing looks exactly like a filter that did not apply.
+    const below = readFilterAnswers({ 'q:draft': choice('true', FILTER_CONFIDENCE - 0.01) } as any,
+      'prs', 'draft pull requests', TODAY)
+    const above = readFilterAnswers({ 'q:draft': choice('true', FILTER_CONFIDENCE) } as any,
+      'prs', 'draft pull requests', TODAY)
+    expect(below).toBe('')
+    expect(above).toBe('draft:true')
+  })
+
+  test('a role without a name, or a name without a role, writes nothing', () => {
+    const roleOnly = readFilterAnswers({ 'q:role': choice('author'), 'q:who': none() } as any,
+      'prs', 'pull requests', TODAY)
+    const whoOnly = readFilterAnswers({ 'q:who': choice('@me'), 'q:role': none() } as any,
+      'prs', 'my pull requests', TODAY)
+    expect(roleOnly).toBe('')
+    expect(whoOnly).toBe('')
+    expect(readFilterAnswers({ 'q:who': choice('@me'), 'q:role': choice('author') } as any,
+      'prs', 'my pull requests', TODAY)).toBe('author:@me')
+  })
+
+  test('a role the section does not have is refused', () => {
+    // `reviewed-by` is a pull request's; an issue has no review cycle.
+    expect(ghFilterKeys('issues')).not.toContain('reviewed-by')
+    expect(readFilterAnswers({ 'q:who': choice('@me'), 'q:role': choice('reviewed-by') } as any,
+      'issues', 'issues I reviewed', TODAY)).toBe('')
+  })
+
+  test('`state:` steps aside for `is:`, which says the same and more', () => {
+    const q = readFilterAnswers({ 'q:is': choice('merged'), 'q:state': choice('closed') } as any,
+      'prs', 'merged pull requests', TODAY)
+    expect(q).toBe('is:merged')
+  })
+
+  test('a word spent as a value is not also free text', () => {
+    const described = 'issues labelled bug'
+    const i = requestCandidates(described).indexOf('bug')
+    const q = readFilterAnswers({
+      'q:label': choice('bug'), [`t:${i}`]: { type: 'noul', noul: 0.99 },
+    } as any, 'issues', described, TODAY)
+    expect(q).toBe('label:bug')
+  })
+
+  test('free text survives when no qualifier claimed it', () => {
+    const described = 'issues about the theme picker'
+    const cands: string[] = requestCandidates(described)
+    const answers: any = {}
+    cands.forEach((w, i) => { answers[`t:${i}`] = { type: 'noul', noul: ['theme', 'picker'].includes(w) ? 0.9 : 0.2 } })
+    expect(readFilterAnswers(answers, 'issues', described, TODAY)).toBe('theme picker')
+  })
+
+  test('a quoted phrase comes through whole, and is quoted back', () => {
+    const described = 'issues labelled "good first issue"'
+    const cands: string[] = requestCandidates(described)
+    expect(cands).toContain('good first issue')
+    const answers: any = { [`t:${cands.indexOf('good first issue')}`]: { type: 'noul', noul: 0.95 } }
+    expect(readFilterAnswers(answers, 'issues', described, TODAY)).toBe('"good first issue"')
+  })
+
+  test('a word below the text cut stays out', () => {
+    const described = 'the theme picker'
+    const cands: string[] = requestCandidates(described)
+    const answers: any = {}
+    cands.forEach((_, i) => { answers[`t:${i}`] = { type: 'noul', noul: FILTER_TEXT - 0.01 } })
+    expect(readFilterAnswers(answers, 'issues', described, TODAY)).toBe('')
+  })
+
+  test('dates are computed here — the engine picks one, it never writes one', () => {
+    const out: string[] = dateCandidates(TODAY, 'since 2026-09-01')
+    expect(out).toContain('>=2026-09-15')   // a week back
+    expect(out).toContain('>=2026-01-01')   // this year
+    expect(out).toContain('>=2026-09-01')   // the literal in the request
+    for (const o of out) expect(o).toMatch(/^>=\d{4}-\d{2}-\d{2}$/)
+  })
+
+  test('whatever comes back, the query passes the editor’s own validator', () => {
+    for (const kind of ['prs', 'issues'] as const) {
+      const { questions } = filterQueryQuestions(kind, 'mes PR ouvertes vers main "good first issue"', TODAY)
+      // Every qualifier answered with its first option, every word free text:
+      // the most a run could ever produce.
+      const answers: any = {}
+      for (const [id, q] of Object.entries(questions) as any[]) {
+        if (q.type === 'choice') {
+          const first = Object.keys(q.criteria).find(o => o !== FILTER_NONE)!
+          answers[id] = { type: 'choice', choice: first, confidence: 1 }
+        } else answers[id] = { type: 'noul', noul: 1 }
+      }
+      const query = readFilterAnswers(answers, kind, 'mes PR ouvertes vers main "good first issue"', TODAY)
+      expect(validateGhQuery(query, kind)).toEqual({ ok: true })
+    }
+  })
+
+  test('nothing understood is an empty query, which the caller refuses', () => {
+    const allNone: any = {}
+    for (const id of Object.keys(filterQueryQuestions('prs', 'hello there', TODAY).questions)) {
+      allNone[id] = id.startsWith('t:') ? { type: 'noul', noul: 0 } : none()
+    }
+    expect(readFilterAnswers(allNone, 'prs', 'hello there', TODAY)).toBe('')
+  })
+})
