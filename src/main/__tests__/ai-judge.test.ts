@@ -26,14 +26,32 @@ describe('what the engine is shown', () => {
     expect(json).toContain('Ada')
   })
 
-  test('the query, the date and what matching means are shared, not repeated', () => {
-    const { state, questions } = searchCommitsQuestions('last week', [commit(1), commit(2)], '2026-09-22')
-    expect(state).toEqual(expect.objectContaining({ today: '2026-09-22', search: 'last week' }))
-    // The part that repeats N times stays a pointer: the explanation is in the
-    // state, paid for once, and the question carries none of it.
-    expect(questions.c0.instructions).toBe('Does `commits[0]` answer `search`?')
-    expect(questions.c1.instructions).toBe('Does `commits[1]` answer `search`?')
-    expect(questions.c0.instructions.length).toBeLessThan(60)
+  test('every question names the search and its own subject', () => {
+    // The first cut made each question a bare pointer at the state, to keep
+    // the repeating half cheap. Measured, it returned 34 of 100 commits for
+    // "générateur de thème de couleur", led by a release chore. A question's
+    // ID never reaches the model, so a question that names nothing is one it
+    // cannot answer — and the verdicts collapsed into a band around 0.6.
+    const { questions } = searchCommitsQuestions(
+      'colour theme generator', [commit(1), commit(2)], '2026-09-22')
+    expect(questions.c0.instructions).toContain('"colour theme generator"')
+    expect(questions.c0.instructions).toContain('`commits[0]`')
+    expect(questions.c0.instructions).toContain('subject 1')
+    expect(questions.c1.instructions).toContain('subject 2')
+    expect(questions.c0.criteria!.true).toContain('colour theme generator')
+  })
+
+  test('the state carries what a question cannot — the author, the date, today', () => {
+    const { state } = searchCommitsQuestions('last week', [commit(1)], '2026-09-22')
+    expect(state).toEqual(expect.objectContaining({ today: '2026-09-22' }))
+    expect(JSON.stringify(state)).toContain('Ada')
+  })
+
+  test('a commit that only touches the same area in passing is ruled out by the criteria', () => {
+    // Where the 34 came from: forty commits near the theme code, none of them
+    // the change being searched for.
+    const { questions } = searchCommitsQuestions('x', [commit(1)], '2026-09-22')
+    expect(questions.c0.criteria!.false).toContain('in passing')
   })
 
   test('one noul per commit, with both criteria', () => {
@@ -47,8 +65,8 @@ describe('what the engine is shown', () => {
   })
 
   test('the query is trimmed — a trailing space is not a search term', () => {
-    const { state } = searchCommitsQuestions('  fix the parser  ', [commit(1)], '2026-09-22')
-    expect((state as any).search).toBe('fix the parser')
+    const { questions } = searchCommitsQuestions('  fix the parser  ', [commit(1)], '2026-09-22')
+    expect(questions.c0.instructions).toContain('"fix the parser"')
   })
 })
 

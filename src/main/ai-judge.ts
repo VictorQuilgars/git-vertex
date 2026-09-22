@@ -98,10 +98,12 @@ export const JUDGE_SEARCH_MAX = 1000
  * Above which probability a commit is a hit.
  *
  * A noul near 0.5 means the engine genuinely cannot tell, not "half a match",
- * so the cut sits there and the ranking does the rest. It is a constant rather
- * than a setting on purpose: the number means nothing to anyone until they
- * have seen it miss, and a search that silently returns fewer results is worse
- * than one that returns a weak result the graph simply does not highlight.
+ * so the cut sits there. Measured on this repository, the answers either sit
+ * above it or fall away fast — 0.70 for the one commit that was wanted, then
+ * 0.27, 0.18, 0.10 and a cliff — so where exactly it sits inside that gap
+ * changes little. What it must not do is drift down: the ranking below cannot
+ * rescue a permissive cut, because the graph takes the hashes as a SET and
+ * highlights all of them alike. Every hit that passes is a hit the user sees.
  */
 export const JUDGE_HIT = 0.5
 
@@ -111,31 +113,50 @@ export const JUDGE_MAX_HITS = 50
 /**
  * The state and questions for one batch of commits.
  *
- * What is shared goes in the state and is paid for once: the query, today's
- * date (a search says "last week"), and what matching means. Each question is
- * then as short as it can be — a pointer at one position — because it is the
- * part that repeats N times.
+ * **Each question carries the query and the subject, and that is the whole
+ * design.** The first cut of this did the opposite: it pushed everything
+ * shared into the state and made each question a bare pointer —
+ * `` Does `commits[3]` answer `search`? `` — to keep the repeating half
+ * cheap. It shipped, and it was measured against this repository:
+ *
+ *   "générateur de thème de couleur", 100 commits
+ *     pointer + generic criteria   34 hits over the cut, led by
+ *                                  "chore: release app 1.37.0" at 0.59
+ *     query + subject in question    1 hit, "Merge … feat/theme-builder" 0.70,
+ *                                  then 0.27, 0.18, 0.10, and a cliff to 0.06
+ *
+ * The verdicts had collapsed into a band around 0.6 — the shape of a question
+ * that cannot be answered, not of a cut in the wrong place. Naming the search
+ * and the subject inside the question is what makes it answerable, and the
+ * vendor's own guidance says so: a question has to carry its complete meaning,
+ * because its ID never reaches the model.
+ *
+ * It costs about 30 tokens per commit to repeat them — some $0.00013 a batch,
+ * against a search that was returning a third of the history.
+ *
+ * The state still holds what a question cannot: the author and the date, which
+ * a subject does not carry, and today's date, since a search says "last week".
  */
 export function searchCommitsQuestions(
   query: string, commits: JudgedCommit[], today: string,
 ): { state: unknown; questions: Record<string, Noul> } {
+  const q = query.trim()
   const state = {
     today,
-    search: query.trim(),
-    what_matches: 'A commit answers the search when its subject, its author or its date is what the '
-      + 'person is looking for. The search may name a date or a period, an author, a kind of file, or '
-      + 'simply the intent of a change — "the commit that broke the theme picker". Judge the meaning, '
-      + 'not the words: a search and a subject that say the same thing differently still match.',
     commits: commits.map(c => ({ author: c.author, date: c.date, subject: c.subject })),
   }
   const questions: Record<string, Noul> = {}
-  commits.forEach((_, i) => {
+  commits.forEach((c, i) => {
     questions[`c${i}`] = {
       type: 'noul',
-      instructions: `Does \`commits[${i}]\` answer \`search\`?`,
+      instructions: `A developer is searching their git history for: "${q}". `
+        + `Is the commit at \`commits[${i}]\` — "${c.subject}" — one of the commits they are looking for?`,
       criteria: {
-        true: 'this is a commit the person is looking for',
-        false: 'this is not one of them',
+        // "even if it touches the same area in passing" is load-bearing: it is
+        // what separates the change the search describes from the forty that
+        // merely happened near it, which is where the 34 came from.
+        true: `this commit's own change is about ${q}`,
+        false: 'this commit changes something else, even if it touches the same area in passing',
       },
     }
   })
