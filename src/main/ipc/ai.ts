@@ -48,6 +48,14 @@ export function registerAiHandlers(): void {
       const def = providerById(s, provider)
       apiKey = def ? providerCredential(s, def) : ''
     }
+    // A provider that publishes no /models answers from the catalog. Asked
+    // first, before the probe, because the probe would 404 and the row would
+    // read as a bad key.
+    const declared = providerById(readSettings(), provider)?.models
+    // `unverified` because nothing was contacted: the list is the catalog's,
+    // so the key in the field has not been checked and the row must not wear
+    // the green tick that every other provider earns by being answered.
+    if (declared) return { models: [...declared], unverified: true }
     // Everything that is not Anthropic or Google is the OpenAI dialect: one
     // GET {base}/models serves the catalog's clouds, the customs, and the
     // keyless local runtimes (#169). `baseUrl` arrives from the settings page

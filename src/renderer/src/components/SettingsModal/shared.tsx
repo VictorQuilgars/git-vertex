@@ -330,7 +330,7 @@ export function KindBadge({ id }: { id: string }) {
  * declares a temperament, the current pick badged on the face itself. Same
  * closing contract as the composer's pickers: focus leaves, it closes.
  */
-export function ModelSelect({ value, onChange, defaultLabel, defaultModel, providers, liveModels, suggest, suggestLabel }: {
+export function ModelSelect({ value, onChange, defaultLabel, defaultModel, providers, liveModels, suggest, suggestLabel, recommend, recommendLabel }: {
   value: AIPair | null
   onChange: (v: AIPair | null) => void
   /** Present ⇒ an empty choice is offered, reading as the default it falls to. */
@@ -344,14 +344,30 @@ export function ModelSelect({ value, onChange, defaultLabel, defaultModel, provi
    *  matches. A suggestion, never a gate; absent for balanced features. */
   suggest?: 'reasoning' | 'fast'
   suggestLabel?: string
+  /**
+   * Pairs built FOR this feature, pinned above everything else.
+   *
+   * Stronger than `suggest`, and a different claim: suggest reads a model id
+   * and guesses a temperament, this is the catalog saying a provider exists
+   * to answer exactly this. Still not a gate — the list below it is whole,
+   * and a caller that passes none loses nothing.
+   */
+  recommend?: AIPair[]
+  recommendLabel?: string
 }) {
   const [open, setOpen] = useState(false)
   const connected = providers
   const orphan = value && !providers.some(p => p.id === value.provider)
     ? { id: value.provider, label: value.provider } : null
+  const top = recommend ?? []
   const suggested = suggest
     ? connected.flatMap(p => (liveModels[p.id] ?? [])
         .filter(m => modelKind(m) === suggest)
+        // A provider pinned above is not a suggestion: its pick is already at
+        // the top and its other models are one group down, so repeating any
+        // of them here is the same name three times in one list — and it
+        // pushes the six suggestions this group exists for out of it.
+        .filter(() => !top.some(r => r.provider === p.id))
         .map(m => ({ p: p.id, m })))
       .slice(0, 6)
     : []
@@ -388,6 +404,12 @@ export function ModelSelect({ value, onChange, defaultLabel, defaultModel, provi
               {defaultModel && <KindBadge id={defaultModel} />}
               {value === null && <span className="stg-msel-check">✓</span>}
             </button>
+          )}
+          {top.length > 0 && (
+            <>
+              <div className="stg-msel-group stg-msel-group--top">{recommendLabel}</div>
+              {top.map(r => row(r.provider, r.model, 'r-'))}
+            </>
           )}
           {suggested.length > 0 && (
             <>

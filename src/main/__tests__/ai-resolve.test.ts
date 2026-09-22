@@ -228,3 +228,17 @@ describe('how instructions ride', () => {
     expect(out).toBe('P.')
   })
 })
+
+describe('a dialect the call does not speak yet', () => {
+  const { callProvider } = require('../ai-call')
+
+  test('it refuses by name instead of posting a prompt to the wrong path', async () => {
+    // The settings page offers this pair before ai-call can run it. Falling
+    // through to the openai-compat branch would POST to /chat/completions on
+    // a host that serves /systemone, and the 404 would be read as a bad key.
+    await expect(callProvider(
+      { provider: 'typesafe', model: 'jev-latest', apiKey: 'k', dialect: 'typesafe', baseUrl: 'https://api.typesafe.ai/v1' },
+      'write me a commit message', 512,
+    )).rejects.toThrow(/answers questions rather than prompts/)
+  })
+})

@@ -48,6 +48,15 @@ export interface AIProviderDef {
    * `AIFeature`; `aiProviders.test.ts` fails on one that does not exist.
    */
   features?: readonly string[]
+  /**
+   * The models it offers, for a provider that publishes no `/models`.
+   *
+   * The probe answers from here rather than over the wire, in BOTH hosts.
+   * Without it the row would sit on "key unverified" for ever and the pickers
+   * would draw an empty group — a provider present in the list and impossible
+   * to choose, which is worse than one that is absent.
+   */
+  models?: readonly string[]
   /** User-defined entry (aiCustomProviders). May run keyless — local runtimes do. */
   custom?: boolean
   /** Customs only: the credential, carried inline in the JSON entry. */
@@ -91,7 +100,7 @@ export const AI_PROVIDER_CATALOG: AIProviderDef[] = [
   // keeps should follow it rather than pin a version that gets retired.
   { id: 'typesafe', label: 'TypeSafe (Jev)', dialect: 'typesafe', baseUrl: 'https://api.typesafe.ai/v1',
     keySetting: 'aiTypesafeKey', keyPlaceholder: '…', defaultModel: 'jev-latest',
-    features: ['search', 'filter'] },
+    features: ['search', 'filter'], models: ['jev-latest', 'jev-1.13.0'] },
 ]
 
 /** The two local runtimes worth a one-click preset. Both speak openai-compat. */

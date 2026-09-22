@@ -5,7 +5,7 @@
 // (gitVertex.aiProvider / aiApiKey / aiModel), falling back to the shared
 // gvSettings store (same keys as the desktop app) if present.
 import * as vscode from 'vscode'
-import { providerById, providerCredential, providerUsable, providerServes, authHeaders, type AIDialect } from '../../src/renderer/src/utils/aiProviders'
+import { providerById, providerCredential, providerUsable, providerServes, authHeaders, AI_PROVIDER_CATALOG, type AIDialect } from '../../src/renderer/src/utils/aiProviders'
 
 export interface AIConfig {
   provider: string; apiKey: string; model: string
@@ -280,8 +280,14 @@ export async function runAIPrompt(
 
 // Live model list per provider — mirrors the desktop's ai:list-provider-models
 // (Groq's audio-only whisper models filtered out, OpenAI trimmed to chat models).
-export async function listProviderModels(provider: string, apiKey: string, baseUrl?: string, quirks?: { authHeader?: string; extraHeaders?: Record<string, string> }): Promise<{ models?: string[]; error?: string }> {
+export async function listProviderModels(provider: string, apiKey: string, baseUrl?: string, quirks?: { authHeader?: string; extraHeaders?: Record<string, string> }): Promise<{ models?: string[]; error?: string; unverified?: boolean }> {
   try {
+    // A provider that publishes no /models answers from the catalog, before
+    // the probe that would 404. Only a catalog entry can declare them — the
+    // customs blob does not carry the field — so this reads the catalog
+    // rather than providerById.
+    const declared = AI_PROVIDER_CATALOG.find(p => p.id === provider)?.models
+    if (declared) return { models: [...declared], unverified: true }
     // Everything that is not Anthropic or Google is the OpenAI dialect —
     // one GET {base}/models covers the catalog's clouds, the customs and
     // the keyless local runtimes (#169).

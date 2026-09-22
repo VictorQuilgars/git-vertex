@@ -1,12 +1,12 @@
 // Settings › ai. Reads its slice of the page's state; the state itself lives in useSettingsPage.
 import { Icon } from '../../Icon/Icon'
-import { AI_LOCAL_PRESETS, type AIProviderDef } from '../../../utils/aiProviders'
+import { AI_LOCAL_PRESETS, providerServes, type AIProviderDef } from '../../../utils/aiProviders'
 import { isSecretMask } from '../../../utils/secrets'
 import { AI_FEATURES, DIFF_FEATURES, type AIPair, ModelSelect, AI_GLOBAL_CHIPS, headersToLines, linesToHeaders, makeCustomId, AITuning, AI_PROVIDERS, SaveNote } from '../shared'
 import type { SettingsPage } from '../useSettingsPage'
 
 export function AiSection({ page }: { page: SettingsPage }) {
-  const { t, aiGlobalInstr, setAiGlobalInstr, aiFeatSel, setAiFeatSel, aiFeatInstr, setAiFeatInstr, aiFeatRoom, setAiFeatRoom, aiFeatDetail, setAiFeatDetail, aiKeys, setAiKeys, aiCustoms, setAiCustoms, aiDefault, setAiDefault, liveModels, loadingModels, modelsError, showKeyFor, setShowKeyFor, showTutoFor, setShowTutoFor, fetchModels, aiDirty, saveAI } = page
+  const { t, aiGlobalInstr, setAiGlobalInstr, aiFeatSel, setAiFeatSel, aiFeatInstr, setAiFeatInstr, aiFeatRoom, setAiFeatRoom, aiFeatDetail, setAiFeatDetail, aiKeys, setAiKeys, aiCustoms, setAiCustoms, aiDefault, setAiDefault, liveModels, unverifiedModels, loadingModels, modelsError, showKeyFor, setShowKeyFor, showTutoFor, setShowTutoFor, fetchModels, aiDirty, saveAI } = page
 
               // Usable = a catalog entry with its key, or any custom — local
               // runtimes are keyless, their /models answer is the connection
@@ -15,15 +15,52 @@ export function AiSection({ page }: { page: SettingsPage }) {
                 ...AI_PROVIDERS.filter(p => aiKeys[p.id]?.trim()),
                 ...aiCustoms,
               ].map(p => ({ id: p.id, label: p.label }))
+              // A provider that names its features cannot hold the GLOBAL
+              // pair, which answers all of them — offering it there would be a
+              // choice that silently falls through on every feature it does
+              // not serve. Customs never name any, so the catalog is the whole
+              // question. The per-feature pickers filter the other way, and
+              // put what is built for the feature at the top of the list.
+              const specialists = AI_PROVIDERS.filter(p => p.features)
+              const generalProviders = usableProviders.filter(p => !specialists.some(sp => sp.id === p.id))
+              const specialistsFor = (feature: string) =>
+                specialists.filter(p => providerServes(p, feature))
+              const serving = (feature: string) => usableProviders.filter(p => {
+                const def = AI_PROVIDERS.find(c => c.id === p.id)
+                return !def || providerServes(def, feature)
+              })
+              /**
+               * The pair to put first, and to offer in one click below.
+               *
+               * Connected only. Offering a pair whose provider has no key
+               * would write a setting that resolves to something else the
+               * moment it runs — the silent fall-through this whole change
+               * exists to prevent, arrived at from the other end.
+               */
+              const builtFor = (feature: string): { def: AIProviderDef; pair: AIPair } | null => {
+                for (const def of specialistsFor(feature)) {
+                  if (!usableProviders.some(u => u.id === def.id)) continue
+                  const model = def.defaultModel ?? (liveModels[def.id] ?? [])[0]
+                  if (model) return { def, pair: { provider: def.id, model } }
+                }
+                return null
+              }
               const anyConnected = usableProviders.length > 0
               const connectedCount = [...AI_PROVIDERS, ...aiCustoms].filter(p => liveModels[p.id]).length
               const orphanWarn = (pair: AIPair | null) =>
                 pair && !usableProviders.some(p => p.id === pair.provider)
                   ? <span className="stg-ai-warn">{t('settings.ai.keyMissing')}</span>
                   : null
-              const status = (models: string[] | null | undefined, busy: boolean, idle: string) => (
-                <span className={`stg-ai-status${models ? ' stg-ai-status--on' : ''}`}>
-                  {models ? <><Icon name="check" size={12} />{t('settings.ai.modelsCount', models.length)}</>
+              // The tick is EARNED, by the provider answering. A list the
+              // catalog declared says how many models there are and nothing
+              // about the key in the field beside it, so it wears no tick and
+              // says which of the two it knows.
+              const status = (models: string[] | null | undefined, busy: boolean, idle: string, unverified?: boolean) => (
+                <span className={`stg-ai-status${models && !unverified ? ' stg-ai-status--on' : ''}`}>
+                  {models
+                    ? (unverified
+                      ? t('settings.ai.modelsUnverified', models.length)
+                      : <><Icon name="check" size={12} />{t('settings.ai.modelsCount', models.length)}</>)
                     : busy ? t('settings.ai.checking') : idle}
                 </span>
               )
@@ -45,7 +82,7 @@ export function AiSection({ page }: { page: SettingsPage }) {
                     {AI_PROVIDERS.map(p => {
                       const key = aiKeys[p.id] ?? ''
                       const models = liveModels[p.id]
-                      const on = !!models
+                      const on = !!models && !unverifiedModels[p.id]
                       const err = modelsError[p.id]
                       const tuto = p.hasTuto && showTutoFor === p.id
                       return (
@@ -71,7 +108,7 @@ export function AiSection({ page }: { page: SettingsPage }) {
                             </button>
                           </div>
                           <div className="stg-ai-row-status">
-                            {status(models, !!loadingModels[p.id], key ? t('settings.ai.keyUnverified') : t('settings.ai.noKey'))}
+                            {status(models, !!loadingModels[p.id], key ? t('settings.ai.keyUnverified') : t('settings.ai.noKey'), unverifiedModels[p.id])}
                             {p.hasTuto && !on && (
                               <button type="button" className="stg-ai-link" aria-expanded={!!tuto}
                                 onClick={() => setShowTutoFor(v => v === p.id ? null : p.id)}>
@@ -199,7 +236,7 @@ export function AiSection({ page }: { page: SettingsPage }) {
                     <AITuning
                       modelLabel={t('settings.ai.defaultModelLabel')}
                       picker={<ModelSelect value={aiDefault} onChange={v => { if (v) setAiDefault(v) }}
-                        providers={usableProviders} liveModels={liveModels} />}
+                        providers={generalProviders} liveModels={liveModels} />}
                       warn={orphanWarn(aiDefault)}
                       instrLabel={t('settings.ai.globalInstructions')}
                       templates={AI_GLOBAL_CHIPS}
@@ -213,7 +250,19 @@ export function AiSection({ page }: { page: SettingsPage }) {
                   {/* ── 3. Per feature — the temperament worn as a tag beside
                       the heading, in the badge colours, so it READS against
                       the badge of the model picked below it. */}
-                  {AI_FEATURES.map(f => (
+                  {AI_FEATURES.map(f => {
+                    const built = builtFor(f.id)
+                    const chosen = aiFeatSel[f.id] ?? aiDefault
+                    const onIt = !!built && chosen.provider === built.def.id
+                    // The nudge is worth its line only while it can change
+                    // something: a feature already running on it says nothing.
+                    const nudge = built && !onIt ? built : null
+                    // Named by the catalog but with no key yet — the discovery
+                    // case, and the one where there is nothing to click.
+                    const dormant = !built
+                      ? specialistsFor(f.id).find(d => !usableProviders.some(u => u.id === d.id))
+                      : undefined
+                    return (
                     <div key={f.id} className="stg-ai-block stg-ai-feature">
                       <div className="stg-ai-block-head">
                         <h3 className="stg-ai-h">{t(f.labelKey as any)}</h3>
@@ -222,6 +271,21 @@ export function AiSection({ page }: { page: SettingsPage }) {
                         </span>
                       </div>
                       <p className="stg-desc stg-ai-temper">{t(`settings.ai.temper.${f.kind}` as any)}</p>
+                      {/* What is built for this feature, said where the choice
+                          is made. The app proposing, so it is the AI ink and a
+                          link — never a filled button. */}
+                      {(nudge || dormant) && (
+                        <p className="stg-ai-builtfor">
+                          <Icon name="ai" size={12} />
+                          <span>{t('settings.ai.builtForWhy', (nudge?.def ?? dormant!).label)}</span>
+                          {nudge
+                            ? <button type="button" className="stg-ai-link"
+                                onClick={() => setAiFeatSel(m => ({ ...m, [f.id]: nudge.pair }))}>
+                                {t('settings.ai.builtForUse', nudge.def.label)}
+                              </button>
+                            : <span className="stg-ai-builtfor-key">{t('settings.ai.builtForKey', dormant!.label)}</span>}
+                        </p>
+                      )}
                       <AITuning
                         modelLabel={t('settings.ai.modelLabel')}
                         picker={<ModelSelect
@@ -231,7 +295,9 @@ export function AiSection({ page }: { page: SettingsPage }) {
                           defaultModel={aiDefault.model}
                           suggest={f.kind === 'thorough' ? 'reasoning' : f.kind === 'fast' ? 'fast' : undefined}
                           suggestLabel={t('settings.ai.suggested')}
-                          providers={usableProviders} liveModels={liveModels} />}
+                          recommend={built ? [built.pair] : undefined}
+                          recommendLabel={t('settings.ai.builtFor')}
+                          providers={serving(f.id)} liveModels={liveModels} />}
                         warn={orphanWarn(aiFeatSel[f.id] ?? null)}
                         instrLabel={t('settings.ai.instructionsLabel')}
                         templates={f.chips}
@@ -280,7 +346,8 @@ export function AiSection({ page }: { page: SettingsPage }) {
                         ))}
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
 
                 {/* The Save rides with the scroll: the page is long and the

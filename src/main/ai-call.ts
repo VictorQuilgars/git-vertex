@@ -43,6 +43,15 @@ export async function callProvider(
     const reason = (result.response as any)?.candidates?.[0]?.finishReason
     return { text: result.response.text().trim(), truncated: reason === 'MAX_TOKENS' }
   }
+  if (target.dialect === 'typesafe') {
+    // Not yet spoken. Falling through would POST a prompt to
+    // `{base}/chat/completions` on a host that serves `/systemone`, and the
+    // 404 would read as a bad key or a dead provider. Until `callJudge`
+    // lands, say which half is missing.
+    throw new Error(
+      `${target.model} answers questions rather than prompts, and this call is a prompt. `
+      + 'Choose another model for this feature until the judgement path ships.')
+  }
   // openai-compat — a plain fetch, because the base URL is the whole point:
   // api.openai.com, api.groq.com/openai, a Mistral, an Ollama on localhost.
   const base = (target.baseUrl ?? 'https://api.openai.com/v1').replace(/\/+$/, '')
