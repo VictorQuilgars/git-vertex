@@ -38,6 +38,21 @@ export function useAppUpdates(_app: AppChrome & RepoSession & AppGithub & AppCon
       return [next, ...prev]
     })
   }, [])
+  /**
+   * The app reporting on itself: a previous version stored these providers'
+   * keys readable. De-duplicated by the provider list, so a relaunch that
+   * finds the same warning does not stack a second one — and NOT auto-read,
+   * because the action it asks for is the user's and takes a minute.
+   */
+  const addKeysInClearNotification = useCallback((providers: string) => {
+    setNotifications(prev => {
+      if (prev.some(n => n.kind === 'keys-in-clear' && n.data?.providers === providers)) return prev
+      return [{
+        id: `keys-in-clear-${Date.now()}`,
+        kind: 'keys-in-clear', data: { providers }, ts: Date.now(), read: false,
+      }, ...prev]
+    })
+  }, [])
   const startUpdateDownload = useCallback(() => {
     setUpdatePct(0)
     setUpdatePhase('downloading')
@@ -45,7 +60,7 @@ export function useAppUpdates(_app: AppChrome & RepoSession & AppGithub & AppCon
   }, [])
 
   return {
-    updatePhase, setUpdatePhase, updateVersion, setUpdateVersion, updatePct, setUpdatePct, updateOverlayOpen, setUpdateOverlayOpen, notifications, setNotifications, unreadCount, addUpdateNotification, startUpdateDownload,
+    updatePhase, setUpdatePhase, updateVersion, setUpdateVersion, updatePct, setUpdatePct, updateOverlayOpen, setUpdateOverlayOpen, notifications, setNotifications, unreadCount, addUpdateNotification, addKeysInClearNotification, startUpdateDownload,
   }
 }
 

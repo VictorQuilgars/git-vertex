@@ -1,4 +1,5 @@
-import { SECRET_MASK, SECRET_KEYS, isSecretSetting, maskSecrets, openSecrets, resolveSecretWrite, sealSecrets, type Cipher } from '../settings-secrets'
+import { SECRET_MASK, SECRET_KEYS, isSecretSetting, unsealedSecrets, maskSecrets, openSecrets, resolveSecretWrite, sealSecrets, type Cipher } from '../settings-secrets'
+import { AI_PROVIDER_CATALOG } from '../../renderer/src/utils/aiProviders'
 
 // A cipher that is not the Keychain: reversible, visibly not the input.
 const reversing: Cipher = {
@@ -113,5 +114,34 @@ describe('which settings are credentials — derived, never listed', () => {
     const masked = maskSecrets({ aiOpenrouterKey: 'sk-or-plain', aiXaiKey: 'xai-plain' })
     expect(masked.aiOpenrouterKey).toBe(SECRET_MASK)
     expect(masked.aiXaiKey).toBe(SECRET_MASK)
+  })
+})
+
+describe('what an older version left in clear', () => {
+  test('a secret with a value that is not sealed is named', () => {
+    expect(unsealedSecrets({
+      aiMistralKey: 'mk_plain', aiGroqKey: 'enc:v1:xxxx', theme: 'aqua-dark',
+    })).toEqual(['aiMistralKey'])
+  })
+
+  test('an empty secret is not an exposure — there is nothing there', () => {
+    expect(unsealedSecrets({ aiXaiKey: '', aiDeepseekKey: '' })).toEqual([])
+  })
+
+  test('a non-secret setting is never named, whatever it holds', () => {
+    expect(unsealedSecrets({ gitBinaryPath: '/usr/bin/git', aiDefaultModel: 'gpt-4o-mini' })).toEqual([])
+  })
+
+  test('the blob of custom providers counts, since it carries keys', () => {
+    expect(unsealedSecrets({ aiCustomProviders: '[{"id":"gw","key":"k"}]' })).toEqual(['aiCustomProviders'])
+  })
+
+  test('every provider the catalog knows can be caught by it', () => {
+    // The four that shipped unsealed for six releases, and the one that made
+    // them visible: this is the list the startup pass has to be able to find.
+    const all = Object.fromEntries(AI_PROVIDER_CATALOG
+      .filter((p: any) => p.keySetting).map((p: any) => [p.keySetting, 'in-clear']))
+    expect(unsealedSecrets(all).sort())
+      .toEqual(Object.keys(all).sort())
   })
 })

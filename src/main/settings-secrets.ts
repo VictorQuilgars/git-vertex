@@ -67,6 +67,25 @@ export function sealSecrets(data: Settings, cipher: Cipher): Settings {
   return out
 }
 
+/**
+ * The secrets a previous version left in CLEAR.
+ *
+ * Sealing has always happened on write, so a file from a version that did not
+ * know a setting was a credential stays readable until the user next saves
+ * something — which may be never. That is how four API keys sat in clear for
+ * six releases: nothing was broken enough to make anyone press Save.
+ *
+ * So the app looks, at startup, rather than waiting. What this returns is the
+ * list to reseal, and also the list to TELL THE USER about: rewriting the file
+ * protects the key from here on and does nothing about the copies a backup, a
+ * synced folder or a passing script already took. Only they can rotate it.
+ */
+export function unsealedSecrets(data: Settings): string[] {
+  return Object.keys(data).filter(key =>
+    isSecretSetting(key) && typeof data[key] === 'string'
+    && data[key] !== '' && !data[key].startsWith(SEALED))
+}
+
 /** What is read: every sealed value opened. One that cannot be is absent, not garbage. */
 export function openSecrets(data: Settings, cipher: Cipher): Settings {
   const out: Settings = { ...data }

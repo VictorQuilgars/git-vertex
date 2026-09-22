@@ -82,7 +82,7 @@ export default function App() {
   const searchHook = useAppSearch({ ...chromeHook, ...sessionHook, ...githubHook, ...conflictsHook, ...aiHook, ...tabsHook, ...updatesHook, ...actionsHook })
   const app = { ...chromeHook, ...sessionHook, ...githubHook, ...conflictsHook, ...aiHook, ...tabsHook, ...updatesHook, ...actionsHook, ...searchHook }
   const {
-    dlg, showPrompt, showConfirm, closeDlg, t, showToast, repoPath, repoName, commits, logLimit, logLimitRef, branches, currentBranch, selectedCommit, setSelectedCommit, showAllBranches, setShowAllBranches, soloBranch, setSoloBranch, visibility, remoteNames, toggleHidden, setFamilyHidden, branchMeta, setNotedHashes, loading, recentRepos, setRecentRepos, workspaces, setWorkspaces, stashes, tags, lastFetchTime, setLastFetchTime, pullMode, setPullModeState, handleSetPullMode, tracking, githubRepoUrl, githubOwnerRepo, defaultBranch, conflictFiles, setConflictFiles, conflictKinds, setConflictKinds, conflictMode, wipCount, loadStashes, visibilityRef, soloRef, showAllRef, loadRepoData, loadRepoDataRef, hasSnapshot, filterFirstRun, resolverFileSeenRef, lastAutoFetchError, loadMoreHistory, issueModalBranch, setIssueModalBranch, githubUser, setGithubUser, setGithubConnected, githubPRs, githubPRsRef, githubIssues, githubIssuesRef, githubLogin, issueDetail, setIssueDetail, prModalOpen, setPrModalOpen, prIntent, setPrIntent, githubRefreshing, githubRefreshTick, githubPollTick, setGithubPollTick, loadGithubLists, refreshGithubSection, issueComposerOpen, setIssueComposerOpen, handleSharePatch, prIntentFor, handleStartPR, handleOpenCommitOnRemote, currentBranchPR, handleOpenFileOnRemote, handleCopyFileLink, handleCreateBranchFromIssue, handleOpenBranchOnRemote, rebaseHash, setRebaseHash, rebasePlanProposal, setRebasePlanProposal, conflictResolverFile, setConflictResolverFile, conflictResolverProposal, setConflictResolverProposal, handleRebaseOnto, handleRebaseCurrentOntoCommit, handleConflictFinish, handleConflictAbort, aiSearch, setAiSearchHashes, aiSearchLoading, commitProposal, setCommitProposal, aiRead, setAiRead, composerOpen, setComposerOpen, sidebarTab, setSidebarTab, memoryToken, rememberedAI, insertChangelogGuarded, tabs, setTabs, activeTabId, tabMenu, setTabMenu, repoMgmtOpen, setRepoMgmtOpen, whatsNew, setWhatsNew, whatsNewActive, setWhatsNewActive, applyRepo, handleOpenRepo, handleSetRepo, openReleaseNotes, handleRemoveRecent, deepLinkHash, setDeepLinkHash, applyDeepLink, openHomeTab, openLaunchpadTab, openThemesTab, openViewTab, openSettingsTab, switchTab, closeTab, closeOtherTabs, activeTab, launchpadActive, themesActive, viewTab, onTabKeyDown, updatePhase, setUpdatePhase, updateVersion, setUpdateVersion, updatePct, setUpdatePct, updateOverlayOpen, setUpdateOverlayOpen, notifications, setNotifications, unreadCount, addUpdateNotification, startUpdateDownload, compareBaseHash, setCompareBaseHash, gitflowOpen, setGitflowOpen, pushModalOpen, setPushModalOpen, cloneOpen, setCloneOpen, initModalOpen, setInitModalOpen, handleCreateRepo, handleUndo, handleRedo, handleFetch, handlePush, handlePushModal, handleStash, handlePop, handleTerminal, handlePull, handleGoTo, handleCheckout, handleCheckoutTag, handleCreateBranch, handleDeleteBranch, handleDeleteBranchBoth, handleMergeBranch, handlePushBranch, handleDeleteRemoteBranch, handleSetUpstream, handleRenameBranch, handleCreateBranchAt, handleCherryPick, handleRevert, handleReset, applyReword, handleRewordCommit, handleDropCommit, handleCherryPickMany, handleDropCommits, handlePushToCommit, handleCreatePatch, handleCopyPatch, handleCreateWorktreeAt, handleCopyBranchLink, handleRestoreFile, handleCopyCommitLink, branchMenuItems, branchStripProps, workingEmptyState, handleBranchDrop, handleMoveCommit, handleCreateTagAtCommit, handleCreateAnnotatedTagAtCommit, handleCreateTag, handleDeleteTag, handlePushTag, handleDeleteRemoteTag, handleCreateStash, handleApplyStash, handlePopStash, handleDropStash, searchQuery, setSearchQuery, searchMatches, setSearchMatches, extendedSearch, setExtendedSearch, extendedSearchLoading, repoSearch, setRepoSearch, paletteOpen, setPaletteOpen, runAiSearch, graphSearchHashes, buildPaletteCommands, revealRef, requiredSearchHashes, searchOpsLoading,
+    dlg, showPrompt, showConfirm, closeDlg, t, showToast, repoPath, repoName, commits, logLimit, logLimitRef, branches, currentBranch, selectedCommit, setSelectedCommit, showAllBranches, setShowAllBranches, soloBranch, setSoloBranch, visibility, remoteNames, toggleHidden, setFamilyHidden, branchMeta, setNotedHashes, loading, recentRepos, setRecentRepos, workspaces, setWorkspaces, stashes, tags, lastFetchTime, setLastFetchTime, pullMode, setPullModeState, handleSetPullMode, tracking, githubRepoUrl, githubOwnerRepo, defaultBranch, conflictFiles, setConflictFiles, conflictKinds, setConflictKinds, conflictMode, wipCount, loadStashes, visibilityRef, soloRef, showAllRef, loadRepoData, loadRepoDataRef, hasSnapshot, filterFirstRun, resolverFileSeenRef, lastAutoFetchError, loadMoreHistory, issueModalBranch, setIssueModalBranch, githubUser, setGithubUser, setGithubConnected, githubPRs, githubPRsRef, githubIssues, githubIssuesRef, githubLogin, issueDetail, setIssueDetail, prModalOpen, setPrModalOpen, prIntent, setPrIntent, githubRefreshing, githubRefreshTick, githubPollTick, setGithubPollTick, loadGithubLists, refreshGithubSection, issueComposerOpen, setIssueComposerOpen, handleSharePatch, prIntentFor, handleStartPR, handleOpenCommitOnRemote, currentBranchPR, handleOpenFileOnRemote, handleCopyFileLink, handleCreateBranchFromIssue, handleOpenBranchOnRemote, rebaseHash, setRebaseHash, rebasePlanProposal, setRebasePlanProposal, conflictResolverFile, setConflictResolverFile, conflictResolverProposal, setConflictResolverProposal, handleRebaseOnto, handleRebaseCurrentOntoCommit, handleConflictFinish, handleConflictAbort, aiSearch, setAiSearchHashes, aiSearchLoading, commitProposal, setCommitProposal, aiRead, setAiRead, composerOpen, setComposerOpen, sidebarTab, setSidebarTab, memoryToken, rememberedAI, insertChangelogGuarded, tabs, setTabs, activeTabId, tabMenu, setTabMenu, repoMgmtOpen, setRepoMgmtOpen, whatsNew, setWhatsNew, whatsNewActive, setWhatsNewActive, applyRepo, handleOpenRepo, handleSetRepo, openReleaseNotes, handleRemoveRecent, deepLinkHash, setDeepLinkHash, applyDeepLink, openHomeTab, openLaunchpadTab, openThemesTab, openViewTab, openSettingsTab, switchTab, closeTab, closeOtherTabs, activeTab, launchpadActive, themesActive, viewTab, onTabKeyDown, updatePhase, setUpdatePhase, updateVersion, setUpdateVersion, updatePct, setUpdatePct, updateOverlayOpen, setUpdateOverlayOpen, notifications, setNotifications, unreadCount, addUpdateNotification, addKeysInClearNotification, startUpdateDownload, compareBaseHash, setCompareBaseHash, gitflowOpen, setGitflowOpen, pushModalOpen, setPushModalOpen, cloneOpen, setCloneOpen, initModalOpen, setInitModalOpen, handleCreateRepo, handleUndo, handleRedo, handleFetch, handlePush, handlePushModal, handleStash, handlePop, handleTerminal, handlePull, handleGoTo, handleCheckout, handleCheckoutTag, handleCreateBranch, handleDeleteBranch, handleDeleteBranchBoth, handleMergeBranch, handlePushBranch, handleDeleteRemoteBranch, handleSetUpstream, handleRenameBranch, handleCreateBranchAt, handleCherryPick, handleRevert, handleReset, applyReword, handleRewordCommit, handleDropCommit, handleCherryPickMany, handleDropCommits, handlePushToCommit, handleCreatePatch, handleCopyPatch, handleCreateWorktreeAt, handleCopyBranchLink, handleRestoreFile, handleCopyCommitLink, branchMenuItems, branchStripProps, workingEmptyState, handleBranchDrop, handleMoveCommit, handleCreateTagAtCommit, handleCreateAnnotatedTagAtCommit, handleCreateTag, handleDeleteTag, handlePushTag, handleDeleteRemoteTag, handleCreateStash, handleApplyStash, handlePopStash, handleDropStash, searchQuery, setSearchQuery, searchMatches, setSearchMatches, extendedSearch, setExtendedSearch, extendedSearchLoading, repoSearch, setRepoSearch, paletteOpen, setPaletteOpen, runAiSearch, graphSearchHashes, buildPaletteCommands, revealRef, requiredSearchHashes, searchOpsLoading,
   } = app
 
  logLimitRef.current = logLimit
@@ -119,6 +119,22 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('notifications', JSON.stringify(notifications.slice(0, 50)))
   }, [notifications])
+  // Credentials a version before this one stored readable. The main process
+  // seals them at startup and leaves their provider labels behind; the warning
+  // belongs in the bell rather than in a toast, because the remedy is the
+  // user's — regenerate the key at the provider — and a chip that disappears
+  // in four seconds is not how you ask for that.
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      const settings = await window.gitAPI.settingsGetAll().catch(() => null)
+      const exposed = settings?.aiKeysExposed?.trim()
+      if (cancelled || !exposed) return
+      addKeysInClearNotification(exposed)
+    })()
+    return () => { cancelled = true }
+  }, [addKeysInClearNotification])
+
   // Tell the user once when their git is too old for the conflict prediction.
   // It fails open — predictConflicts returns nothing and the operation proceeds —
   // so the warning it is supposed to raise before a merge or rebase simply never
@@ -661,9 +677,23 @@ export default function App() {
           onClearJournal={() => journal.clear(repoPath)}
           onClose={() => setNotifsOpen(false)}
           onToggleRead={(id) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: !n.read } : n))}
-          onDelete={(id) => setNotifications(prev => prev.filter(n => n.id !== id))}
+          onDelete={(id) => setNotifications(prev => {
+            // Dismissing the exposure warning is the one dismissal that has to
+            // reach the store: it is raised from a setting, so leaving that
+            // setting behind would bring it back at the next launch and make
+            // the button look broken.
+            if (prev.find(n => n.id === id)?.kind === 'keys-in-clear') {
+              void window.gitAPI.settingsSet('aiKeysExposed', '')
+            }
+            return prev.filter(n => n.id !== id)
+          })}
           onMarkAllRead={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
-          onClearAll={() => setNotifications([])}
+          onClearAll={() => {
+            if (notifications.some(n => n.kind === 'keys-in-clear')) {
+              void window.gitAPI.settingsSet('aiKeysExposed', '')
+            }
+            setNotifications([])
+          }}
           onActivate={(n) => {
             setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x))
             if (n.kind === 'update' && updatePhase !== 'idle') { setNotifsOpen(false); setUpdateOverlayOpen(true) }
