@@ -75,17 +75,53 @@ describe('the configuration, resolved (free)', () => {
   })
 })
 
+/**
+ * A refusal that names who refused.
+ *
+ * The provider's own message is all a client gets — "Invalid API Key", and
+ * not a word about which of the eight it came from. The whole point of this
+ * file is to say which part of a configuration is broken, so the name is put
+ * back on before the error leaves.
+ */
+async function ask(t: { provider: string; model: string }, prompt: string): Promise<string> {
+  try {
+    return (await callProvider(t as any, prompt, BUDGET)).text
+  } catch (e: any) {
+    throw new Error(`${t.provider} / ${t.model} refused it — ${e?.message ?? e}`)
+  }
+}
+
 describe('the configuration, exercised (paid)', () => {
   test('every distinct (provider, model) pair answers', async () => {
+    // One bad key must not hide the state of the others. The loop used to
+    // stop at the first throw, so a configuration with one dead provider and
+    // six live ones reported exactly as much as one that was dead through.
+    const failed: string[] = []
     for (const t of targets.values()) {
-      const { text: reply } = await callProvider(
-        t, 'Reply with exactly the word OK and nothing else.', BUDGET)
-      // eslint-disable-next-line no-console
-      console.log(`  ${t.provider} / ${t.model}  [${t.features.join(', ')}] → "${reply.slice(0, 40)}"`)
-      if (!reply) {
-        throw new Error(`${t.provider}/${t.model} answered with empty content — with ${BUDGET} tokens of budget that usually means the model id is wrong for this provider, not a starved reasoning phase.`)
+      // A judgement engine has no answer to a prompt, by design — it is
+      // exercised with questions in its own block below. Sending it one here
+      // would be this file reporting a configuration fault that is really
+      // this file asking the wrong thing.
+      if (t.dialect === 'typesafe') continue
+      const what = `${t.provider} / ${t.model}  [${t.features.join(', ')}]`
+      let reply: string
+      try {
+        reply = await ask(t, 'Reply with exactly the word OK and nothing else.')
+      } catch (e: any) {
+        // eslint-disable-next-line no-console
+        console.log(`  ${what} → REFUSED`)
+        failed.push(e.message)
+        continue
       }
-      expect(reply.length).toBeGreaterThan(0)
+      // eslint-disable-next-line no-console
+      console.log(`  ${what} → "${reply.slice(0, 40)}"`)
+      if (!reply) {
+        failed.push(`${t.provider} / ${t.model} answered with empty content — with ${BUDGET} tokens of budget that usually means the model id is wrong for this provider, not a starved reasoning phase.`)
+      }
+    }
+    const asked = [...targets.values()].filter(t => t.dialect !== 'typesafe').length
+    if (failed.length) {
+      throw new Error(`${failed.length} of ${asked} prompt pairs did not answer:\n  ${failed.join('\n  ')}`)
     }
   }, 120000)
 
