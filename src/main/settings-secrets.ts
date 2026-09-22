@@ -15,11 +15,27 @@
 // Pure, so it is testable with a cipher that is not the Keychain. The Electron
 // wiring is in index.ts.
 
-/** Settings whose value is a credential. */
-export const SECRET_KEYS = new Set([
+import { AI_PROVIDER_CATALOG } from '../renderer/src/utils/aiProviders'
+
+/**
+ * Settings whose value is a credential.
+ *
+ * DERIVED from the provider catalog, not listed. It was a hand-written list of
+ * eight, and it stopped being true the moment a provider was added: #169 added
+ * Mistral, DeepSeek, xAI and OpenRouter as catalog LINES, which is the whole
+ * point of that design — but their `keySetting`s were never added here, so
+ * four API keys went to disk in clear and reached the window unmasked. 
+ *
+ * A catalog entry declares where its credential lives; that declaration is now
+ * the only thing this reads, so the next provider is sealed by arriving.
+ * Sealing is applied on write, so a key already sitting in clear is sealed the
+ * next time anything saves.
+ */
+export const SECRET_KEYS = new Set<string>([
   'githubToken', 'githubEnterpriseToken',
-  'aiAnthropicKey', 'aiGoogleKey', 'aiGroqKey', 'aiOpenaiKey',
+  // The legacy spellings, which no catalog entry names any more.
   'groqApiKey', 'geminiApiKey',
+  ...AI_PROVIDER_CATALOG.map(p => p.keySetting).filter((k): k is string => !!k),
 ])
 /** A JSON array whose entries carry a `key` — the custom AI providers. */
 export const SECRET_BLOBS = new Set(['aiCustomProviders'])

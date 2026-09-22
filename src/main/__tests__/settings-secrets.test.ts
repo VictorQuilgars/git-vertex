@@ -1,4 +1,4 @@
-import { SECRET_MASK, maskSecrets, openSecrets, resolveSecretWrite, sealSecrets, type Cipher } from '../settings-secrets'
+import { SECRET_MASK, SECRET_KEYS, isSecretSetting, maskSecrets, openSecrets, resolveSecretWrite, sealSecrets, type Cipher } from '../settings-secrets'
 
 // A cipher that is not the Keychain: reversible, visibly not the input.
 const reversing: Cipher = {
@@ -73,5 +73,45 @@ describe('secrets toward the window', () => {
       { id: 'b', baseUrl: 'y', key: 'k-b' },
       { id: 'c', baseUrl: 'z', key: '' },
     ])
+  })
+})
+
+describe('which settings are credentials — derived, never listed', () => {
+  const { AI_PROVIDER_CATALOG } = require('../../renderer/src/utils/aiProviders')
+
+  test("every provider's key setting is a secret, including the ones added later", () => {
+    // The failure this replaces: the list was written by hand when there were
+    // four providers. #169 made adding a cloud a catalog LINE — and four keys
+    // (Mistral, DeepSeek, xAI, OpenRouter) then went to disk in clear and
+    // reached the window unmasked, because nobody edited a second list.
+    for (const p of AI_PROVIDER_CATALOG) {
+      if (!p.keySetting) continue
+      expect(isSecretSetting(p.keySetting)).toBe(true)
+    }
+  })
+
+  test('a provider added tomorrow is sealed by arriving, not by being remembered', () => {
+    expect([...SECRET_KEYS]).toEqual(expect.arrayContaining(
+      AI_PROVIDER_CATALOG.map((p: any) => p.keySetting).filter(Boolean)))
+  })
+
+  test('the legacy spellings no catalog entry names are still secrets', () => {
+    // Written by versions that predate the pair rework; a file from one of
+    // them must not be read back into the clear.
+    expect(isSecretSetting('groqApiKey')).toBe(true)
+    expect(isSecretSetting('geminiApiKey')).toBe(true)
+  })
+
+  test('a key already sitting in clear is sealed the next time anything saves', () => {
+    const cipher = { available: () => true, seal: (v: string) => `S(${v})`, open: (v: string) => v.slice(2, -1) }
+    const sealed = sealSecrets({ aiMistralKey: 'mk_plain', aiDeepseekKey: 'sk_plain' }, cipher)
+    expect(sealed.aiMistralKey).toBe('enc:v1:S(mk_plain)')
+    expect(sealed.aiDeepseekKey).toBe('enc:v1:S(sk_plain)')
+  })
+
+  test('and it is masked on its way to the window', () => {
+    const masked = maskSecrets({ aiOpenrouterKey: 'sk-or-plain', aiXaiKey: 'xai-plain' })
+    expect(masked.aiOpenrouterKey).toBe(SECRET_MASK)
+    expect(masked.aiXaiKey).toBe(SECRET_MASK)
   })
 })
