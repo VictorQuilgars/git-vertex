@@ -44,13 +44,15 @@ export async function callProvider(
     return { text: result.response.text().trim(), truncated: reason === 'MAX_TOKENS' }
   }
   if (target.dialect === 'typesafe') {
-    // Not yet spoken. Falling through would POST a prompt to
-    // `{base}/chat/completions` on a host that serves `/systemone`, and the
-    // 404 would read as a bad key or a dead provider. Until `callJudge`
-    // lands, say which half is missing.
+    // A judgement engine has no answer to a prompt. Falling through would POST
+    // this to `{base}/chat/completions` on a host that serves `/systemone`,
+    // and the 404 would read as a bad key or a dead provider. Only a feature
+    // the catalog lets it serve can reach this module at all (providerServes),
+    // and that feature must call `callJudge` instead — so arriving here is a
+    // wiring mistake, and it says so rather than becoming a network error.
     throw new Error(
       `${target.model} answers questions rather than prompts, and this call is a prompt. `
-      + 'Choose another model for this feature until the judgement path ships.')
+      + 'This feature has no judgement path — choose another model for it.')
   }
   // openai-compat — a plain fetch, because the base URL is the whole point:
   // api.openai.com, api.groq.com/openai, a Mistral, an Ollama on localhost.
@@ -72,3 +74,4 @@ export async function callProvider(
     truncated: choice?.finish_reason === 'length' || choice?.finish_reason === 'max_tokens',
   }
 }
+

@@ -40,6 +40,14 @@ import {
   parsePullRequest, truncateDiff,
 } from '../../src/main/ai-prompts'
 import { readOversize, oversizeMessage } from '../../src/main/ai-oversize'
+// The fourth dialect, whole: its shapes, its questions and its one POST.
+// The commit search over it is SHARED with the desktop rather than copied —
+// the prose one lives here in a second copy, and the four prompts that were
+// arranged that way drifted word by word until #185 P2 moved them.
+import {
+  callJudge, searchCommitsByJudgement,
+  type JudgeQuestion, type JudgeAnswer,
+} from '../../src/main/ai-judge'
 
 const MODEL_DEFAULTS: Record<string, string> = {
   anthropic: 'claude-haiku-4-5-20251001',
@@ -171,6 +179,15 @@ interface Answer { text: string; truncated: boolean }
 
 async function callOnce(cfg: AIConfig, prompt: string, maxTokens: number): Promise<Answer> {
   const { provider, apiKey, model } = cfg
+  if (cfg.dialect === 'typesafe') {
+    // A judgement engine has no answer to a prompt, and falling through would
+    // POST this to `{base}/chat/completions` on a host that serves
+    // `/systemone`. A feature it may serve calls runJudge instead, so arriving
+    // here is a wiring mistake and says so rather than becoming a 404.
+    throw new Error(
+      `${cfg.model} answers questions rather than prompts, and this call is a prompt. `
+      + 'This feature has no judgement path — choose another model for it.')
+  }
   if (cfg.dialect === 'anthropic') {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -277,6 +294,42 @@ export async function runAIPrompt(
 }
 
 
+
+/**
+ * One judgement round trip, with the policy this host owns.
+ *
+ * The twin of the desktop's runJudge, and the same split: the behaviour is in
+ * ai-judge, the key and the retry are the host's. The prompt loop above does
+ * not apply — there is no budget to grow and no truncation to retry past, so
+ * the only thing worth a second go is the crowd.
+ */
+export async function runJudge(
+  cfg: AIConfig, state: unknown, questions: Record<string, JudgeQuestion>,
+): Promise<{ answers?: Record<string, JudgeAnswer>; error?: string }> {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const reply = await callJudge(cfg, state, questions, authHeaders)
+      return { answers: reply.answers }
+    } catch (e: any) {
+      const msg = e?.message ?? 'judgement failed'
+      if (!/rate limit|too many|overload/i.test(msg) || attempt === 2) return { error: msg }
+      await new Promise(r => setTimeout(r, 1000))
+    }
+  }
+  return { error: 'judgement failed' }
+}
+
+/**
+ * The commit search the panel runs when the feature resolves onto a
+ * judgement engine — full hashes, so the caller has nothing to expand and
+ * nothing to drop as invented.
+ */
+export async function aiSearchCommitsByJudgement(
+  cfg: AIConfig, raw: (args: string[]) => Promise<string>, query: string,
+): Promise<{ hashes?: string[]; error?: string; partial?: number }> {
+  return searchCommitsByJudgement(raw, (st, qs) => runJudge(cfg, st, qs),
+    query, new Date().toISOString().slice(0, 10))
+}
 
 // Live model list per provider — mirrors the desktop's ai:list-provider-models
 // (Groq's audio-only whisper models filtered out, OpenAI trimmed to chat models).

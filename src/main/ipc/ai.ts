@@ -14,7 +14,8 @@ import path from 'path'
 import { readFileSync, writeFileSync } from 'fs'
 import { state } from '../app-state'
 import { readSettings, writeSettings } from '../settings-store'
-import { runAIPrompt, diffOptsFor, AI_CONFLICT_MAX_CHARS, explCachePath, readExplCache, saveExplanation, rawGit, runFeature, noteStore, changelogStore } from '../ai-runtime'
+import { runAIPrompt, runJudge, featureDialect, diffOptsFor, AI_CONFLICT_MAX_CHARS, explCachePath, readExplCache, saveExplanation, rawGit, runFeature, noteStore, changelogStore } from '../ai-runtime'
+import { searchCommitsByJudgement } from '../ai-judge'
 
 
 
@@ -344,6 +345,17 @@ export function registerAiHandlers(): void {
   handle('ai:search-commits', async (_e, query: string) => {
     if (!state.gitService) return { error: 'No repository open' }
     if (!query?.trim()) return { hashes: [] }
+
+    // Two paths, and the material differs before the first git call: a prompt
+    // wants a rendered index small enough to survive a free tier, a judgement
+    // wants the commits as data and can afford far more of them.
+    if (featureDialect('search') === 'typesafe') {
+      return searchCommitsByJudgement(
+        args => (state.gitService as any).git.raw(args),
+        (st, qs) => runJudge(st, qs, 'search'),
+        query, new Date().toISOString().slice(0, 10))
+    }
+
     let index = ''
     try {
       const git = (state.gitService as any).git
