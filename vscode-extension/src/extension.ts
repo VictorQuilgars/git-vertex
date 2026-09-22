@@ -1,4 +1,5 @@
 import * as vscode from 'vscode'
+import { migrateSecretsOutOfState, writeSetting } from './secretStore'
 import * as path from 'path'
 import * as fs from 'fs'
 import { findAppPath, launchApp } from './appLocator'
@@ -7,7 +8,7 @@ import { findRefLinks, type RefLink } from './terminalLinks'
 import { registerAuthCallback } from './oauthHost'
 import { getGitInfo, getGitDir, getRepoRootForFile } from './gitInfo'
 import { GitVertexViewProvider } from './panel/GitVertexViewProvider'
-import { openGitVertexEditor, setEditorRepo, openGitVertexRebaseTab, openGitVertexFileHistoryTab, openGitVertexCompareTab, openGitVertexWhatsNewTab, openGitVertexWelcomeTab, postCommitMenuAction, lastCommitMenuHash, setThemeStorageDir, refUri, ensureDiffProvider, followHistoryTo } from './panel/GitVertexHost'
+import { openGitVertexEditor, setEditorRepo, openGitVertexRebaseTab, openGitVertexFileHistoryTab, openGitVertexCompareTab, openGitVertexWhatsNewTab, openGitVertexWelcomeTab, postCommitMenuAction, lastCommitMenuHash, setThemeStorageDir, refUri, ensureDiffProvider, followHistoryTo, setSecretStore } from './panel/GitVertexHost'
 import { blameFile } from './blame/blame'
 import { GitService } from './gitService'
 import { RELEASE_NOTES } from './releaseNotes'
@@ -370,6 +371,27 @@ export function activate(context: vscode.ExtensionContext): void {
   // not always installed.
   statusBar = new GitVertexStatusBar('gitVertex.openPanel')
 
+  // Where the panel's credentials live. VS Code's globalState is NOT encrypted,
+  // and every AI key and GitHub token used to sit in it in clear; `secrets` is
+  // the editor's own keychain-backed store, which oauthHost already used for
+  // OAuth tokens and nothing else did.
+  setSecretStore(context.secrets)
+  void migrateSecretsOutOfState(context.globalState, context.secrets).then(moved => {
+    if (!moved.length) return
+    console.log(`[git-vertex] moved ${moved.length} credential(s) out of globalState: ${moved.join(', ')}`)
+    // Said out loud, once, because moving them protects the store from here on
+    // and says nothing about the copies a profile backup or Settings Sync took
+    // while it was readable. Regenerating them is the user's to do.
+    void vscode.window.showWarningMessage(
+      'Git Vertex stored your API keys and tokens unencrypted until this version. '
+      + 'They are in the editor\'s secret storage now — but regenerate them at their provider, '
+      + 'since a backup may still hold a readable copy.',
+      'What was moved',
+    ).then(pick => {
+      if (pick) void vscode.window.showInformationMessage(moved.join(', '))
+    })
+  })
+
   // Where installed themes live. Global rather than per-workspace: a palette is
   // a property of the person, not of the repository they happen to have open.
   setThemeStorageDir(context.globalStorageUri.fsPath)
@@ -667,9 +689,7 @@ export function activate(context: vscode.ExtensionContext): void {
         ignoreFocusOut: true,
       })
       if (token === undefined) return
-      const all = context.globalState.get<Record<string, string>>('gvSettings', {})
-      all.githubToken = token
-      await context.globalState.update('gvSettings', all)
+      await writeSetting(context.globalState, context.secrets, 'githubToken', token)
       vscode.window.showInformationMessage(token ? 'GitHub token saved.' : 'GitHub token cleared.')
     }),
     // Compare two refs (branches/tags) in a tab; refs are picked in the tab.

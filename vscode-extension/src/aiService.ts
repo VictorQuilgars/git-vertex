@@ -65,9 +65,17 @@ function userSetting(cfg: vscode.WorkspaceConfiguration, key: string): string | 
   return v?.trim() ? v : undefined
 }
 
-export function readAIConfig(state: vscode.Memento, feature?: AIFeature): AIConfig | null {
+/**
+ * Which (provider, model, key) this feature runs on.
+ *
+ * Takes the settings ALREADY RESOLVED rather than the memento it used to read
+ * itself: the credentials moved to the editor's keychain, which is an async
+ * store, and reaching it from in here would have made every caller await a
+ * function whose job is arithmetic over settings. The host resolves once and
+ * passes the map — see secretStore.resolveSettings.
+ */
+export function readAIConfig(gv: Record<string, string>, feature?: AIFeature): AIConfig | null {
   const cfg = vscode.workspace.getConfiguration('gitVertex')
-  const gv = state.get<Record<string, string>>('gvSettings', {})
   const trimmed = (v: unknown) => typeof v === 'string' ? v.trim() : ''
   const keyFor = (p: string) => {
     const def = providerById(gv, p)
