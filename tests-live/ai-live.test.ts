@@ -46,13 +46,32 @@ function loadSettings(): Record<string, string | undefined> {
   return JSON.parse(fs.readFileSync(p, 'utf8'))
 }
 
+/**
+ * A credential this process cannot open.
+ *
+ * The app seals its keys with the system's protected storage — safeStorage,
+ * the Keychain on macOS — and only that app on that machine opens them. This
+ * suite is plain Node, so a sealed value is a ciphertext it can read and
+ * cannot use.
+ *
+ * Sending it anyway is what this used to do, and the provider answered
+ * "Invalid API Key" — which this file then reported as a fault in the user's
+ * configuration. It named the one thing that was NOT wrong. A suite whose job
+ * is to say which part of a setup is broken has no business inventing a
+ * breakage, so a sealed key is now a skip that says why.
+ */
+const SEALED = 'enc:v1:'
+const isSealed = (v?: string) => !!v && v.startsWith(SEALED)
+
 const s = loadSettings()
 
 // One call per DISTINCT pair — five features on the default model are one
 // call, not five. Money is the constraint this suite exists to respect.
 const targets = new Map<string, ReturnType<typeof resolveAICall> & { features: string[] }>()
+const sealedOut = new Set<string>()
 for (const f of [undefined, ...FEATURES] as (AIFeature | undefined)[]) {
   const r = resolveAICall(s, f)
+  if (isSealed(r.apiKey)) { sealedOut.add(`${r.provider} / ${r.model}`); continue }
   if (!r.apiKey && !r.keyless) continue
   const k = `${r.provider}:${r.model}`
   const hit = targets.get(k)
@@ -61,6 +80,14 @@ for (const f of [undefined, ...FEATURES] as (AIFeature | undefined)[]) {
 }
 
 describe('the configuration, resolved (free)', () => {
+  test('what this suite cannot reach, it says rather than fails', () => {
+    if (!sealedOut.size) return
+    // eslint-disable-next-line no-console
+    console.log(`  sealed, so not exercised here: ${[...sealedOut].join(', ')}`
+      + '\n  Their keys are in the system keychain, which only the app itself opens.'
+      + '\n  To exercise them, point GV_SETTINGS_PATH at a settings.json holding plain keys.')
+  })
+
   test('at least one provider is connected', () => {
     expect(targets.size).toBeGreaterThan(0)
   })
@@ -68,8 +95,9 @@ describe('the configuration, resolved (free)', () => {
   test('every feature resolves to a provider whose key is present', () => {
     for (const f of FEATURES) {
       const r = resolveAICall(s, f)
+      const state = isSealed(r.apiKey) ? '  (sealed)' : r.apiKey ? '' : '  (NO KEY)'
       // eslint-disable-next-line no-console
-      console.log(`  ${f.padEnd(8)} → ${r.provider} / ${r.model}${r.apiKey ? '' : '  (NO KEY)'}`)
+      console.log(`  ${f.padEnd(8)} → ${r.provider} / ${r.model}${state}`)
       if (!r.keyless) expect(r.apiKey).not.toBe('')
     }
   })
@@ -125,7 +153,12 @@ describe('the configuration, exercised (paid)', () => {
     }
   }, 120000)
 
-  test('global instructions reach the model', async () => {
+  // The instruction checks ride the DEFAULT pair, so they can only run when
+  // this process can open its key.
+  const openDefault = !isSealed(resolveAICall(s).apiKey)
+  const withDefault = openDefault ? test : test.skip
+
+  withDefault('global instructions reach the model', async () => {
     const r = resolveAICall(s)
     const sentinel = 'End your reply with the word PAMPLEMOUSSE.'
     const prompt = appendInstructions('Say hello in one short sentence.', {
@@ -137,7 +170,7 @@ describe('the configuration, exercised (paid)', () => {
     expect(reply.toUpperCase()).toContain('PAMPLEMOUSSE')
   }, 60000)
 
-  test("a feature's own instructions reach the model — and only that feature's", async () => {
+  withDefault("a feature's own instructions reach the model — and only that feature's", async () => {
     const sentinel = 'End your reply with the word CITRON.'
     const s2 = { ...s, 'aiFeatureInstructions:explain': [s['aiFeatureInstructions:explain'], sentinel].filter(Boolean).join('\n') }
     const r = resolveAICall(s2, 'explain')
