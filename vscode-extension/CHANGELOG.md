@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.37.0
 
 ### Security
 - **API keys and GitHub tokens were stored unencrypted, and are not any more. Regenerate them.** The panel kept its settings in VS Code's `globalState`, which is **not encrypted on disk** — so every AI provider key, and the personal access token from *Set GitHub token*, was readable by anything that could read the profile, and `settingsGetAll` handed the lot to the webview besides. They live in the editor's **secret storage** now, the keychain-backed store the extension already used for OAuth tokens and nothing else; `globalState` keeps a mask where a credential was, and the webview is given masks. What counts as a credential is the desktop's own list, shared, so the two products cannot drift on the question. A migration moves whatever is already in clear, once, when the extension starts. ⚠️ **Moving them protects the store from here on and nothing before it**: a profile backup or Settings Sync may still hold a readable copy, so **regenerate your keys and your token**. The extension says so on the first start after the update.

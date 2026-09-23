@@ -1,6 +1,6 @@
 # Changelog — Git Vertex (desktop)
 
-## Unreleased
+## 1.39.0
 
 ### Security
 - **API keys were stored unencrypted, and are not any more. Regenerate them.** Credentials in `settings.json` go through the system's protected storage — the Keychain, DPAPI, the keyring — so a file copied to another machine yields nothing. Which settings are credentials was a **list written by hand** when there were four providers, and #169 then made adding a cloud a *catalog line*: nobody edited the second list. So **Mistral, DeepSeek, xAI and OpenRouter have been writing their API key to `settings.json` in clear since v1.32.0**, and handing it to the window unmasked. The list is now **derived from the catalog itself**, so a provider is sealed by arriving rather than by being remembered, and a test walks the catalog and fails on any key that is not a secret. Sealing had always happened on write, which was correct and not enough — nothing forces a write, which is how this lasted six releases — so the app now seals **at startup**, before the window can ask for anything. ⚠️ **That fixes the file and only the file.** A `settings.json` rewritten today says nothing about the copies a backup, a synced folder or a passing script took while it was readable, and the app can reach none of them: if you had a key on one of those four providers, **regenerate it at the provider**. The app says so itself — the bell carries one notification naming the providers it found in clear.
