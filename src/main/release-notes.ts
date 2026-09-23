@@ -10,6 +10,8 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 🎯 A search in words goes to its best answer
 - The model answers **best first**, and the graph now goes to the **most probable** commit — growing the page when it is further back than what is loaded, for every hit it found. When the answer is not the whole answer it says so: *the 50 most likely of 250*, *only the latest 1,000 commits were read*, or *part of the history did not answer*.
 
+### 📅 Merged since, closed since
+- Filters of pull requests and issues take **\`merged:\`** and **\`closed:\`**, typed or described: *PRs merged since September 1st* now keeps its date.
 `,
   '1.39.0': `## What's new in 1.39.0
 

@@ -325,6 +325,37 @@ describe('the filter query, composed rather than written', () => {
     expect(filterQueryQuestions('issues', 'anything', TODAY).questions['q:review']).toBeUndefined()
   })
 
+  test('a merge date is a pull request\'s, a close date is both sections\'', () => {
+    // "merged since 2026-09-01" had no qualifier to hang its date on, and
+    // came back as a query without it.
+    const prs = filterQueryQuestions('prs', 'merged since 2026-09-01', TODAY).questions
+    expect(Object.keys(prs['q:merged'].criteria)).toContain('>=2026-09-01')
+    expect(prs['q:closed']).toBeDefined()
+    const issues = filterQueryQuestions('issues', 'closed this week', TODAY).questions
+    expect(issues['q:merged']).toBeUndefined()
+    expect(Object.keys(issues['q:closed'].criteria)).toContain('>=2026-09-15')
+  })
+
+  test('closed: steps aside for merged:, which already says it', () => {
+    // Measured: "PR de VictorQuilgars mergées cette année" lit both, with the
+    // same date. A merged pull request is a closed one.
+    const ask = 'merged this year'
+    const answers = { 'q:merged': choice('>=2026-01-01'), 'q:closed': choice('>=2026-01-01') }
+    const q = readFilterAnswers(answers, 'prs', ask, TODAY)
+    expect(q).toBe('merged:>=2026-01-01')
+    expect(validateGhQuery(q, 'prs')).toEqual({ ok: true })
+  })
+
+  test('closed: alone is kept — it only steps aside for a merge', () => {
+    const q = readFilterAnswers({ 'q:closed': choice('>=2026-09-15') }, 'issues', 'closed this week', TODAY)
+    expect(q).toBe('closed:>=2026-09-15')
+  })
+
+  test('merged: is read before closed:, which the rule above depends on', () => {
+    const keys = ghFilterKeys('prs') as string[]
+    expect(keys.indexOf('merged')).toBeLessThan(keys.indexOf('closed'))
+  })
+
   test('the person is one WHO and one ROLE, never six competing questions', () => {
     // Measured: asked a qualifier at a time, "mes pull requests encore
     // ouvertes" put author:@me at 0.31 and assignee:@me at 0.28 — six

@@ -387,7 +387,7 @@ const USER_KEYS = new Set([
   'author', 'assignee', 'involves', 'mentions', 'review-requested', 'reviewed-by',
 ])
 /** Qualifiers whose value is a date expression rather than a word. */
-const DATE_KEYS = new Set(['created', 'updated'])
+const DATE_KEYS = new Set(['created', 'updated', 'merged', 'closed'])
 
 /**
  * The words a value could be taken from — the request's own.
@@ -583,6 +583,11 @@ export function readFilterAnswers(
     if (!(a.choice in (q as { criteria: Record<string, unknown> }).criteria)) continue
     if ((a.confidence ?? 1) < FILTER_CONFIDENCE) continue
     if (key === 'state' && answers?.['q:is']?.choice && answers['q:is'].choice !== FILTER_NONE) continue
+    // A merged pull request is a closed one: asked separately, the two date
+    // questions both light up on "merged this year" — measured, `closed:`
+    // came back beside `merged:` with the same date. It adds nothing, so it
+    // steps aside the way `state:` does for `is:`.
+    if (key === 'closed' && tokens.some(t => t.startsWith('merged:'))) continue
     tokens.push(`${key}:${a.choice}`)
     taken.add(a.choice.toLowerCase())
   }

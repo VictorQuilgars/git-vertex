@@ -263,7 +263,13 @@ describe('the filter query (paid)', () => {
     { kind: 'prs', ask: 'PR vers main dont le CI a échoué', must: ['base:main', 'status:failure'], mustNot: ['head:'] },
     { kind: 'issues', ask: 'les issues ouvertes sans personne assignée', must: ['no:assignee'] },
     { kind: 'issues', ask: 'issues labelled bug, most recently updated first', must: ['label:bug', 'sort:updated'] },
-    { kind: 'issues', ask: 'closed issues assigned to VictorQuilgars', must: ['assignee:VictorQuilgars'] },
+    { kind: 'issues', ask: 'closed issues assigned to VictorQuilgars', must: ['assignee:VictorQuilgars'], mustNot: ['closed:'] },
+    // The date qualifiers compete like the person ones did: "merged this year"
+    // lit `closed:` too before it was made to step aside for `merged:`.
+    { kind: 'prs', ask: 'merged since 2026-09-01', must: ['merged:>=2026-09-01'], mustNot: ['created:', 'updated:', 'closed:'] },
+    { kind: 'prs', ask: 'PR de VictorQuilgars mergées cette année', must: ['author:VictorQuilgars', 'merged:>='], mustNot: ['created:', 'updated:', 'closed:'] },
+    { kind: 'issues', ask: 'issues fermées depuis le 2026-09-01', must: ['closed:>=2026-09-01'], mustNot: ['created:', 'updated:'] },
+    { kind: 'prs', ask: 'PR créées depuis le 2026-08-01', must: ['created:>=2026-08-01'], mustNot: ['merged:', 'closed:'] },
   ]
 
   for (const c of CASES) {
