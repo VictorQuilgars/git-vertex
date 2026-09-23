@@ -8,7 +8,7 @@
 
 ### Fixed
 - **A provider named in an old settings file, or in the editor-level pin, always resolves to a model.** The last resort of the resolution — the setting that predates per-feature pairs — was the one level nothing checked, and it is the level the other three fall onto. A provider id the catalog does not know, or one that cannot serve the feature, came back as itself with **no model at all**; it now lands on a provider that can answer.
-
+- **A search in words goes to its best answer, reaches the ones past the page, and says when it is not the whole answer.** The model's answer comes back **best first**, and that order was thrown away at once: every hit lit alike, nothing selected, and the page **not grown** for any of them — so a hit further back than the graph had loaded was a row it did not have, and the count in the field said fewer than the model found. The graph now goes to the **most probable** hit it can show and grows the page for every hit within reach, the way the diff search already did. And what an answer leaves out is said, because each of these looked exactly like a complete one: *The 50 most likely of 250 matches are shown*, when the cap cut it; *Only the latest 1,000 commits were read*, when the history is longer than a judgement search reads; *2 of 10 parts of the history did not answer*, when some requests failed and the rest came back. An answer that returns after the query or the repository changed is dropped rather than lit on rows it was not asked about.
 ## 1.37.0
 
 ### Security

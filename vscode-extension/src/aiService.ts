@@ -45,7 +45,7 @@ import { readOversize, oversizeMessage } from '../../src/main/ai-oversize'
 // the prose one lives here in a second copy, and the four prompts that were
 // arranged that way drifted word by word until #185 P2 moved them.
 import {
-  callJudge, searchCommitsByJudgement, filterQueryByJudgement,
+  callJudge, searchCommitsByJudgement, filterQueryByJudgement, type JudgeSearchResult,
   type JudgeQuestion, type JudgeAnswer,
 } from '../../src/main/ai-judge'
 
@@ -326,7 +326,7 @@ export async function runJudge(
  */
 export async function aiSearchCommitsByJudgement(
   cfg: AIConfig, raw: (args: string[]) => Promise<string>, query: string,
-): Promise<{ hashes?: string[]; error?: string; partial?: number }> {
+): Promise<JudgeSearchResult> {
   return searchCommitsByJudgement(raw, (st, qs) => runJudge(cfg, st, qs),
     query, new Date().toISOString().slice(0, 10))
 }

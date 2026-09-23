@@ -85,6 +85,54 @@ test('editing the query after an answer comes back to filtering', () => {
 })
 
 
+// ── The answer is ranked, and says what it leaves out ─────────────────────
+const node = (hash: string) => ({ hash, message: hash, author: 'a', date: '2026-09-01', parents: [], refs: [] })
+
+test('the graph goes to the MOST PROBABLE hit, not to the first row that matches', async () => {
+  installMockGitAPI({ aiSearchCommits: jest.fn().mockResolvedValue({ hashes: ['b2', 'a1'] }) })
+  const commits = [node('a1'), node('b2')]
+  const { app, hook } = searchHook({ commits })
+  act(() => hook.result.current.setSearchQuery('what broke the build'))
+  await act(async () => { await hook.result.current.runAiSearch() })
+  expect(app.setSelectedCommit).toHaveBeenLastCalledWith(commits[1])
+})
+
+test('a best hit past the page grows the page and is selected once it is in', async () => {
+  const locate = jest.fn().mockResolvedValue({ positions: { far: 1200 } })
+  installMockGitAPI({ aiSearchCommits: jest.fn().mockResolvedValue({ hashes: ['far', 'a1'] }), locateInHistory: locate })
+  const growHistory = jest.fn(), setDeepLinkHash = jest.fn()
+  const { app, hook } = searchHook({ commits: [node('a1')], growHistory, setDeepLinkHash })
+  act(() => hook.result.current.setSearchQuery('what broke the build'))
+  await act(async () => { await hook.result.current.runAiSearch() })
+  expect(locate).toHaveBeenCalledWith(['far'], expect.anything())
+  expect(growHistory).toHaveBeenCalledWith(1500)
+  expect(setDeepLinkHash).toHaveBeenCalledWith('far')
+  expect(app.setSelectedCommit).not.toHaveBeenCalled()
+})
+
+test('a capped answer says so, instead of reading as all of them', async () => {
+  const hashes = Array.from({ length: 50 }, (_, i) => `h${i}`)
+  installMockGitAPI({ aiSearchCommits: jest.fn().mockResolvedValue({ hashes, total: 73 }) })
+  const commits = hashes.map(node)
+  const { app, hook } = searchHook({ commits, t: (key: string, ...a: any[]) => `${key}(${a.join(',')})` })
+  act(() => hook.result.current.setSearchQuery('what broke the build'))
+  await act(async () => { await hook.result.current.runAiSearch() })
+  expect(app.showToast).toHaveBeenCalledWith('search.ai.capped(50,73)', 'info')
+})
+
+test('an answer that comes back after the query changed is dropped', async () => {
+  let answer: (v: unknown) => void = () => {}
+  installMockGitAPI({ aiSearchCommits: jest.fn().mockReturnValue(new Promise(r => { answer = r })) })
+  const { app, hook } = searchHook({ commits: [node('a1')] })
+  act(() => hook.result.current.setSearchQuery('what broke the build'))
+  let asked!: Promise<void>
+  act(() => { asked = hook.result.current.runAiSearch() })
+  act(() => hook.result.current.setSearchQuery('something else'))
+  await act(async () => { answer({ hashes: ['a1'] }); await asked })
+  expect(app.setAiSearch).not.toHaveBeenCalledWith(true)
+  expect(app.setSelectedCommit).not.toHaveBeenCalled()
+})
+
 // ── A search is about a repository, not about the window ────────────────────
 // Switching tabs used to leave the words typed in the repository you had just
 // left sitting in the field: the graph of the new one opened greyed out under

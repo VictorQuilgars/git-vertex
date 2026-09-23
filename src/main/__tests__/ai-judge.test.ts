@@ -198,11 +198,12 @@ describe('the search both products run', () => {
   const flat = (p: number) => async (_s: unknown, qs: Record<string, unknown>) =>
     ({ answers: Object.fromEntries(Object.keys(qs).map(k => [k, { type: 'noul', noul: p }])) })
 
-  test('it asks git for full hashes, over the whole ceiling', async () => {
+  test('it asks git for full hashes, over the whole ceiling and one past it', async () => {
     const log = jest.fn().mockResolvedValue(logOf(3))
     await searchCommitsByJudgement(log, flat(0.9), 'x', '2026-09-22')
     const args = log.mock.calls[0][0] as string[]
-    expect(args).toContain(`--max-count=${JUDGE_SEARCH_MAX}`)
+    // The one past it is how the search knows the history goes on.
+    expect(args).toContain(`--max-count=${JUDGE_SEARCH_MAX + 1}`)
     expect(args.join(' ')).toContain('%H|%an|%ad|%s')
   })
 
@@ -216,6 +217,35 @@ describe('the search both products run', () => {
     expect(r.hashes!.filter((h: string) => !real.has(h))).toEqual([])
   })
 
+  // A capped answer and a complete one used to be the same fifty hashes. The
+  // caller cannot say "the fifty most likely of 250" without being told 250.
+  test('an answer cut by the cap says how many passed', async () => {
+    const r = await searchCommitsByJudgement(async () => logOf(250), flat(0.9), 'x', '2026-09-22')
+    expect(r.hashes).toHaveLength(50)
+    expect(r.total).toBe(250)
+  })
+
+  test('an answer the cap did not touch says nothing more', async () => {
+    const r = await searchCommitsByJudgement(async () => logOf(12), flat(0.9), 'x', '2026-09-22')
+    expect(r.hashes).toHaveLength(12)
+    expect(r.total).toBeUndefined()
+    expect(r.readOnly).toBeUndefined()
+  })
+
+  test('a history longer than the ceiling says how much of it was read', async () => {
+    const run = jest.fn().mockImplementation(flat(0.02))
+    const r = await searchCommitsByJudgement(async () => logOf(JUDGE_SEARCH_MAX + 1), run, 'x', '2026-09-22')
+    expect(r.readOnly).toBe(JUDGE_SEARCH_MAX)
+    // The commit past the ceiling is a probe, not a commit to judge.
+    const judged = run.mock.calls.reduce((n: number, [, qs]: any) => n + Object.keys(qs).length, 0)
+    expect(judged).toBe(JUDGE_SEARCH_MAX)
+  })
+
+  test('a history exactly at the ceiling was read whole', async () => {
+    const r = await searchCommitsByJudgement(async () => logOf(JUDGE_SEARCH_MAX), flat(0.02), 'x', '2026-09-22')
+    expect(r.readOnly).toBeUndefined()
+  })
+
   test('one refused batch costs its batch, not the search', async () => {
     let n = 0
     const run = jest.fn().mockImplementation(async (s: unknown, qs: any) => {
@@ -225,6 +255,8 @@ describe('the search both products run', () => {
     const r = await searchCommitsByJudgement(async () => logOf(250), run, 'x', '2026-09-22')
     expect(r.error).toBeUndefined()
     expect(r.partial).toBe(1)
+    // Out of how many, so it can be said as a share of the history.
+    expect(r.batches).toBe(3)
     expect(r.hashes!.length).toBeGreaterThan(0)
   })
 

@@ -2,7 +2,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { PaletteCommand } from '../components/CommandPalette/CommandPalette'
 import { logOptionsFor } from '../utils/graphVisibility'
-import { planReach, type ReachPlan } from './search-reach'
+import { planReach, planAnswer, reachMessage, answerMessage } from './search-reach'
 import { useKeptSearch } from '../hooks/useKeptSearch'
 import type { KeptEntry, KeptSearch } from '../hooks/useKept'
 import { useSearchOperators } from './useSearchOperators'
@@ -167,20 +167,48 @@ export function useAppSearch(app: AppChrome & RepoSession & AppGithub & AppConfl
   // when the model has answered — from then on the rows ARE that answer, so
   // the graph is given neither the sentence to match as text nor the
   // operators to narrow by, until the query is edited again.
+  //
+  // The answer comes back best first. The graph lights every hit and goes to
+  // the most probable one, growing the page for the hits it does not hold yet
+  // the way the extended search does; what the answer leaves out — a cap, a
+  // history read only in part, a batch that never answered — is said, since
+  // each of those looks exactly like a complete answer.
   const runAiSearch = useCallback(async () => {
-    if (!searchQuery.trim() || !repoPath) return
+    const query = searchQuery.trim()
+    if (!query || !repoPath) return
     keptSearch.clear()
     setAiSearchLoading(true)
+    // An answer about a query or a repository no longer on screen is dropped.
+    const stale = () => live.current.query.trim() !== query || shownRepo.current !== repoPath
     try {
-      const r = await (window.gitAPI as any).aiSearchCommits(searchQuery.trim())
+      const r = await (window.gitAPI as any).aiSearchCommits(query)
+      if (stale()) return
       if (r.error) {
         showToast(r.error === 'NO_API_KEY' ? t('toast.noAiKey') : r.error, 'err')
         return
       }
+      const ranked: string[] = r.hashes ?? []
       app.setAiSearch(true)
-      setAiSearchHashes(new Set(r.hashes ?? []))
+      setAiSearchHashes(new Set(ranked))
+      const loaded = new Set(commitsRef.current.map(c => c.hash))
+      const missing = ranked.filter(h => !loaded.has(h))
+      let positions: Record<string, number> = {}
+      if (missing.length) {
+        const { all, refs, excludes } = logOptionsFor({ maxCount: 0, all: showAllRef.current, solo: soloRef.current, visibility: visibilityRef.current })
+        try { positions = (await window.gitAPI.locateInHistory(missing, { all, refs, excludes })).positions } catch { /* said as unreached */ }
+        if (stale()) return
+      }
+      const plan = planAnswer(ranked, loaded, positions, logLimitRef.current)
+      if (plan.loadTo) growHistory(plan.loadTo)
+      if (plan.select) {
+        const shown = commitsRef.current.find(c => c.hash === plan.select)
+        if (shown) setSelectedCommit(shown)
+        else setDeepLinkHash(plan.select)
+      }
+      const said = [answerMessage(t, r), reachMessage(t, plan)].filter(Boolean).join(' ')
+      if (said) showToast(said, 'info')
     } catch (e: any) {
-      showToast(e?.message ?? t('toast.aiError'), 'err')
+      if (!stale()) showToast(e?.message ?? t('toast.aiError'), 'err')
     } finally {
       setAiSearchLoading(false)
     }
@@ -258,14 +286,6 @@ export function useAppSearch(app: AppChrome & RepoSession & AppGithub & AppConfl
     searchQuery, setSearchQuery, searchMatches, setSearchMatches, extendedSearch, setExtendedSearch: (value: boolean | ((previous: boolean) => boolean)) => { keptSearch.clear(); setExtendedSearch(value) }, extendedSearchHashes, setExtendedSearchHashes, extendedSearchLoading, setExtendedSearchLoading, repoSearch, setRepoSearch, paletteOpen, setPaletteOpen, runAiSearch, graphSearchHashes: restored ? (restored.hashes === null ? null : new Set(restored.hashes)) : graphSearchHashes, buildPaletteCommands, revealRef,
     requiredSearchHashes: restored ? (restored.requiredHashes === null ? null : new Set(restored.requiredHashes)) : searchOps.requiredHashes, searchOpsLoading: !restored && searchOps.loading,
   }
-}
-
-/** What the search has to say about the hits the graph will not show: none, or one sentence per kind. */
-function reachMessage(t: (key: any, ...args: any[]) => string, plan: ReachPlan): string | null {
-  const parts: string[] = []
-  if (plan.beyond.length) parts.push(t('search.reach.beyond', plan.beyond.length, plan.beyond[0].position.toLocaleString('en-US')))
-  if (plan.unreached.length) parts.push(t('search.reach.unreached', plan.unreached.length))
-  return parts.length ? parts.join(' ') : null
 }
 
 export type AppSearch = ReturnType<typeof useAppSearch>
