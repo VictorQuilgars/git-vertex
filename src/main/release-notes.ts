@@ -2,7 +2,7 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.39.0': `## What's new in 1.39.0
 
 ### 🔐 Regenerate your API keys
 - Credentials in your settings go through the system's protected storage, but **which settings counted as credentials was a list written by hand** — and four providers added later were never added to it. **Mistral, DeepSeek, xAI and OpenRouter have stored their API key unencrypted since v1.32.0.** The list is derived from the provider catalog now, and the app seals what it finds **at startup** instead of waiting for you to save something. That fixes the file and nothing before it: a backup may still hold a readable copy, so **regenerate any key you had on those four**. The bell names the ones that were found in clear.

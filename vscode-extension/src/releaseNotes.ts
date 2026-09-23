@@ -16,7 +16,7 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.37.0': `## What's new in 1.37.0
 
 ### 🔖 What this repository keeps has a page
 - **Kept** was a block in the side bar, above the branches, where a kept search could only ever be a **name**. It is an **editor tab** now — **Memory**, from the bookmark in the panel's toolbar — with the kept things on the left and, on the right, the **commits** the one you picked holds: a row takes the graph to its commit, and a kept comparison opens as a comparison tab. **Ask again** puts the same query to **git over the whole history** and marks what the kept answer did not have as **new**. The kept searches are listed **under the search field** too, which is where searches are run.
