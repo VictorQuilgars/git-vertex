@@ -30,6 +30,7 @@ import { listAgents } from '../agents'
 import { resolveIdentity, signIn } from '../githubAuth'
 import { headroomKey } from '../../../src/main/ai-budgets'
 import { detailFor, type DiffDetail } from '../../../src/main/ai-diff'
+import { resolveSettings, writeSetting, maskedSettings, type Secrets } from '../secretStore'
 import { readAIConfig, aiFilterQuery, aiPrDescription, aiGenerateIssue, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels, runAIPrompt, type HeadroomStore } from '../aiService'
 // The five capabilities of #70 P1 are not reimplemented here: the host lends
 // its git and its provider, and the shared module owns the rest — which base
@@ -114,6 +115,17 @@ async function maybeTunePanelRepo(repoPath: string, state: vscode.Memento): Prom
 // The directory is set once at activation instead of threaded through the
 // constructor — GitVertexHost is built in ten places, and none of the other
 // nine care about theme storage.
+/**
+ * The editor's credential store, set once at activation.
+ *
+ * A constructor parameter would mean editing ten call sites for something only
+ * this file's settings handlers care about — the same reason the theme storage
+ * directory is a module-level setter below.
+ */
+let _secrets: Secrets | null = null
+
+export function setSecretStore(secrets: Secrets): void { _secrets = secrets }
+
 let _themeStore: ThemeStore | null = null
 let _themeStorageDir: string | null = null
 
@@ -255,6 +267,20 @@ export class GitVertexHost implements vscode.Disposable {
   private _fsWatcher?: vscode.FileSystemWatcher
   private _disposables: vscode.Disposable[] = []
   private _repoPath?: string
+
+  /**
+   * The settings with their credentials put back, from the editor's keychain.
+   *
+   * Every caller that needs a key comes through here; the ones that need a
+   * plain setting read the memento directly and cost no keychain lookup. With
+   * no store set — a host built before activation finished — this answers the
+   * masked state rather than throwing, and the call downstream fails as a
+   * missing key, which is what it is.
+   */
+  private async _settings(): Promise<Record<string, string>> {
+    if (!_secrets) return this._state.get<Record<string, string>>('gvSettings', {})
+    return resolveSettings(this._state, _secrets)
+  }
 
   constructor(
     private readonly _webview: vscode.Webview,
@@ -534,11 +560,17 @@ export class GitVertexHost implements vscode.Disposable {
     const svc = this._gitService
     // Host-level methods (no git service required)
     switch (method) {
-      case 'settingsGetAll': return this._state.get<Record<string, string>>('gvSettings', {})
+      // MASKED, like the desktop's: the webview makes no call that needs a
+      // credential, and handing it every key was how they reached a store
+      // this process does not control.
+      case 'settingsGetAll': return maskedSettings(this._state)
       case 'settingsSet': {
-        const all = this._state.get<Record<string, string>>('gvSettings', {})
-        all[args[0]] = args[1]
-        await this._state.update('gvSettings', all)
+        if (_secrets) await writeSetting(this._state, _secrets, String(args[0]), String(args[1]))
+        else {
+          const all = this._state.get<Record<string, string>>('gvSettings', {})
+          all[args[0]] = args[1]
+          await this._state.update('gvSettings', all)
+        }
         if (String(args[0]).startsWith('gv-kept:')) for (const host of keptHosts) host._webview.postMessage({ type: 'keptChanged' })
         return { success: true }
       }
@@ -1080,12 +1112,12 @@ export class GitVertexHost implements vscode.Disposable {
         } catch { return { user: null } }
       }
       case 'aiFilterQuery': {
-        const cfg = readAIConfig(this._state, 'filter')
+        const cfg = readAIConfig(await this._settings(), 'filter')
         if (!cfg) return { error: 'NO_API_KEY' }
         return aiFilterQuery(cfg, args[0], args[1], args[2], this._headroom())
       }
       case 'aiGenerateIssue': {
-        const cfg = readAIConfig(this._state, 'issue')
+        const cfg = readAIConfig(await this._settings(), 'issue')
         if (!cfg) return { error: 'NO_API_KEY' }
         return aiGenerateIssue(cfg, args[0], this._headroom())
       }
@@ -1093,7 +1125,7 @@ export class GitVertexHost implements vscode.Disposable {
       // Same ref resolution as the desktop handler: the base as the remote
       // holds it when possible, the head as the local repo does.
       case 'aiPrDescription': {
-        const cfg = readAIConfig(this._state, 'pr')
+        const cfg = readAIConfig(await this._settings(), 'pr')
         if (!cfg) return { error: 'NO_API_KEY' }
         if (!svc) return { error: 'No repository open' }
         const resolveRef = async (name: string, preferLocal: boolean): Promise<string> => {
@@ -1114,13 +1146,13 @@ export class GitVertexHost implements vscode.Disposable {
         return aiPrDescription(cfg, args[0], args[1], subjects, diffstat, diff, this._headroom(), this._detail('pr'))
       }
       case 'aiGenerateCommitMessage': {
-        const cfg = readAIConfig(this._state, 'commit')
+        const cfg = readAIConfig(await this._settings(), 'commit')
         if (!cfg || !svc) return { error: 'NO_API_KEY' }
         const staged = await svc.raw(['diff', '--cached']).catch(() => '')
         return aiGenerateCommitMessage(cfg, staged, this._headroom(), this._detail('commit'))
       }
       case 'aiRecomposeCommit': {
-        const cfg = readAIConfig(this._state, 'commit')
+        const cfg = readAIConfig(await this._settings(), 'commit')
         if (!cfg || !svc) return { error: 'NO_API_KEY' }
         const diff = await svc.raw(['diff-tree', '--no-commit-id', '-p', '--root', args[0]]).catch(() => '')
         const msg = (await svc.raw(['log', '-1', '--pretty=format:%B', args[0]]).catch(() => '')).trim()
@@ -1147,7 +1179,7 @@ export class GitVertexHost implements vscode.Disposable {
         if (!args[1] && !String(args[2] ?? '').trim() && this._repoPath && all[this._repoPath]?.[args[0]]) {
           return { explanation: all[this._repoPath][args[0]], cached: true }
         }
-        const cfg = readAIConfig(this._state, 'explain')
+        const cfg = readAIConfig(await this._settings(), 'explain')
         if (!cfg || !svc) return { error: 'NO_API_KEY' }
         const diff = await svc.raw(['diff-tree', '--no-commit-id', '-p', '--root', args[0]]).catch(() => '')
         const subject = (await svc.raw(['log', '-1', '--pretty=format:%s', args[0]]).catch(() => '')).trim()
@@ -1195,7 +1227,7 @@ export class GitVertexHost implements vscode.Disposable {
         if (!svc) return { error: 'No repository open' }
         const raw = (args2: string[]) => svc.raw(args2)
         const run: Run = async (prompt, feature) => {
-          const cfg = readAIConfig(this._state, feature)
+          const cfg = readAIConfig(await this._settings(), feature)
           if (!cfg) return { error: 'NO_API_KEY' }
           return runAIPrompt(cfg, prompt, feature, this._headroom())
         }
@@ -1307,14 +1339,14 @@ export class GitVertexHost implements vscode.Disposable {
         }
       }
       case 'aiResolveConflict': {
-        const cfg = readAIConfig(this._state, 'conflict')
+        const cfg = readAIConfig(await this._settings(), 'conflict')
         if (!cfg || !svc) return { error: 'NO_API_KEY' }
         const fileRes = await (svc as any).getFileContent(args[0])
         if (fileRes?.error) return { error: fileRes.error }
         return aiResolveConflict(cfg, args[0], fileRes?.content ?? '', args[1], this._headroom())
       }
       case 'aiSearchCommits': {
-        const cfg = readAIConfig(this._state, 'search')
+        const cfg = readAIConfig(await this._settings(), 'search')
         if (!cfg || !svc) return { error: 'NO_API_KEY' }
         let index = await svc.raw(['log', '--all', '--max-count=200', '--date=short', '--pretty=format:%h|%an|%ad|%s']).catch(() => '')
         index = index.split('\n').map(l => l.length > 90 ? l.slice(0, 90) : l).join('\n')
@@ -1367,9 +1399,8 @@ export class GitVertexHost implements vscode.Disposable {
   }
 
   /** The PAT the user pasted, if any — the fallback half of resolveIdentity. */
-  private _storedPat(): string | undefined {
-    const all = this._state.get<Record<string, string>>('gvSettings', {})
-    return all.githubToken || undefined
+  private async _storedPat(): Promise<string | undefined> {
+    return (await this._settings()).githubToken || undefined
   }
 
   /**
@@ -1433,7 +1464,7 @@ export class GitVertexHost implements vscode.Disposable {
 
     const token = host === GITHUB_COM
       ? await this._githubToken()
-      : (all.githubEnterpriseToken || undefined)
+      : ((await this._settings()).githubEnterpriseToken || undefined)
     return { base: githubApiBase(host), host, token }
   }
 

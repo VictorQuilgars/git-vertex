@@ -7,8 +7,15 @@ import './NotificationCenter.css'
 // follows the current language (rather than freezing the string at creation).
 export interface AppNotification {
   id: string
-  kind: 'update'
-  data?: { version?: string }
+  /**
+   * `keys-in-clear` is not an update and not a repository event: it is the app
+   * reporting on ITSELF, once, about credentials a version before this one
+   * stored readable. It earns a place here because the only remedy is the
+   * user's — regenerating the key — and a warning they never open is the same
+   * as no warning.
+   */
+  kind: 'update' | 'keys-in-clear'
+  data?: { version?: string; providers?: string }
   ts: number
   read: boolean
 }
@@ -69,9 +76,13 @@ export default function NotificationCenter({
   const hasJournal = journal.length > 0
 
   const titleFor = (n: AppNotification) =>
-    n.kind === 'update' ? t('notifs.update.title', n.data?.version ?? '') : ''
+    n.kind === 'update' ? t('notifs.update.title', n.data?.version ?? '')
+      : n.kind === 'keys-in-clear' ? t('notifs.keysInClear.title')
+      : ''
   const bodyFor = (n: AppNotification) =>
-    n.kind === 'update' ? t('notifs.update.body') : ''
+    n.kind === 'update' ? t('notifs.update.body')
+      : n.kind === 'keys-in-clear' ? t('notifs.keysInClear.body', (n.data?.providers ?? '').split('\n').join(', '))
+      : ''
 
   return (
     <>
