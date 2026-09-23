@@ -2,6 +2,11 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### ⚖️ Search and filter, answered as judgements
+- **TypeSafe (Jev)** joins the AI providers. It does not write prose: it answers with **typed verdicts**, so it serves the two features that *select* — **search in words** and **describe a filter** — and the page offers it there, and only there, under **Built for this feature**, with the pair one click away. A search reads **a thousand commits** instead of two hundred, cannot come back with an invented hash, and keeps the fifty most probable, in about three seconds. A described filter is **composed by the app** from the qualifiers the field knows, so what lands in the field is always a valid query.
+`,
   '1.39.0': `## What's new in 1.39.0
 
 ### 🔐 Regenerate your API keys

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- **The panel's search field asks in words.** Its host has answered a search in words since the extension's first release — and the field never offered to put the question: the plain-language row was drawn only on the desktop, on the belief that the panel had no model behind its field. It is the desktop's field now. The panel that opens on focus leads with **Ask in plain language**, echoing the words typed, and **`Enter` sends them**; a query of operators alone sends nothing, since that filter already holds. The answer on screen is a **state** of the field — its AI ring and a mark beside the count — and one keystroke in the query goes back to the live filter. An answer that comes back after the query or the repository changed is dropped, not lit on rows it was not asked about. It can be kept like any search, and the Memory page asks it of the model again.
+- **The commit search and the described filter can run on a judgement engine: TypeSafe (Jev).** A provider does not have to answer in prose to be one. TypeSafe answers with **typed verdicts** — a probability, one option out of a set — and joins the catalog on a fourth dialect, serving the two features that **select** rather than write. The catalog now says which features a provider serves, and one that names none serves them all, so nobody's settings moved. The per-feature picker offers only the providers that can serve the feature and heads its list with what is **built for it**, with one line saying what it buys and the pair one click away; the global default never offers a restricted provider, since that pair answers every feature and would fall through, silently, on the seven it cannot serve. **Search** judges each commit against the words by its **position**: the engine is never handed a hash, so an invented one is not skipped after the fact, it cannot be written at all — and a search reads a thousand commits instead of two hundred cut to fit one prompt, keeping the fifty most probable, in about three seconds. **Filter** asks one question per qualifier and the extension **composes the query** from the same vocabulary the field validates, so it is valid by construction rather than by inspection; a description with nothing filterable in it composes nothing rather than an empty query that reads as success. A provider that publishes no model list reads *2 models — key not checked* rather than wearing the tick of a key that answered.
+
+### Fixed
+- **A provider named in an old settings file, or in the editor-level pin, always resolves to a model.** The last resort of the resolution — the setting that predates per-feature pairs — was the one level nothing checked, and it is the level the other three fall onto. A provider id the catalog does not know, or one that cannot serve the feature, came back as itself with **no model at all**; it now lands on a provider that can answer.
+
 ## 1.37.0
 
 ### Security
