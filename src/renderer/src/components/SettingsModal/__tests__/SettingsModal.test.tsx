@@ -443,7 +443,7 @@ describe('SettingsModal — per-feature AI overrides', () => {
   test('the providers zone lists the whole catalog, keyed or not', async () => {
     await open()
     for (const name of ['Anthropic (Claude)', 'Google (Gemini)', 'Groq', 'OpenAI',
-      'Mistral', 'DeepSeek', 'xAI (Grok)', 'OpenRouter']) {
+      'Mistral', 'DeepSeek', 'xAI (Grok)', 'OpenRouter', 'TypeSafe (Jev)']) {
       expect(screen.getByText(name)).toBeInTheDocument()
     }
     // none of them is an "active" anything — the unkeyed just say so
@@ -491,5 +491,117 @@ describe('SettingsModal — per-feature AI overrides', () => {
     expect(await within(row('Google (Gemini)')).findByText('1 model available')).toBeInTheDocument()
     expect(within(row('Google (Gemini)')).queryByText('Invalid API key')).not.toBeInTheDocument()
     expect(screen.getByText('1 connected')).toBeInTheDocument()
+  })
+})
+
+// A provider may answer only some features. Where it can, the page has to put
+// it forward — that is the whole point of carrying it — and where it cannot,
+// it must not be offerable at all. Both halves are tested here because the
+// failure mode of getting either wrong is silent: a choice that resolves to
+// something else, or a cheaper answer nobody ever finds.
+describe('SettingsModal — a provider built for some features only', () => {
+  const open = async (api: Record<string, any> = {}) => {
+    const mock = installMockGitAPI(api)
+    renderWithProviders(<SettingsModal onClose={() => {}} showToast={() => {}} />)
+    await waitFor(() => expect(screen.getByText('Identity & profiles')).toBeInTheDocument())
+    await userEvent.click(screen.getByRole('button', { name: /ai/i }))
+    await waitFor(() => expect(screen.getByText('Standing instructions')).toBeInTheDocument())
+    return mock
+  }
+
+  const CONNECTED = {
+    settingsGetAll: jest.fn().mockResolvedValue({ aiGroqKey: 'gsk_x', aiTypesafeKey: 'ts_x' }),
+    aiListProviderModels: jest.fn().mockImplementation(async (p: string) =>
+      p === 'typesafe' ? { models: ['jev-latest', 'jev-1.13.0'] }
+        : { models: ['llama-3.3-70b-versatile'] }),
+  }
+
+  const block = (label: string) =>
+    screen.getByText(label).closest('.stg-ai-feature') as HTMLElement
+  const face = (el: HTMLElement) => el.querySelector('.stg-msel-face') as HTMLElement
+  // The one picker that is not inside a feature block is the global pair.
+  const globalFace = () => [...document.querySelectorAll('.stg-msel-face')]
+    .find(el => !el.closest('.stg-ai-feature')) as HTMLElement
+
+  test('it is offered on a feature it serves, at the top of the list', async () => {
+    await open(CONNECTED)
+    await userEvent.click(face(block('Commit search')))
+    const list = document.querySelector('.stg-msel-list') as HTMLElement
+    expect(list.textContent).toContain('Built for this feature')
+    expect(within(list).getAllByText('jev-latest').length).toBeGreaterThan(0)
+    // First group in the list, above the temperament guess: the catalog saying
+    // a provider exists for this beats a heuristic reading a model id.
+    const groups = [...list.querySelectorAll('.stg-msel-group')].map(g => g.textContent)
+    expect(groups[0]).toBe('Built for this feature')
+    // Pinned at the top and listed under its own provider — the temperament
+    // group must not make it a third: `jev-1.13.0` is a fast id too, and the
+    // real app showed the same name three times in one list.
+    expect(groups).not.toContain('Suggested for this feature')
+  })
+
+  test('it is not offered at all on a feature it cannot answer', async () => {
+    await open(CONNECTED)
+    await userEvent.click(face(block('Commit messages')))
+    const list = document.querySelector('.stg-msel-list') as HTMLElement
+    expect(list.textContent).not.toContain('jev')
+    expect(list.textContent).not.toContain('TypeSafe')
+    expect(list.textContent).toContain('llama-3.3-70b-versatile')
+  })
+
+  test('the GLOBAL pair never offers it — that pair answers every feature', async () => {
+    await open(CONNECTED)
+    await userEvent.click(globalFace())
+    const list = document.querySelector('.stg-msel-list') as HTMLElement
+    expect(list.textContent).not.toContain('TypeSafe')
+    expect(list.textContent).toContain('Groq')
+  })
+
+  test('the feature says what there is to gain, and takes one click', async () => {
+    await open(CONNECTED)
+    const search = block('Commit search')
+    expect(within(search).getByText(/one round trip, and a fraction of the cost/))
+      .toBeInTheDocument()
+    await userEvent.click(within(search).getByRole('button', { name: 'Use TypeSafe (Jev)' }))
+    expect(face(search).textContent).toContain('jev-latest')
+    // Said once it can change something, and silent afterwards.
+    expect(within(search).queryByText(/one round trip/)).not.toBeInTheDocument()
+  })
+
+  test('a feature it cannot answer is never nudged', async () => {
+    await open(CONNECTED)
+    expect(within(block('Commit messages')).queryByText(/one round trip/)).not.toBeInTheDocument()
+    expect(within(block('Conflict resolution')).queryByText(/one round trip/)).not.toBeInTheDocument()
+  })
+
+  test('a declared model list does not claim the key was checked', async () => {
+    // Every other provider earns its tick by ANSWERING /models, which is what
+    // proves the key. A list that came from the catalog proves nothing about
+    // the field beside it, and a green tick there would be read as "your key
+    // works" right up to the first call.
+    await open({
+      settingsGetAll: jest.fn().mockResolvedValue({ aiGroqKey: 'gsk_x', aiTypesafeKey: 'ts_typo' }),
+      aiListProviderModels: jest.fn().mockImplementation(async (p: string) =>
+        p === 'typesafe' ? { models: ['jev-latest', 'jev-1.13.0'], unverified: true }
+          : { models: ['llama-3.3-70b-versatile'] }),
+    })
+    const row = (name: string) => screen.getByText(name).closest('.stg-ai-row') as HTMLElement
+    expect(await within(row('TypeSafe (Jev)')).findByText('2 models — key not checked')).toBeInTheDocument()
+    expect(row('TypeSafe (Jev)').className).not.toContain('stg-ai-row--on')
+    // The one that was answered still wears it.
+    expect(await within(row('Groq')).findByText('1 model available')).toBeInTheDocument()
+    expect(row('Groq').className).toContain('stg-ai-row--on')
+  })
+
+  test('with no key it still says what it would buy, and points at the key', async () => {
+    await open({
+      settingsGetAll: jest.fn().mockResolvedValue({ aiGroqKey: 'gsk_x' }),
+      aiListProviderModels: jest.fn().mockResolvedValue({ models: ['llama-3.3-70b-versatile'] }),
+    })
+    const search = block('Commit search')
+    expect(within(search).getByText(/one round trip, and a fraction of the cost/)).toBeInTheDocument()
+    // Nothing to press: the key is not here, and a link that selected an
+    // unusable pair would resolve to something else without saying so.
+    expect(within(search).getByText('Add the TypeSafe (Jev) key above to use it here.')).toBeInTheDocument()
+    expect(within(search).queryByRole('button', { name: /^Use / })).not.toBeInTheDocument()
   })
 })

@@ -4,8 +4,10 @@ import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import { resolveAICall, appendInstructions, type AIFeature } from './ai-resolve'
 import { callProvider } from './ai-call'
+import { callJudge, type JudgeQuestion, type JudgeAnswer } from './ai-judge'
 import { BASE_BUDGET, headroomFor, headroomKey, nextHeadroom } from './ai-budgets'
 import { detailFor, DIFF_FEATURES } from './ai-diff'
+import { authHeaders } from '../renderer/src/utils/aiProviders'
 import { readOversize, oversizeMessage } from './ai-oversize'
 import { type Run, type ChangelogRecord, type ChangelogStore, type NoteRecord, type NoteStore } from './ai-features'
 import { type Raw } from './ai-material'
@@ -95,6 +97,50 @@ export async function runAIPrompt(prompt: string, feature?: AIFeature): Promise<
     }
   }
   return { error: 'The model returned an empty response after 3 attempts' }
+}
+
+/**
+ * Which dialect this feature currently resolves onto.
+ *
+ * A feature that has BOTH paths asks this before building anything: the two
+ * take different material — a prompt wants a rendered index, a judgement wants
+ * the commits as data — so the choice has to be made before the work, not
+ * after it.
+ */
+export const featureDialect = (feature?: AIFeature) => resolveAICall(readSettings(), feature).dialect
+
+/**
+ * One judgement round trip, with the policy this process owns.
+ *
+ * The prompt path's loop does not apply here and is not reused: there is no
+ * budget to grow, no truncation to retry past, and an empty answer is a
+ * malformed request rather than a model having a bad day. What is left worth
+ * retrying is the overloaded service, once.
+ */
+export async function runJudge(
+  state: unknown, questions: Record<string, JudgeQuestion>, feature?: AIFeature,
+): Promise<{ answers?: Record<string, JudgeAnswer>; error?: string }> {
+  const s = readSettings()
+  const target = resolveAICall(s, feature)
+  if (!target.apiKey && !target.keyless) return { error: 'NO_API_KEY' }
+  const count = Object.keys(questions).length
+  console.log(`[ai] judge feature=${feature ?? '-'} model=${target.model} questions=${count}`)
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const reply = await callJudge(target, state, questions, authHeaders)
+      console.log(`[ai] judge answered=${Object.keys(reply.answers).length}/${count} tokens=${reply.usage?.input_tokens ?? '?'}`)
+      return { answers: reply.answers }
+    } catch (e: any) {
+      const msg = e?.message ?? 'judgement failed'
+      // Only the crowd is worth a second go. A refused key and a malformed
+      // request are exactly as refused half a second later.
+      const busy = /rate limit|too many|overload/i.test(msg)
+      console.error(`[ai] judge attempt=${attempt} error:`, msg)
+      if (!busy || attempt === 2) return { error: msg }
+      await new Promise(r => setTimeout(r, 1000))
+    }
+  }
+  return { error: 'judgement failed' }
 }
 
 /** Which level this feature is set to — read fresh, so a change in Settings

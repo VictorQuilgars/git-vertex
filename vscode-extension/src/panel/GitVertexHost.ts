@@ -31,7 +31,7 @@ import { resolveIdentity, signIn } from '../githubAuth'
 import { headroomKey } from '../../../src/main/ai-budgets'
 import { detailFor, type DiffDetail } from '../../../src/main/ai-diff'
 import { resolveSettings, writeSetting, maskedSettings, type Secrets } from '../secretStore'
-import { readAIConfig, aiFilterQuery, aiPrDescription, aiGenerateIssue, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels, runAIPrompt, type HeadroomStore } from '../aiService'
+import { readAIConfig, aiFilterQuery, aiPrDescription, aiGenerateIssue, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, aiSearchCommitsByJudgement, listProviderModels, runAIPrompt, type HeadroomStore } from '../aiService'
 // The five capabilities of #70 P1 are not reimplemented here: the host lends
 // its git and its provider, and the shared module owns the rest — which base
 // a branch is read against, what is asked, and what a refusal says.
@@ -1348,6 +1348,12 @@ export class GitVertexHost implements vscode.Disposable {
       case 'aiSearchCommits': {
         const cfg = readAIConfig(await this._settings(), 'search')
         if (!cfg || !svc) return { error: 'NO_API_KEY' }
+        // Two paths, and they differ before the first git call: a prompt wants
+        // a rendered index small enough to survive a free tier, a judgement
+        // wants the commits as data and can afford far more of them.
+        if (cfg.dialect === 'typesafe') {
+          return aiSearchCommitsByJudgement(cfg, args => svc.raw(args), args[0])
+        }
         let index = await svc.raw(['log', '--all', '--max-count=200', '--date=short', '--pretty=format:%h|%an|%ad|%s']).catch(() => '')
         index = index.split('\n').map(l => l.length > 90 ? l.slice(0, 90) : l).join('\n')
         const r = await aiSearchCommits(cfg, index, args[0], this._headroom())

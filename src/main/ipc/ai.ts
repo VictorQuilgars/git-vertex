@@ -14,7 +14,8 @@ import path from 'path'
 import { readFileSync, writeFileSync } from 'fs'
 import { state } from '../app-state'
 import { readSettings, writeSettings } from '../settings-store'
-import { runAIPrompt, diffOptsFor, AI_CONFLICT_MAX_CHARS, explCachePath, readExplCache, saveExplanation, rawGit, runFeature, noteStore, changelogStore } from '../ai-runtime'
+import { runAIPrompt, runJudge, featureDialect, diffOptsFor, AI_CONFLICT_MAX_CHARS, explCachePath, readExplCache, saveExplanation, rawGit, runFeature, noteStore, changelogStore } from '../ai-runtime'
+import { searchCommitsByJudgement, filterQueryByJudgement } from '../ai-judge'
 
 
 
@@ -48,6 +49,14 @@ export function registerAiHandlers(): void {
       const def = providerById(s, provider)
       apiKey = def ? providerCredential(s, def) : ''
     }
+    // A provider that publishes no /models answers from the catalog. Asked
+    // first, before the probe, because the probe would 404 and the row would
+    // read as a bad key.
+    const declared = providerById(readSettings(), provider)?.models
+    // `unverified` because nothing was contacted: the list is the catalog's,
+    // so the key in the field has not been checked and the row must not wear
+    // the green tick that every other provider earns by being answered.
+    if (declared) return { models: [...declared], unverified: true }
     // Everything that is not Anthropic or Google is the OpenAI dialect: one
     // GET {base}/models serves the catalog's clouds, the customs, and the
     // keyless local runtimes (#169). `baseUrl` arrives from the settings page
@@ -162,6 +171,12 @@ export function registerAiHandlers(): void {
 
   handle('ai:filter-query', async (_e, kind: 'prs' | 'issues', described: string, vocabulary: string) => {
     if (!described.trim()) return { error: 'nothing to describe' }
+    // The judgement path composes the query from the vocabulary rather than
+    // asking for one back, so it never sees the rendered `vocabulary` string.
+    if (featureDialect('filter') === 'typesafe') {
+      return filterQueryByJudgement((st, qs) => runJudge(st, qs, 'filter'),
+        kind, described, new Date().toISOString().slice(0, 10))
+    }
     const what = kind === 'prs' ? 'pull requests' : 'issues'
     const prompt = [
       `You write GitHub search queries that filter ${what}.`,
@@ -336,6 +351,17 @@ export function registerAiHandlers(): void {
   handle('ai:search-commits', async (_e, query: string) => {
     if (!state.gitService) return { error: 'No repository open' }
     if (!query?.trim()) return { hashes: [] }
+
+    // Two paths, and the material differs before the first git call: a prompt
+    // wants a rendered index small enough to survive a free tier, a judgement
+    // wants the commits as data and can afford far more of them.
+    if (featureDialect('search') === 'typesafe') {
+      return searchCommitsByJudgement(
+        args => (state.gitService as any).git.raw(args),
+        (st, qs) => runJudge(st, qs, 'search'),
+        query, new Date().toISOString().slice(0, 10))
+    }
+
     let index = ''
     try {
       const git = (state.gitService as any).git

@@ -24,7 +24,8 @@ import { AI_PROVIDER_CATALOG } from '../renderer/src/utils/aiProviders'
  * eight, and it stopped being true the moment a provider was added: #169 added
  * Mistral, DeepSeek, xAI and OpenRouter as catalog LINES, which is the whole
  * point of that design — but their `keySetting`s were never added here, so
- * four API keys went to disk in clear and reached the window unmasked. 
+ * four API keys went to disk in clear and reached the window unmasked. The
+ * fourth dialect made it five.
  *
  * A catalog entry declares where its credential lives; that declaration is now
  * the only thing this reads, so the next provider is sealed by arriving.

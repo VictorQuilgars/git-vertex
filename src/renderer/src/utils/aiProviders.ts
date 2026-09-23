@@ -3,20 +3,30 @@
 // this file, the remoteUrl precedent), the settings page, and the extension
 // host (esbuild bundles it in).
 //
-// The insight this file encodes: providers are DATA over three wire dialects
-// — Anthropic's messages API, Google's generateContent, and the OpenAI
-// chat-completions shape that everything else speaks, local runtimes
-// included. Adding a cloud is a catalog line; a local model is a custom
-// entry over the same third dialect; a provider speaking none of the three
-// is a code contribution to ai-call, never a user setting.
+// The insight this file encodes: providers are DATA over four wire dialects
+// — Anthropic's messages API, Google's generateContent, the OpenAI
+// chat-completions shape that everything else speaks (local runtimes
+// included), and TypeSafe's systemone. Adding a cloud is a catalog line; a
+// local model is a custom entry over the third dialect; a provider speaking
+// none of the four is a code contribution to ai-call, never a user setting.
+//
+// The fourth dialect is what forced the second axis. The first three answer a
+// prompt with prose, so any of them serves any feature and nothing had to say
+// so. A judgement engine answers questions with typed verdicts — a
+// probability, an option, a level — which is an answer for a feature that
+// SELECTS (which commits match, which qualifiers the request means) and no
+// answer at all for one that WRITES. So a def may name the features it
+// serves, and a def that names none serves them all: the day this arrived
+// nobody's settings moved, which is the density rule applied to a catalog.
 
-export type AIDialect = 'anthropic' | 'google' | 'openai-compat'
+export type AIDialect = 'anthropic' | 'google' | 'openai-compat' | 'typesafe'
 
 export interface AIProviderDef {
   id: string
   label: string
   dialect: AIDialect
-  /** Chat-completions base for the openai-compat dialect, ending in /v1. */
+  /** Where the dialect is spoken, ending in /v1 — chat-completions for
+   *  openai-compat, systemone for typesafe. */
   baseUrl?: string
   /** Where the credential lives — catalog entries only; customs carry theirs inline. */
   keySetting?: string
@@ -27,6 +37,26 @@ export interface AIProviderDef {
   legacyModelSetting?: string
   defaultModel?: string
   hasTuto?: boolean
+  /**
+   * The features this provider can serve, or absent for all of them.
+   *
+   * Absent is the generative case and therefore the common one: a provider
+   * that answers a prompt with prose answers every feature's prompt. A
+   * provider whose answers are TYPED serves only the features whose answer
+   * has that type — hence `providerServes`, which the per-feature pickers
+   * filter on and `resolveAICall` falls through on. Ids come from
+   * `AIFeature`; `aiProviders.test.ts` fails on one that does not exist.
+   */
+  features?: readonly string[]
+  /**
+   * The models it offers, for a provider that publishes no `/models`.
+   *
+   * The probe answers from here rather than over the wire, in BOTH hosts.
+   * Without it the row would sit on "key unverified" for ever and the pickers
+   * would draw an empty group — a provider present in the list and impossible
+   * to choose, which is worse than one that is absent.
+   */
+  models?: readonly string[]
   /** User-defined entry (aiCustomProviders). May run keyless — local runtimes do. */
   custom?: boolean
   /** Customs only: the credential, carried inline in the JSON entry. */
@@ -62,6 +92,15 @@ export const AI_PROVIDER_CATALOG: AIProviderDef[] = [
     keySetting: 'aiXaiKey', keyPlaceholder: 'xai-...', color: '#9aa0a6' },
   { id: 'openrouter', label: 'OpenRouter', dialect: 'openai-compat', baseUrl: 'https://openrouter.ai/api/v1',
     keySetting: 'aiOpenrouterKey', keyPlaceholder: 'sk-or-...', color: '#6467f2' },
+  // A judgement engine, and so far the only def that names its features: it
+  // answers `search` and `filter`, which pick among things that already
+  // exist, and it has nothing to say to a feature that has to write a
+  // sentence. `defaultModel` is the moving alias on purpose — one model is
+  // published at a time and `/models` is not offered, so the id the user
+  // keeps should follow it rather than pin a version that gets retired.
+  { id: 'typesafe', label: 'TypeSafe (Jev)', dialect: 'typesafe', baseUrl: 'https://api.typesafe.ai/v1',
+    keySetting: 'aiTypesafeKey', keyPlaceholder: '…', defaultModel: 'jev-latest',
+    features: ['search', 'filter'], models: ['jev-latest', 'jev-1.13.0'] },
 ]
 
 /** The two local runtimes worth a one-click preset. Both speak openai-compat. */
@@ -121,6 +160,23 @@ export function providerCredential(s: AISettingsView, def: AIProviderDef): strin
  */
 export function providerUsable(s: AISettingsView, def: AIProviderDef): boolean {
   return !!providerCredential(s, def) || !!def.custom
+}
+
+/**
+ * Whether this provider can serve this feature — the second gate, beside the
+ * credential.
+ *
+ * Absent `features` means all of them, so every generative def answers yes to
+ * everything and the three dialects that shipped first are untouched. A def
+ * that names its features answers yes only to those, and the two callers read
+ * it in the two places a choice is made: the per-feature picker, which stops
+ * offering what cannot run, and `resolveAICall`, which falls a stored pair
+ * through rather than calling. Both are needed — the picker keeps the setting
+ * honest, the resolver keeps a setting written before this existed (or by
+ * hand, in settings.json) from reaching the wire.
+ */
+export function providerServes(def: AIProviderDef, feature?: string): boolean {
+  return !def.features || !feature || def.features.includes(feature)
 }
 
 /**

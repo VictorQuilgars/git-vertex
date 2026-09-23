@@ -5,7 +5,7 @@
 // (gitVertex.aiProvider / aiApiKey / aiModel), falling back to the shared
 // gvSettings store (same keys as the desktop app) if present.
 import * as vscode from 'vscode'
-import { providerById, providerCredential, providerUsable, authHeaders, type AIDialect } from '../../src/renderer/src/utils/aiProviders'
+import { providerById, providerCredential, providerUsable, providerServes, authHeaders, AI_PROVIDER_CATALOG, type AIDialect } from '../../src/renderer/src/utils/aiProviders'
 
 export interface AIConfig {
   provider: string; apiKey: string; model: string
@@ -40,6 +40,14 @@ import {
   parsePullRequest, truncateDiff,
 } from '../../src/main/ai-prompts'
 import { readOversize, oversizeMessage } from '../../src/main/ai-oversize'
+// The fourth dialect, whole: its shapes, its questions and its one POST.
+// The commit search over it is SHARED with the desktop rather than copied —
+// the prose one lives here in a second copy, and the four prompts that were
+// arranged that way drifted word by word until #185 P2 moved them.
+import {
+  callJudge, searchCommitsByJudgement, filterQueryByJudgement,
+  type JudgeQuestion, type JudgeAnswer,
+} from '../../src/main/ai-judge'
 
 const MODEL_DEFAULTS: Record<string, string> = {
   anthropic: 'claude-haiku-4-5-20251001',
@@ -81,9 +89,18 @@ export function readAIConfig(gv: Record<string, string>, feature?: AIFeature): A
     const def = providerById(gv, p)
     return def ? providerCredential(gv, def) : ''
   }
+  // Two gates, and the second is why this is not just `providerUsable`: a
+  // provider may answer only some features. The desktop's
+  // resolveAICall applies the same pair, and the two have to agree — this
+  // service and git-service are already two implementations of one contract
+  // that have drifted before.
+  const serves = (p: string) => {
+    const def = providerById(gv, p)
+    return !!def && providerServes(def, feature)
+  }
   const usable = (p: string) => {
     const def = providerById(gv, p)
-    return !!def && providerUsable(gv, def)
+    return !!def && providerUsable(gv, def) && providerServes(def, feature)
   }
   const legacyProvider = (gv.aiProvider || 'groq').toLowerCase()
 
@@ -97,7 +114,12 @@ export function readAIConfig(gv: Record<string, string>, feature?: AIFeature): A
   const pinnedModel = userSetting(cfg, 'aiModel')
   const fp = feature ? trimmed(gv[`aiFeatureProvider:${feature}`]) : ''
   const fm = feature ? trimmed(gv[`aiFeatureModel:${feature}`]) : ''
-  if (pinnedModel) {
+  // The pin shortcuts everything it CAN — a provider that has no answer for
+  // this feature is not a preference this can honour, so it falls through
+  // exactly as a pinned provider without a key already does (that returns
+  // null below). Pinning a judgement engine would otherwise send a commit
+  // message prompt to an endpoint that replies with probabilities.
+  if (pinnedModel && serves(pinnedProvider || legacyProvider)) {
     provider = pinnedProvider || legacyProvider
     model = pinnedModel
   } else if (fp && fm && usable(fp)) { provider = fp; model = fm }
@@ -105,7 +127,11 @@ export function readAIConfig(gv: Record<string, string>, feature?: AIFeature): A
   else if (trimmed(gv.aiDefaultProvider) && trimmed(gv.aiDefaultModel) && usable(trimmed(gv.aiDefaultProvider))) {
     provider = trimmed(gv.aiDefaultProvider); model = trimmed(gv.aiDefaultModel)
   } else {
-    provider = pinnedProvider || legacyProvider
+    // The last resort answers whatever was asked — the pin drops here when it
+    // cannot serve the feature, and dropping onto the same provider again
+    // would be the same dead end.
+    const last = pinnedProvider || legacyProvider
+    provider = serves(last) ? last : (serves(legacyProvider) ? legacyProvider : 'groq')
     model = gv[MODEL_SETTING[provider] ?? ''] || MODEL_DEFAULTS[provider] || MODEL_DEFAULTS.groq
   }
   const def = providerById(gv, provider)
@@ -153,6 +179,15 @@ interface Answer { text: string; truncated: boolean }
 
 async function callOnce(cfg: AIConfig, prompt: string, maxTokens: number): Promise<Answer> {
   const { provider, apiKey, model } = cfg
+  if (cfg.dialect === 'typesafe') {
+    // A judgement engine has no answer to a prompt, and falling through would
+    // POST this to `{base}/chat/completions` on a host that serves
+    // `/systemone`. A feature it may serve calls runJudge instead, so arriving
+    // here is a wiring mistake and says so rather than becoming a 404.
+    throw new Error(
+      `${cfg.model} answers questions rather than prompts, and this call is a prompt. `
+      + 'This feature has no judgement path — choose another model for it.')
+  }
   if (cfg.dialect === 'anthropic') {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -260,10 +295,52 @@ export async function runAIPrompt(
 
 
 
+/**
+ * One judgement round trip, with the policy this host owns.
+ *
+ * The twin of the desktop's runJudge, and the same split: the behaviour is in
+ * ai-judge, the key and the retry are the host's. The prompt loop above does
+ * not apply — there is no budget to grow and no truncation to retry past, so
+ * the only thing worth a second go is the crowd.
+ */
+export async function runJudge(
+  cfg: AIConfig, state: unknown, questions: Record<string, JudgeQuestion>,
+): Promise<{ answers?: Record<string, JudgeAnswer>; error?: string }> {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const reply = await callJudge(cfg, state, questions, authHeaders)
+      return { answers: reply.answers }
+    } catch (e: any) {
+      const msg = e?.message ?? 'judgement failed'
+      if (!/rate limit|too many|overload/i.test(msg) || attempt === 2) return { error: msg }
+      await new Promise(r => setTimeout(r, 1000))
+    }
+  }
+  return { error: 'judgement failed' }
+}
+
+/**
+ * The commit search the panel runs when the feature resolves onto a
+ * judgement engine — full hashes, so the caller has nothing to expand and
+ * nothing to drop as invented.
+ */
+export async function aiSearchCommitsByJudgement(
+  cfg: AIConfig, raw: (args: string[]) => Promise<string>, query: string,
+): Promise<{ hashes?: string[]; error?: string; partial?: number }> {
+  return searchCommitsByJudgement(raw, (st, qs) => runJudge(cfg, st, qs),
+    query, new Date().toISOString().slice(0, 10))
+}
+
 // Live model list per provider — mirrors the desktop's ai:list-provider-models
 // (Groq's audio-only whisper models filtered out, OpenAI trimmed to chat models).
-export async function listProviderModels(provider: string, apiKey: string, baseUrl?: string, quirks?: { authHeader?: string; extraHeaders?: Record<string, string> }): Promise<{ models?: string[]; error?: string }> {
+export async function listProviderModels(provider: string, apiKey: string, baseUrl?: string, quirks?: { authHeader?: string; extraHeaders?: Record<string, string> }): Promise<{ models?: string[]; error?: string; unverified?: boolean }> {
   try {
+    // A provider that publishes no /models answers from the catalog, before
+    // the probe that would 404. Only a catalog entry can declare them — the
+    // customs blob does not carry the field — so this reads the catalog
+    // rather than providerById.
+    const declared = AI_PROVIDER_CATALOG.find(p => p.id === provider)?.models
+    if (declared) return { models: [...declared], unverified: true }
     // Everything that is not Anthropic or Google is the OpenAI dialect —
     // one GET {base}/models covers the catalog's clouds, the customs and
     // the keyless local runtimes (#169).
@@ -342,6 +419,10 @@ export async function aiFilterQuery(
   headroom?: HeadroomStore,
 ): Promise<{ query?: string; error?: string }> {
   if (!described.trim()) return { error: 'nothing to describe' }
+  if (cfg.dialect === 'typesafe') {
+    return filterQueryByJudgement((st, qs) => runJudge(cfg, st, qs),
+      kind, described, new Date().toISOString().slice(0, 10))
+  }
   const what = kind === 'prs' ? 'pull requests' : 'issues'
   const prompt = [
     `You write GitHub search queries that filter ${what}.`,

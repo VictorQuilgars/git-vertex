@@ -11,8 +11,7 @@
 // on one writes it at the end of the query and leaves the caret after it.
 //
 // The plain-language block appears only where a host answers for it (`onAsk`):
-// the desktop does, the VS Code panel does not, and a row that does nothing is
-// worse than no row.
+// both products do, and a row that does nothing is worse than no row.
 //
 // Both toolbars mount it (the desktop's and the panel's): `useSearchHint` is
 // the focus bookkeeping they would otherwise each write.

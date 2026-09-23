@@ -132,3 +132,56 @@ describe('following the cursor', () => {
     expect(screen.getByRole('menu')).toHaveTextContent(/follow the cursor/i)
   })
 })
+
+// The panel's field asks in words exactly as the desktop's does: the host has
+// answered `aiSearchCommits` since the extension's first release, and only the
+// field never offered to put the question.
+describe('the search in words', () => {
+  const field = () => screen.getByPlaceholderText(/search/i)
+
+  test('says both ways in, and Enter over a sentence asks', () => {
+    const onAskAi = jest.fn()
+    toolbar({ searchQuery: 'the commits that broke the build', onAskAi })
+    expect(field()).toHaveAttribute('placeholder', 'Search, or ask…')
+    fireEvent.keyDown(field(), { key: 'Enter' })
+    expect(onAskAi).toHaveBeenCalledTimes(1)
+  })
+
+  test('Enter over operators alone asks nothing — that filter is already live', () => {
+    const onAskAi = jest.fn()
+    toolbar({ searchQuery: 'author:ana after:2w', onAskAi })
+    fireEvent.keyDown(field(), { key: 'Enter' })
+    expect(onAskAi).not.toHaveBeenCalled()
+  })
+
+  test('Enter while a question is out does not send a second one', () => {
+    const onAskAi = jest.fn()
+    toolbar({ searchQuery: 'what broke the build', onAskAi, aiSearchLoading: true })
+    fireEvent.keyDown(field(), { key: 'Enter' })
+    expect(onAskAi).not.toHaveBeenCalled()
+    expect(document.querySelector('.gvt-search-ai')).toHaveTextContent('…')
+  })
+
+  test('the panel that opens on focus offers the question first', () => {
+    const onAskAi = jest.fn()
+    toolbar({ searchQuery: 'what broke the build', onAskAi })
+    fireEvent.focus(field())
+    const ask = document.querySelector('.shint-ask') as HTMLButtonElement
+    expect(ask).not.toBeNull()
+    fireEvent.click(ask)
+    expect(onAskAi).toHaveBeenCalledTimes(1)
+  })
+
+  test('the answer on screen is a state of the field, not a button', () => {
+    toolbar({ searchQuery: 'what broke the build', onAskAi: jest.fn(), aiSearch: true })
+    expect(document.querySelector('.gvt-search')).toHaveClass('gvt-search--ai')
+    expect(document.querySelector('.gvt-search-ai')!.tagName).toBe('SPAN')
+  })
+
+  test('without a host to answer, the field keeps its plain placeholder and no row', () => {
+    toolbar({ searchQuery: 'what broke the build' })
+    expect(field()).toHaveAttribute('placeholder', 'Search…')
+    fireEvent.focus(field())
+    expect(document.querySelector('.shint-ask')).toBeNull()
+  })
+})

@@ -148,10 +148,45 @@ function VertexApp() {
   const [conflictMode, setConflictMode] = useState<'merge' | 'rebase' | 'cherry-pick' | 'revert' | null>(null)
   const [searchQuery, setQuery] = useState('')
   const keptSearch = useKeptSearch(repoPath ?? null)
-  const setSearchQuery = (query: string) => { keptSearch.clear(); setQuery(query) }
+  // The model's answer to the sentence in the field — full hashes, or null
+  // when the rows are the live filter. Editing the query is what leaves it.
+  const [aiSearchHashes, setAiSearchHashes] = useState<Set<string> | null>(null)
+  const [aiSearchLoading, setAiSearchLoading] = useState(false)
+  const aiAskSeq = useRef(0)
+  const setSearchQuery = (query: string) => {
+    keptSearch.clear()
+    aiAskSeq.current++
+    setAiSearchHashes(null)
+    setAiSearchLoading(false)
+    setQuery(query)
+  }
   // `file:` is git's to answer; the rest of the query is matched by the graph.
-  const searchOps = useSearchOperators(keptSearch.restored ? '' : searchQuery, repoPath ?? null)
+  const searchOps = useSearchOperators(keptSearch.restored || aiSearchHashes ? '' : searchQuery, repoPath ?? null)
   const [searchMatches, setSearchMatches] = useState(-1)
+  // Asked, not armed — the desktop's search in words. An answer that comes
+  // back after the query or the repository changed is about neither any more,
+  // and is dropped rather than lit on rows it was not asked about.
+  const runAiSearch = useCallback(async () => {
+    const query = searchQuery.trim()
+    if (!query || !repoPath) return
+    const seq = ++aiAskSeq.current
+    keptSearch.clear()
+    setAiSearchLoading(true)
+    try {
+      const r = await (window.gitAPI as any).aiSearchCommits(query)
+      if (seq !== aiAskSeq.current) return
+      if (r?.error) {
+        showToast(r.error === 'NO_API_KEY' ? t('toast.noAiKey') : r.error, 'err')
+        return
+      }
+      setAiSearchHashes(new Set(r?.hashes ?? []))
+    } catch (e: any) {
+      if (seq === aiAskSeq.current) showToast(e?.message ?? t('toast.aiError'), 'err')
+    } finally {
+      if (seq === aiAskSeq.current) setAiSearchLoading(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, repoPath, showToast, t])
   const [rightW, setRightW] = useState(380)
   const [showAllBranches, setShowAllBranches] = useState(true)
   const [stashCount, setStashCount] = useState(0)
@@ -1666,9 +1701,13 @@ function VertexApp() {
             remoteNames={remoteNames}
             selectedHash={selectedCommit?.hash ?? null}
             onSelectCommit={c => setSelectedCommit(prev => prev?.hash === c.hash ? null : c)}
-            searchQuery={keptSearch.restored?.ai ? '' : searchQuery}
-            searchHashes={keptSearch.restored?.hashes == null ? null : new Set(keptSearch.restored.hashes)}
-            requiredHashes={keptSearch.restored ? (keptSearch.restored.requiredHashes === null ? null : new Set(keptSearch.restored.requiredHashes)) : searchOps.requiredHashes}
+            searchQuery={keptSearch.restored?.ai || aiSearchHashes ? '' : searchQuery}
+            searchHashes={keptSearch.restored
+              ? (keptSearch.restored.hashes == null ? null : new Set(keptSearch.restored.hashes))
+              : aiSearchHashes}
+            requiredHashes={keptSearch.restored
+              ? (keptSearch.restored.requiredHashes === null ? null : new Set(keptSearch.restored.requiredHashes))
+              : aiSearchHashes ? null : searchOps.requiredHashes}
             currentBranch={currentBranch}
             onCherryPick={handleCherryPick}
             onRevert={handleRevert}
@@ -1843,18 +1882,23 @@ function VertexApp() {
         searchQuery={searchQuery}
         searchMatches={searchMatches}
         searchOpsLoading={searchOps.loading}
+        aiSearch={aiSearchHashes != null || !!keptSearch.restored?.ai}
+        aiSearchLoading={aiSearchLoading}
+        onAskAi={runAiSearch}
         lastFetch={lastFetch}
         ahead={tracking.ahead}
         behind={tracking.behind}
         onCheckout={handleCheckout}
         onSearch={setSearchQuery}
-        keepSearch={<KeepSearchButton repo={repoPath ?? null} loading={!keptSearch.restored && searchOps.loading}
-          search={keptSearch.restored ?? { kind: 'search', query: searchQuery, ai: false, hashes: null,
-            requiredHashes: searchOps.requiredHashes === null ? null : [...searchOps.requiredHashes] }} />}
+        keepSearch={<KeepSearchButton repo={repoPath ?? null} loading={!keptSearch.restored && (searchOps.loading || aiSearchLoading)}
+          search={keptSearch.restored ?? (aiSearchHashes
+            ? { kind: 'search', query: searchQuery, ai: true, hashes: [...aiSearchHashes], requiredHashes: null }
+            : { kind: 'search', query: searchQuery, ai: false, hashes: null,
+              requiredHashes: searchOps.requiredHashes === null ? null : [...searchOps.requiredHashes] })} />}
 
         onOpenKept={entry => {
           if (entry.kind === 'comparison') void window.gitAPI.openCompare(entry.a, entry.b, entry.axis)
-          else { setQuery(entry.query); keptSearch.restore(entry) }
+          else { aiAskSeq.current++; setAiSearchHashes(null); setAiSearchLoading(false); setQuery(entry.query); keptSearch.restore(entry) }
         }}
         onOpenMemory={() => { void (window.gitAPI as any).openMemoryTab?.() }}
         onFetch={handleFetch}

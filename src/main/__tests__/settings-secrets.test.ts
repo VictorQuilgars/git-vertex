@@ -105,14 +105,16 @@ describe('which settings are credentials — derived, never listed', () => {
 
   test('a key already sitting in clear is sealed the next time anything saves', () => {
     const cipher = { available: () => true, seal: (v: string) => `S(${v})`, open: (v: string) => v.slice(2, -1) }
-    const sealed = sealSecrets({ aiMistralKey: 'mk_plain', aiDeepseekKey: 'sk_plain' }, cipher)
+    const sealed = sealSecrets({ aiMistralKey: 'mk_plain', aiDeepseekKey: 'sk_plain', aiTypesafeKey: 'apikey_plain' }, cipher)
     expect(sealed.aiMistralKey).toBe('enc:v1:S(mk_plain)')
     expect(sealed.aiDeepseekKey).toBe('enc:v1:S(sk_plain)')
+    expect(sealed.aiTypesafeKey).toBe('enc:v1:S(apikey_plain)')
   })
 
   test('and it is masked on its way to the window', () => {
-    const masked = maskSecrets({ aiOpenrouterKey: 'sk-or-plain', aiXaiKey: 'xai-plain' })
+    const masked = maskSecrets({ aiOpenrouterKey: 'sk-or-plain', aiXaiKey: 'xai-plain', aiTypesafeKey: 'apikey_plain' })
     expect(masked.aiOpenrouterKey).toBe(SECRET_MASK)
+    expect(masked.aiTypesafeKey).toBe(SECRET_MASK)
     expect(masked.aiXaiKey).toBe(SECRET_MASK)
   })
 })

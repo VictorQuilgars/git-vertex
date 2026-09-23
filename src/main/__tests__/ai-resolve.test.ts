@@ -1,4 +1,7 @@
+import * as fs from 'fs'
+import * as path from 'path'
 import { resolveAICall, appendInstructions } from '../ai-resolve'
+import { AI_PROVIDER_CATALOG } from '../../renderer/src/utils/aiProviders'
 
 // #70 — the contract both hosts implement: no active provider, every choice
 // a (provider, model) pair, a pair without its key falling through, and the
@@ -116,6 +119,94 @@ describe('providers beyond the original four (#169)', () => {
   })
 })
 
+describe('a provider that serves only some features', () => {
+  const KEY = { aiTypesafeKey: 'ts_x', aiGroqKey: 'gsk_x' }
+
+  test('it resolves for a feature it serves, dialect and base carried over', () => {
+    const r = resolveAICall({
+      ...KEY,
+      aiDefaultProvider: 'groq', aiDefaultModel: 'llama-3.3-70b-versatile',
+      'aiFeatureProvider:search': 'typesafe', 'aiFeatureModel:search': 'jev-latest',
+    }, 'search')
+    expect(r).toEqual(expect.objectContaining({
+      provider: 'typesafe', model: 'jev-latest', apiKey: 'ts_x',
+      dialect: 'typesafe', baseUrl: 'https://api.typesafe.ai/v1',
+    }))
+  })
+
+  test('a pair on a feature it cannot serve falls through, exactly like a lost key', () => {
+    // The picker will not offer this, so it can only arrive from a hand-edited
+    // settings.json or from a `features` list that grew after the pair was
+    // written. Either way it must not reach the wire: asking a judgement
+    // engine for a commit message gets a probability where prose was wanted.
+    const r = resolveAICall({
+      ...KEY,
+      aiDefaultProvider: 'groq', aiDefaultModel: 'llama-3.3-70b-versatile',
+      'aiFeatureProvider:commit': 'typesafe', 'aiFeatureModel:commit': 'jev-latest',
+    }, 'commit')
+    expect(r).toEqual(expect.objectContaining({
+      provider: 'groq', model: 'llama-3.3-70b-versatile', dialect: 'openai-compat',
+    }))
+  })
+
+  test('as the DEFAULT pair it serves what it can and falls through for the rest', () => {
+    const s = {
+      ...KEY,
+      aiProvider: 'groq', aiGroqModel: 'llama-3.3-70b-versatile',
+      aiDefaultProvider: 'typesafe', aiDefaultModel: 'jev-latest',
+    }
+    expect(resolveAICall(s, 'filter').provider).toBe('typesafe')
+    expect(resolveAICall(s, 'explain').provider).toBe('groq')
+  })
+
+  test('without its key it falls through even on a feature it serves', () => {
+    const r = resolveAICall({
+      aiGroqKey: 'gsk_x',
+      aiDefaultProvider: 'groq', aiDefaultModel: 'llama-3.3-70b-versatile',
+      'aiFeatureProvider:search': 'typesafe', 'aiFeatureModel:search': 'jev-latest',
+    }, 'search')
+    expect(r.provider).toBe('groq')
+  })
+
+  test('the last resort is never a provider that cannot answer', () => {
+    // Level 4 is what the three above fall onto, so it has to answer whatever
+    // was asked. `aiProvider` predates the rework and only ever held one of
+    // the four — but it is a string in a JSON file, and landing here with a
+    // judgement engine would leave the call with no model at all.
+    const r = resolveAICall({ ...KEY, aiProvider: 'typesafe' }, 'commit')
+    expect(r.provider).toBe('groq')
+    expect(r.model).toBe('llama-3.3-70b-versatile')
+  })
+
+  test('it still answers there for a feature it serves', () => {
+    const r = resolveAICall({ ...KEY, aiProvider: 'typesafe' }, 'search')
+    expect(r).toEqual(expect.objectContaining({ provider: 'typesafe', dialect: 'typesafe' }))
+  })
+
+  test('an unknown legacy provider lands on a real one rather than on nothing', () => {
+    // Falls out of the same gate: an id nothing in the catalog answers to used
+    // to come back paired with `model: undefined`.
+    const r = resolveAICall({ aiGroqKey: 'gsk_x', aiProvider: 'not-a-provider' }, 'commit')
+    expect(r.provider).toBe('groq')
+    expect(r.model).toBe('llama-3.3-70b-versatile')
+  })
+
+  test('every feature a catalog entry claims is a real feature', () => {
+    // The DIFF_FEATURES arrangement: `AIFeature` is a type, erased before any
+    // test can see it, so the union is read out of its own source. A typo in
+    // a `features` list would otherwise be a provider silently offered
+    // nowhere — and `providerServes` would answer false for ever.
+    const src = fs.readFileSync(path.join(__dirname, '../ai-resolve.ts'), 'utf8')
+    const m = src.match(/export type AIFeature =([\s\S]*?)\n\n/)
+    expect(m).not.toBeNull()
+    const known = [...m![1].matchAll(/'([a-z]+)'/g)].map(x => x[1])
+    expect(known).toContain('search')
+    for (const p of AI_PROVIDER_CATALOG) {
+      for (const f of p.features ?? []) expect(known).toContain(f)
+    }
+  })
+})
+
 describe('how instructions ride', () => {
   test('global then feature, appended after the rules', () => {
     const out = appendInstructions('THE RULES.', {
@@ -135,5 +226,19 @@ describe('how instructions ride', () => {
   test("another feature's instructions never leak in", () => {
     const out = appendInstructions('P.', { 'aiFeatureInstructions:pr': 'Bullets' }, 'commit')
     expect(out).toBe('P.')
+  })
+})
+
+describe('a dialect the call does not speak yet', () => {
+  const { callProvider } = require('../ai-call')
+
+  test('it refuses by name instead of posting a prompt to the wrong path', async () => {
+    // The settings page offers this pair before ai-call can run it. Falling
+    // through to the openai-compat branch would POST to /chat/completions on
+    // a host that serves /systemone, and the 404 would be read as a bad key.
+    await expect(callProvider(
+      { provider: 'typesafe', model: 'jev-latest', apiKey: 'k', dialect: 'typesafe', baseUrl: 'https://api.typesafe.ai/v1' },
+      'write me a commit message', 512,
+    )).rejects.toThrow(/answers questions rather than prompts/)
   })
 })

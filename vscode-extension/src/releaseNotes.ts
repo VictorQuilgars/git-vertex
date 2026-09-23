@@ -16,6 +16,14 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 💬 The search field asks in words
+- Type a sentence in the panel's search field and press **Enter**: the model answers with the commits it means, as on the desktop. The panel that opens on focus offers it first, **Ask in plain language**, above the operators. One keystroke in the query goes back to the live filter.
+
+### ⚖️ Search and filter, answered as judgements
+- **TypeSafe (Jev)** joins the AI providers. It does not write prose: it answers with **typed verdicts**, so it serves the two features that *select* — **search in words** and **describe a filter** — and the settings offer it there, and only there, under **Built for this feature**, with the pair one click away. A search reads **a thousand commits** instead of two hundred, cannot come back with an invented hash, and keeps the fifty most probable, in about three seconds. A described filter is **composed by the extension** from the qualifiers the field knows, so what lands in the field is always a valid query.
+`,
   '1.37.0': `## What's new in 1.37.0
 
 ### 🔖 What this repository keeps has a page
