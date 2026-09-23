@@ -303,6 +303,10 @@
   color: var(--text-tertiary); flex-shrink: 0; transition: border-color 0.1s, width 0.15s;
 }
 .gvt-search:focus-within { border-color: var(--accent); width: 200px; }
+/* The model's answer is what the rows are: the field wears the AI ink. */
+.gvt-search.gvt-search--ai { border-color: color-mix(in srgb, var(--purple) var(--alpha-half), transparent); }
+.gvt-search.gvt-search--ai:focus-within { border-color: var(--purple); }
+.gvt-search-ai { display: flex; align-items: center; gap: var(--space-2xs); flex-shrink: 0; color: var(--purple-soft); font-size: 10px; }
 .gvt-search input { flex: 1; width: 0; background: none; border: none; outline: none; color: var(--text-primary); font-size: 11px; }
 .gvt-search input::placeholder { color: var(--text-disabled); }
 .gvt-search-clear { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }

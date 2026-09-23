@@ -14,6 +14,7 @@ import type { MenuItemDef } from '../../../src/renderer/src/components/ContextMe
 import { buildBranchMenu } from '../../../src/renderer/src/components/ContextMenu/branchMenu'
 import type { PRIntent } from '../../../src/renderer/src/components/ContextMenu/prIntent'
 import { Mark } from '../../../src/renderer/src/components/Mark/Mark'
+import { parseSearchQuery } from '../../../src/renderer/src/utils/searchQuery'
 import type { BranchInfo } from '../../../src/renderer/src/types'
 
 interface Props {
@@ -48,6 +49,14 @@ interface Props {
   /** git is being asked about the query's `file:` operators. */
   searchOpsLoading?: boolean
   searchMatches?: number
+  /**
+   * The search in words, as on the desktop: no mode to arm, `Enter` asks the
+   * model about the sentence in the field. `aiSearch` is the answer being on
+   * screen — a state, which editing the query leaves.
+   */
+  aiSearch?: boolean
+  aiSearchLoading?: boolean
+  onAskAi?: () => void
   lastFetch: Date | null
   ahead?: number
   behind?: number
@@ -385,11 +394,26 @@ export default function CompactToolbar(p: Props) {
   )
 
   const search = (
-    <div className="gvt-search" {...searchHint.boxProps}>
+    <div className={`gvt-search${p.aiSearch ? ' gvt-search--ai' : ''}`} {...searchHint.boxProps}>
       <SearchHint open={searchHint.open} query={p.searchQuery} onChange={p.onSearch} loading={p.searchOpsLoading}
+        onAsk={p.onAskAi} asking={p.aiSearchLoading} answered={p.aiSearch}
         repo={p.repoPath ?? null} onOpenKept={p.onOpenKept} onOpenMemory={p.onOpenMemory} />
       <Icon name="search" size={11} />
-      <input type="text" placeholder={t('gvt.search')} value={p.searchQuery} onChange={e => p.onSearch(e.target.value)} />
+      <input type="text" placeholder={t(p.onAskAi ? 'gvt.searchOrAsk' : 'gvt.search')} value={p.searchQuery}
+        onChange={e => p.onSearch(e.target.value)}
+        onKeyDown={e => {
+          // The filter is live as it is typed, so Enter is free: it asks.
+          if (e.key !== 'Enter' || !p.onAskAi || p.aiSearchLoading) return
+          if (!parseSearchQuery(p.searchQuery).text.trim()) return
+          e.preventDefault()
+          p.onAskAi()
+        }} />
+      {(p.aiSearch || p.aiSearchLoading) && (
+        <span className="gvt-search-ai">
+          <Icon name="ai" size={11} title={t(p.aiSearchLoading ? 'toolbar.aiSearch.asking' : 'toolbar.aiSearch.answered')} />
+          {p.aiSearchLoading && '…'}
+        </span>
+      )}
       {p.searchQuery && p.searchMatches != null && p.searchMatches >= 0 && (
         <span className={`gvt-search-count${p.searchMatches === 0 ? ' gvt-search-count--none' : ''}`}>
           {p.searchMatches}
