@@ -77,6 +77,10 @@ const SHARED: Record<string, string> = {
   pullRequestConflicts: 'pullRequestConflicts',
   duplicateCommits: 'duplicateCommits',
   setUpstream: 'setBranchUpstream',
+  // The default remote, moved with its inverse (#289).
+  getDefaultRemote: 'defaultRemote',
+  setDefaultRemote: 'setDefaultRemote',
+  unsetDefaultRemote: 'unsetDefaultRemote',
 }
 
 describe('the shared git core is what both products run', () => {

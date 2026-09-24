@@ -29,6 +29,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 📅 Merged since, closed since
 - Filters of pull requests and issues take **\`merged:\`** and **\`closed:\`**, typed or described: *PRs merged since September 1st* now keeps its date.
+
+### 🛰 A remote, on its forge and opened onto its branches
+- Right-click a remote in the side bar: **Open Repository on Remote**, **Open Branches on Remote**, **Copy Branches URL** — that remote's own pages, on GitHub, GitLab or Bitbucket. **Unset as Default Remote** takes a chosen default back. And a remote **opens** onto its branches, with the same acts and menu as Branches › REMOTE. (#289)
 `,
   '1.37.0': `## What's new in 1.37.0
 

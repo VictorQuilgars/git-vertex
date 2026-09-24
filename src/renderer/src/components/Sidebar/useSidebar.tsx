@@ -58,6 +58,25 @@ export function useSidebar(props: SidebarProps) {
   // Which remote push/pull target by default — resolved by the service, so it
   // reflects the explicit choice or the origin/first-remote fallback.
   const [defaultRemote, setDefaultRemote] = useState<string | null>(null)
+  // Whether someone CHOSE it — the only case with a choice to take back
+  // (#289). `origin` winning by default is not one, and offering to unset it
+  // would do nothing.
+  const [defaultRemoteExplicit, setDefaultRemoteExplicit] = useState(false)
+  const loadDefaultRemote = useCallback(() => {
+    window.gitAPI.getDefaultRemote?.()
+      .then(r => { setDefaultRemote(r?.remote ?? null); setDefaultRemoteExplicit(!!r?.explicit) })
+      .catch(() => {})
+  }, [])
+  // The remotes whose branches are listed under them (#289). Closed by
+  // default: opening one is an act, and a list of remotes is read first.
+  const [expandedRemotes, setExpandedRemotes] = useState<Set<string>>(() => new Set())
+  const toggleRemoteExpanded = useCallback((name: string) => {
+    setExpandedRemotes(prev => {
+      const next = new Set(prev)
+      if (next.has(name)) next.delete(name); else next.add(name)
+      return next
+    })
+  }, [])
   const [submodules, setSubmodules] = useState<SubmoduleEntry[]>([])
   const [worktrees, setWorktrees] = useState<WorktreeEntry[]>([])
   // Running AI agents (Claude Code, aider…) keyed by their cwd — matched
@@ -110,7 +129,7 @@ export function useSidebar(props: SidebarProps) {
     // Only when the host can filter by author: a list nothing acts on is a list.
     if (onFilterAuthor) window.gitAPI.getContributors?.(20).then(r => setContributors(r?.contributors ?? [])).catch(() => {})
     window.gitAPI.getRemotes().then(r => setRemotes(r.remotes ?? []))
-    window.gitAPI.getDefaultRemote?.().then(r => setDefaultRemote(r?.remote ?? null)).catch(() => {})
+    loadDefaultRemote()
     window.gitAPI.getSubmodules().then(r => setSubmodules(r.submodules ?? []))
     window.gitAPI.getWorkingChanges?.()
       .then(w => setWork({ staged: w.staged.length, changed: w.unstaged.length + w.untracked.length }))
@@ -120,7 +139,7 @@ export function useSidebar(props: SidebarProps) {
     // Light poll so agent badges stay current while the sidebar is open.
     const interval = setInterval(loadAgents, 10000)
     return () => clearInterval(interval)
-  }, [repoPath, loadWorktrees, loadAgents, loadMemory])
+  }, [repoPath, loadWorktrees, loadAgents, loadMemory, loadDefaultRemote])
   // On opening the stack, and whenever something new has been written into it.
   useEffect(() => { if (repoPath && (showAI || memoryToken)) loadMemory() },
     [showAI, repoPath, loadMemory, memoryToken])
@@ -406,7 +425,19 @@ export function useSidebar(props: SidebarProps) {
     const r = await window.gitAPI.setDefaultRemote(name)
     if (!r.success) { showToast(t('toast.err', r.error ?? ''), 'err'); return }
     setDefaultRemote(name)
+    setDefaultRemoteExplicit(true)
     showToast(t('sb.remote.defaultSet', name))
+  }
+  /**
+   * Take the choice back (#289). The badge then moves to whatever the service
+   * falls back to — origin, or the first remote — so it is asked again rather
+   * than guessed here.
+   */
+  const handleUnsetDefaultRemote = async (name: string) => {
+    const r = await window.gitAPI.unsetDefaultRemote()
+    if (!r.success) { showToast(t('toast.err', r.error ?? ''), 'err'); return }
+    loadDefaultRemote()
+    showToast(t('sb.remote.defaultUnset', name))
   }
   const handleFetchRemote = async (name: string) => {
     const r = await window.gitAPI.fetchRemote(name)
@@ -557,6 +588,7 @@ export function useSidebar(props: SidebarProps) {
 
   return {
     repoPath, repoName, currentBranch, branches, recentRepos, stashes, tags, wipCount, wipSelected, onViewWip, onOpenRepo, onClone, onSetRepo, onCheckout, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch, onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream, onCreateStash, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onRefreshStashes, onExplainBranch, onBranchChangelog, onOpenChangelog, onOpenExplanation, onOpenNote, onShowCommits, subjectFor, tab, onTab, memoryToken, onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag, onSelectCommit, onCompareBranch, soloBranch, visibility, onToggleSolo, onToggleHide, onToggleHideTag, onToggleHideRemote, onSetFamilyHidden, onPull, githubPRs, githubIssues, onOpenGithubItem, onComparePullRequest, onStartBranchFromIssue, onShowGithubDetail, githubDetailOpen, githubLogin, githubRepo, isFavorite, issueFor, onToggleFavorite, onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR, showAllBranches, onToggleAllBranches, onRefreshGithub, onStartPR, onNewIssue, githubRefreshing, githubRefreshTick, githubPollTick, onCopyBranchLink, onDeleteBranchBoth, showToast, showPrompt, showConfirm, onRefresh, view, single, activeTab, showAI, show, reflog, setReflog, contributors, onFilterAuthor, authorFilter, home, mergeTarget, launchpad, remotes, setRemotes, defaultRemote, setDefaultRemote, submodules, setSubmodules, worktrees, setWorktrees, agents, setAgents, work, setWork, t, loadAgents, changelogs, setChangelogs, explanations, setExplanations, notes, setNotes, loadMemory, loadWorktrees, agentsFor, handleAddWorktree, handleRemoveWorktree, handleInitSubmodule, handleUpdateSubmodule, handleSyncSubmodule, handleDeinitSubmodule, handleAddRemote, handleRemoveRemote, handleRenameRemote, stashMenu, setStashMenu, prsQuery, setPrsQuery, issuesQuery, setIssuesQuery, ghFilters, setGhFilters, filterEditor, setFilterEditor, mutateFilters, stashScopeItems, handleRenameStash, handlePruneRemote, handleSetDefaultRemote, handleFetchRemote, branchFilter, setBranchFilter, localBranches, branchHidden, tagHidden, remoteHidden, stashesHidden, familyMenu, foldersKey, closedFolders, setClosedFolders, toggleFolder, openFolders, filtering, rootRef, filterDraft, setFilterDraft, showAll, localMenu, remoteBranches, onReveal, onOpenCard, onRebaseOntoUpstream, onCompareUpstream, tipActions, handlePullBranchRow, handleChangeUpstreamRow, handleSquashFixupsRow, handleWorktreeTerminal, handleWorktreeReveal, handleToggleWorktreeLock, handleCopyChangesTo, worktreeOf, handleCreateWorktreeFor, handlePullRequestCode, onCompareStash, onSelectStashForCompare, handleCopyStashSha, handleCopyStashPatch, filteredTags, filteredStashes, filteredRemotes, filteredWorktrees, layouts, toggleLayout, layoutFor, layoutToggle, filterView, filterPlaceholder,
+    defaultRemoteExplicit, handleUnsetDefaultRemote, expandedRemotes, toggleRemoteExpanded,
   }
 }
 

@@ -182,11 +182,18 @@ export function ReflogItem({ entry, onSelect }: { entry: ReflogEntry; onSelect: 
 
 // ── Remote item ───────────────────────────────────────────────────
 export function RemoteItem({
-  remote, isDefault, onSetDefault, onFetch, onPrune, onRename, onRemove, onCopyUrl, onOpen, hidden, onToggleHide
+  remote, isDefault, onSetDefault, onUnsetDefault, onFetch, onPrune, onRename, onRemove, onCopyUrl, onOpen,
+  onOpenBranches, onCopyBranchesUrl, expanded, onToggleExpand, hidden, onToggleHide
 }: {
   remote: RemoteEntry
   isDefault: boolean
   onSetDefault: () => void
+  /**
+   * Take the choice back (#289) — given only to the remote someone CHOSE.
+   * The one that is default because it is called `origin` has nothing to
+   * unset.
+   */
+  onUnsetDefault?: () => void
   onFetch: () => void
   onPrune: () => void
   onRename: () => void
@@ -194,6 +201,15 @@ export function RemoteItem({
   onCopyUrl: () => void
   /** Open the remote where it lives — absent for a URL that is not a page. */
   onOpen?: () => void
+  /** Its branches page on the forge, and that page's address (#289). */
+  onOpenBranches?: () => void
+  onCopyBranchesUrl?: () => void
+  /**
+   * Whether its branches are listed under it (#289). Without a toggle the row
+   * is what it was: nothing to open.
+   */
+  expanded?: boolean
+  onToggleExpand?: () => void
   /** Hidden here means all of this remote's branches are out of the graph. */
   hidden?: boolean
   onToggleHide?: () => void
@@ -205,8 +221,11 @@ export function RemoteItem({
     { label: t('sb.remote.prune'), action: onPrune },
     // checked (not just disabled) so the current default is visible at a glance
     { label: t('sb.remote.setDefault'), action: onSetDefault, checked: isDefault },
-    { label: t('sb.remote.copyUrl'), action: onCopyUrl },
+    ...(onUnsetDefault ? [{ label: t('sb.remote.unsetDefault'), action: onUnsetDefault }] : []),
     ...(onOpen ? [{ label: t('sb.remote.open'), action: onOpen }] : []),
+    ...(onOpenBranches ? [{ label: t('sb.remote.openBranches'), action: onOpenBranches }] : []),
+    { label: t('sb.remote.copyUrl'), action: onCopyUrl },
+    ...(onCopyBranchesUrl ? [{ label: t('sb.remote.copyBranchesUrl'), action: onCopyBranchesUrl }] : []),
     { label: t('sb.rename'), action: onRename },
     ...(onToggleHide ? [{
       label: hidden ? t('sb.remote.show') : t('sb.remote.hide'),
@@ -221,9 +240,21 @@ export function RemoteItem({
     <>
       <div
         className={`sb-remote-item${hidden ? ' is-hidden' : ''}`}
+        onClick={onToggleExpand}
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
         title={remote.fetchUrl}
       >
+        {onToggleExpand && (
+          // A real button, so the keyboard can open a remote as well as the
+          // pointer; the row's own click does the same thing for the pointer.
+          <button type="button" className="sb-remote-toggle"
+            aria-expanded={!!expanded}
+            aria-label={t(expanded ? 'sb.remote.collapse' : 'sb.remote.expand', remote.name)}
+            title={t(expanded ? 'sb.remote.collapse' : 'sb.remote.expand', remote.name)}
+            onClick={e => { e.stopPropagation(); onToggleExpand() }}>
+            <Icon name="chevronRight" size={10} className={`chevron${expanded ? ' open' : ''}`} />
+          </button>
+        )}
         <Icon name="mail" size={11} className="remote-icon" />
         <div className="sb-remote-info">
           <span className="sb-remote-name">

@@ -801,6 +801,11 @@ export function registerGitHandlers(): void {
     return state.gitService.setDefaultRemote(name)
   })
 
+  handle('git:unset-default-remote', async () => {
+    if (!state.gitService) return { success: false, error: 'No repo open' }
+    return state.gitService.unsetDefaultRemote()
+  })
+
   handle('git:prune-remote', async (_event, name: string) => {
     if (!state.gitService) return { success: false, error: 'No repo open' }
     return state.gitService.pruneRemote(name)
