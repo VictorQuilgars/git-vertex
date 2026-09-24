@@ -30,7 +30,7 @@ export type { SidebarView, GithubListItem } from './types'
 
 export default function Sidebar(props: SidebarProps) {
   const s = useSidebar(props)
-  const { repoPath, recentRepos, filteredStashes, onReveal, wipCount, wipSelected, onViewWip, onOpenRepo, onClone, onSetRepo, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onTab, githubPRs, githubIssues, githubRepo, view, single, showAI, show, submodules, t, stashMenu, setStashMenu, ghFilters, filterEditor, setFilterEditor, mutateFilters, stashScopeItems, handleRenameStash, branchFilter, setBranchFilter, stashesHidden, familyMenu, rootRef, filterDraft, setFilterDraft, showAll, remoteBranches, filterView, filterPlaceholder, onCompareStash, onSelectStashForCompare, handleCopyStashSha, handleCopyStashPatch } = s
+  const { repoPath, recentRepos, filteredStashes, onReveal, wipCount, wipSelected, onViewWip, onOpenRepo, onClone, onSetRepo, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onTab, githubPRs, githubIssues, githubRepo, view, single, showAI, show, submodules, t, stashMenu, setStashMenu, ghFilters, filterEditor, setFilterEditor, mutateFilters, stashScopeItems, handleRenameStash, branchFilter, setBranchFilter, stashesHidden, familyMenu, rootRef, filterDraft, setFilterDraft, showAll, remoteBranches, filterView, filterPlaceholder, onCompareStash, onSelectStashForCompare, handleCopyStashSha, handleCopyStashPatch, counts, loadErrors } = s
   return (
     // `--single`: the VS Code panel, one view at a time — an open section's +
     // stays on screen there (Sidebar.css).
@@ -166,7 +166,7 @@ export default function Sidebar(props: SidebarProps) {
           )}
 
           {/* SUBMODULES */}
-          {show('overview') && submodules.length > 0 && (
+          {show('overview') && (submodules.length > 0 || !!loadErrors.submodules) && (
             <SubmodulesSection s={s} />
           )}
 
@@ -206,7 +206,7 @@ export default function Sidebar(props: SidebarProps) {
             id="stash"
             title="STASH"
             icon="stash"
-            count={filteredStashes.length}
+            count={counts.stash}
             defaultOpen={single}
             onAdd={e => {
               const r = (e.currentTarget as HTMLElement).getBoundingClientRect()

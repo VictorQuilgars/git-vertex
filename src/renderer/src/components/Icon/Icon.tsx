@@ -79,6 +79,8 @@ import issue from './icons/issue.svg'
 import kebab from './icons/kebab.svg'
 import layoutBottom from './icons/layoutBottom.svg'
 import layoutBottomOff from './icons/layoutBottomOff.svg'
+import layoutLeft from './icons/layoutLeft.svg'
+import layoutLeftFloat from './icons/layoutLeftFloat.svg'
 import layoutRight from './icons/layoutRight.svg'
 import layoutRightOff from './icons/layoutRightOff.svg'
 import link from './icons/link.svg'
@@ -122,7 +124,7 @@ const SOURCE: Record<string, string> = {
   commandPalette, comment, commit, compare, conflict, copy, device, diff,
   download, editor, externalLink, eye, eyeOff, folder, gear, gitflow,
   history, home, hunk, info, ink, issue, kebab, layoutBottom, layoutBottomOff,
-  layoutRight, layoutRightOff, link, list, listTree, mail,
+  layoutLeft, layoutLeftFloat, layoutRight, layoutRightOff, link, list, listTree, mail,
   merge, newBranch, node, panel, pencil, person, play, plus, pop,
   pullRequest, push, rebase, redo, reflog, refresh, repo, rocket, search,
   shield, sliders, sort, staging, stash, switchBranch, tag, terminal, trash, undo,

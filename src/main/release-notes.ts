@@ -12,6 +12,12 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 📅 Merged since, closed since
 - Filters of pull requests and issues take **\`merged:\`** and **\`closed:\`**, typed or described: *PRs merged since September 1st* now keeps its date.
+
+### ⌨️ A key per side bar view
+- **\`1\` to \`9\`** bring a side bar view into sight — Overview, AI, Worktrees, Branches, Remotes, Stash, Tags, Pull requests, Issues. Never while typing; the \`?\` sheet lists them.
+
+### 🧭 A list that failed says so
+- A side bar list that **could not be loaded** says so, quoted, with **Try again** — it used to show an empty list, which reads as *there are none*.
 `,
   '1.39.0': `## What's new in 1.39.0
 

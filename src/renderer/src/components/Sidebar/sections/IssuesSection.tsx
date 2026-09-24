@@ -6,10 +6,10 @@ import { Section } from '../Section'
 import type { SidebarState } from '../useSidebar'
 
 export function IssuesSection({ s }: { s: SidebarState }) {
-  const { githubIssues, onOpenGithubItem, onStartBranchFromIssue, onShowGithubDetail, githubDetailOpen, githubRepo, onRefreshGithub, onNewIssue, githubRefreshing, single, t, issuesQuery, setIssuesQuery, ghFilters, setFilterEditor, mutateFilters } = s
+  const { githubIssues, onOpenGithubItem, onStartBranchFromIssue, onShowGithubDetail, githubDetailOpen, githubRepo, onRefreshGithub, onNewIssue, githubRefreshing, single, t, issuesQuery, setIssuesQuery, ghFilters, setFilterEditor, mutateFilters, counts } = s
   if (!githubIssues) return null
   return (
-    <Section id="issues" title="GITHUB ISSUES" brand="github" count={githubIssues.length} defaultOpen={single}
+    <Section id="issues" title="GITHUB ISSUES" brand="github" count={counts.issues} defaultOpen={single}
               onAdd={onNewIssue && (() => onNewIssue())} addLabel={t('sb.gh.newIssue')}
               onRefresh={onRefreshGithub && (() => onRefreshGithub('issues'))}
               refreshing={githubRefreshing === 'issues'}

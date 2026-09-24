@@ -3,16 +3,19 @@ import { Section } from '../Section'
 import { RemoteItem } from '../rows'
 import { parseRemote } from '../../../utils/remoteUrl'
 import type { SidebarState } from '../useSidebar'
+import { LoadError } from '../notices'
 
 export function RemotesSection({ s }: { s: SidebarState }) {
-  const { onToggleHideRemote, onOpenGithubItem, single, defaultRemote, t, handleAddRemote, handleRemoveRemote, handleRenameRemote, handlePruneRemote, handleSetDefaultRemote, handleFetchRemote, remoteHidden, familyMenu, showAll, filteredRemotes } = s
+  const { onToggleHideRemote, onOpenGithubItem, single, defaultRemote, t, handleAddRemote, handleRemoveRemote, handleRenameRemote, handlePruneRemote, handleSetDefaultRemote, handleFetchRemote, remoteHidden, familyMenu, showAll, filteredRemotes, counts, loadErrors, retryLoad } = s
+  const failed = loadErrors.remotes
   return (
-    <Section id="remotes" title="REMOTES" icon="repo" count={filteredRemotes.length} defaultOpen={single}
+    <Section id="remotes" title="REMOTES" icon="repo" count={failed ? undefined : counts.remotes} defaultOpen={single}
             onAdd={handleAddRemote} addLabel={t('sb.addRemote')}
             menuItems={familyMenu('remotes')}
             hiddenCount={filteredRemotes.filter(r => remoteHidden(r.name)).length}
             onShowAll={showAll('remotes')}>
-            {filteredRemotes.length === 0
+            {failed ? <LoadError error={failed} onRetry={() => retryLoad('remotes')} t={t} />
+              : filteredRemotes.length === 0
               ? <div className="sb-empty">{t('sb.noRemote')}</div>
               : filteredRemotes.map(r => (
                   <RemoteItem

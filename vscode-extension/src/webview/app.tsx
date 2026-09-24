@@ -14,7 +14,7 @@ import { ToastProvider, useToast } from '../../../src/renderer/src/components/To
 import CompactToolbar from './CompactToolbar'
 import EmptyRepo from './EmptyRepo'
 import WelcomeTab from './WelcomeTab'
-import { resolvePanelLayout, clampDetailsHeight, overlayWidth, autoDetailsSide, compactWorkingHolds, DETAILS_MIN, LIST_BELOW, type DetailsLocation, type DetailsSide } from './panelLayout'
+import { resolvePanelLayout, clampDetailsHeight, overlayWidth, autoDetailsSide, compactWorkingHolds, readSidePlacement, sideFloats, DETAILS_MIN, LIST_BELOW, type DetailsLocation, type DetailsSide, type SidePlacement } from './panelLayout'
 import DetailsToggle from './DetailsToggle'
 import { planReach, planAnswer, reachMessage, answerMessage } from '../../../src/renderer/src/app/search-reach'
 import { LOG_PAGE, StashPreview } from '../../../src/renderer/src/app/shared'
@@ -33,6 +33,8 @@ import { useSearchOperators } from '../../../src/renderer/src/app/useSearchOpera
 import { authorOfQuery, authorQuery } from '../../../src/renderer/src/utils/searchQuery'
 import type { ConflictKind, StashScope } from '../../../src/renderer/src/types'
 import Sidebar, { SidebarView, type GithubListItem } from '../../../src/renderer/src/components/Sidebar/Sidebar'
+import { sidebarCounts } from '../../../src/renderer/src/components/Sidebar/sidebarCounts'
+import { SIDEBAR_VIEWS, viewForKey } from '../../../src/renderer/src/components/Sidebar/viewKeys'
 import IssueDetail from '../../../src/renderer/src/components/IssueDetail/IssueDetail'
 import PRDetail from '../../../src/renderer/src/components/IssueDetail/PRDetail'
 import { usePullRequestCode } from '../../../src/renderer/src/hooks/usePullRequestCode'
@@ -81,7 +83,7 @@ import './vertex-vscode.css'
 /** GitHub's own published cadence — `X-Poll-Interval: 60` on its events endpoint. */
 const GITHUB_POLL_MS = 60_000
 
-const RAIL_VIEWS: SidebarView[] = ['overview', 'ai', 'worktrees', 'branches', 'remotes', 'stash', 'tags', 'prs', 'issues']
+const RAIL_VIEWS: readonly SidebarView[] = SIDEBAR_VIEWS
 
 /** The virtual commit that stands for the working tree. One literal, not three. */
 const WIP_NODE: CommitNode = {
@@ -168,6 +170,7 @@ function VertexApp() {
   const [stashCount, setStashCount] = useState(0)
   const [stashes, setStashes] = useState<{ index: number; message: string }[]>([])
   const [tags, setTags] = useState<{ name: string; hash: string }[]>([])
+  const [worktreeList, setWorktreeList] = useState<unknown[] | undefined>()
   // A branch's or a tag's card, opened by a click on its chip in the graph.
   // It reads the refs, so it is declared below them: a card whose reference
   // has been deleted closes rather than going on offering acts on it.
@@ -373,6 +376,11 @@ function VertexApp() {
           setGithubPRs(undefined); setGithubIssues(undefined)
         }
       } catch { setGithubRepo(null) }
+      // The worktrees, for the rail's count (#277) — the side bar lists its own.
+      try {
+        const wt = await window.gitAPI.listWorktrees()
+        setWorktreeList(wt?.worktrees ?? [])
+      } catch { /* no count rather than a wrong one */ }
       // Read the remote itself: it is the only thing that knows the host, and
       // every link below is built from it rather than from a hardcoded
       // github.com.
@@ -425,6 +433,20 @@ function VertexApp() {
       return next
     })
   }, [])
+
+  // A key per view (#277): `1`–`9` in the rail's order, bare — a chord is the
+  // workbench's (viewKeys.ts says which). The same toggle as a click on its icon.
+  useEffect(() => {
+    if (!repoPath) return
+    const onKey = (e: KeyboardEvent) => {
+      const view = viewForKey(e)
+      if (!view) return
+      e.preventDefault()
+      handleSelectView(view)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [repoPath, handleSelectView])
 
   // Toolbar toggle: collapse if open, else reopen the last-used view.
   const handleToggleSidebar = useCallback(() => {
@@ -1334,14 +1356,23 @@ function VertexApp() {
   const layout = resolvePanelLayout(bodyW, bodyH, detailsLocation, autoSide)
   // Narrow and short: the details replace the graph instead of squeezing it.
   const stacked = layout.details === 'replace'
-  // Narrow: the side view is a layer over the graph, not a column beside it.
-  const overlaySide = layout.narrow
+  // Narrow: the side view is a layer over the graph, not a column beside it —
+  // unless the rail's placement menu says docked, or floating, whatever the
+  // width (#277).
+  const sidePlacement: SidePlacement = readSidePlacement(getSetting('panelSidePlacement', 'auto'))
+  const overlaySide = sideFloats(layout.narrow, sidePlacement)
   const overlayRef = useRef(false)
   overlayRef.current = overlaySide
   const overlayOpen = overlaySide && activeView !== null
   // Entering the narrow layout closes the column that was open: as a layer
-  // it would cover the graph the user was looking at.
-  useEffect(() => { if (overlaySide) setActiveView(null) }, [overlaySide])
+  // it would cover the graph the user was looking at. Not when the user has
+  // just asked for a layer: the view they had open stays, floating.
+  const placementRef = useRef(sidePlacement)
+  useEffect(() => {
+    const chosen = placementRef.current !== sidePlacement
+    placementRef.current = sidePlacement
+    if (overlaySide && !chosen) setActiveView(null)
+  }, [overlaySide, sidePlacement])
   // The layer steps aside on Escape, and on a press anywhere that is not
   // it, the rail, the toolbar, or a menu it opened.
   useEffect(() => {
@@ -1540,6 +1571,13 @@ function VertexApp() {
       onCreatePR: currentBranchPR ? () => handleStartPR(currentBranchPR) : undefined,
     },
   }
+
+  // The rail's counts (#277): the headers' rule, over the lists this host holds
+  // whether a view is open or not — the side bar is not mounted while closed.
+  const railCounts = useMemo(() => sidebarCounts({
+    branches, stashes, tags, remotes: remoteNames, worktrees: worktreeList,
+    prs: githubPRs, issues: githubIssues,
+  }), [branches, stashes, tags, remoteNames, worktreeList, githubPRs, githubIssues])
 
   const sidebarEl = activeView && (
           <Sidebar
@@ -2004,7 +2042,10 @@ function VertexApp() {
             second one beside it. In a narrow panel the view is a layer over
             the graph instead — the rail stays, the block does not widen. */}
         <div className="gv-left" ref={composerAnchorRef}>
-          <ActivityRail active={activeView} onSelect={handleSelectView} compact={layout.narrow} />
+          <ActivityRail active={activeView} onSelect={handleSelectView} compact={layout.narrow}
+            counts={railCounts}
+            placement={sidePlacement}
+            onPlacement={(p: SidePlacement) => setSetting('panelSidePlacement', p)} />
           {activeView && !overlaySide && (
           <div className="gv-sidepanel" style={{ width: sideW }}>
           {sidebarEl}

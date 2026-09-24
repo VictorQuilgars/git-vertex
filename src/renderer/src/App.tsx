@@ -8,6 +8,8 @@ import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary'
 import { PullMode } from './types'
 import Toolbar from './components/Toolbar/Toolbar'
 import Sidebar from './components/Sidebar/Sidebar'
+import { revealSection } from './components/Sidebar/Section'
+import { viewForKey, STACKED_SECTION } from './components/Sidebar/viewKeys'
 import StatusBar from './components/StatusBar/StatusBar'
 import CommitGraph from './components/CommitGraph/CommitGraph'
 import RightPanel from './components/RightPanel/RightPanel'
@@ -369,6 +371,23 @@ export default function App() {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [loadRepoData, handleUndo, handleRedo, conflictResolverFile])
+  // A key per side bar view (#277): `1`–`9`, the panel rail's order. The
+  // desktop stacks the views in one column, so a key brings its section into
+  // view — the tab it is on first. Only where the column is on screen.
+  useEffect(() => {
+    if (!repoPath || viewTab) return
+    const onKey = (e: KeyboardEvent) => {
+      const view = viewForKey(e)
+      if (!view) return
+      e.preventDefault()
+      setSidebarTab(view === 'ai' ? 'ai' : 'list')
+      const section = STACKED_SECTION[view]
+      // After the render that brings the list tab back, when it was the AI one.
+      if (section) setTimeout(() => revealSection(section), 0)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [repoPath, viewTab, setSidebarTab])
   // The tab strip is a roving tab stop: only the active tab is reachable by
   // Tab, so the focus has to follow the selection, or the next arrow walks
   // from the tab we just left. Keyed on the selection rather than scheduled by

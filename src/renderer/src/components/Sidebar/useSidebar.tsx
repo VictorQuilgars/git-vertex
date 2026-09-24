@@ -10,7 +10,12 @@ import { usePullRequestCode } from '../../hooks/usePullRequestCode'
 import { useChangeUpstream } from '../../hooks/useChangeUpstream'
 import { isRefHidden, type RefFamily } from '../../utils/graphVisibility'
 import { useLang } from '../../i18n/LanguageContext'
+import { sidebarCounts } from './sidebarCounts'
 import { type SidebarView, type ReflogEntry, type Contributor, type ChangelogEntry, type NoteEntry, type RemoteEntry, type SubmoduleEntry, type WorktreeEntry, type AgentEntry, type SidebarProps } from './types'
+
+/** The lists the side bar loads for itself — each one can fail on its own (#277). */
+export type SbList = 'reflog' | 'contributors' | 'remotes' | 'submodules' | 'worktrees' | 'agents'
+  | 'changelogs' | 'explanations' | 'notes'
 
 export function useSidebar(props: SidebarProps) {
   const {
@@ -66,15 +71,40 @@ export function useSidebar(props: SidebarProps) {
   // Working-tree summary for the overview "current work" card.
   const [work, setWork] = useState<{ staged: number; changed: number }>({ staged: 0, changed: 0 })
   const { t } = useLang()
-  // Swallowing this silently is what kept the empty Agents view alive in the VS
-  // Code panel for two releases: the host answered not-implemented, the catch
-  // ate it, and the list just rendered as "none running". Log instead — a
-  // console line is the difference between a bug you can see and one you can't.
-  const loadAgents = useCallback(() => {
-    ;(window.gitAPI as any).listAgents?.()
-      .then((r: { agents?: AgentEntry[] }) => setAgents(r?.agents ?? []))
-      .catch((e: unknown) => console.warn('[sidebar] listAgents failed:', e))
+  /**
+   * What each list the side bar reads for itself last failed on (#277).
+   *
+   * A refused read used to leave its list empty, and an empty list says "there
+   * are none": the Agents view read "none running" for two releases while the
+   * panel's host answered not-implemented. Now the error takes the list's
+   * place, quoted, with Try again. Both ways a host can refuse are caught — a
+   * rejected call, and an answer that carries `error` (not-implemented is one).
+   */
+  const [loadErrors, setLoadErrors] = useState<Partial<Record<SbList, string>>>({})
+  const settle = useCallback(<R,>(list: SbList, call: () => Promise<R> | undefined, apply: (r: R) => void) => {
+    const fail = (e: unknown) => {
+      console.warn(`[sidebar] ${list} failed:`, e)
+      setLoadErrors(prev => ({ ...prev, [list]: e instanceof Error ? e.message : String(e) }))
+    }
+    let p: Promise<R> | undefined
+    // A host that does not offer the call at all (`?.` below) has no list to
+    // fail on; one whose call throws before it returns a promise has.
+    try { p = call() } catch (e) { fail(e); return }
+    if (!p) return
+    p.then(r => {
+      const err = (r as { error?: unknown } | null | undefined)?.error
+      if (err) { fail(err); return }
+      setLoadErrors(prev => {
+        if (!(list in prev)) return prev
+        const next = { ...prev }; delete next[list]; return next
+      })
+      apply(r)
+    }, fail)
   }, [])
+  const loadAgents = useCallback(() => {
+    settle('agents', () => (window.gitAPI as any).listAgents?.(),
+      (r: { agents?: AgentEntry[] }) => setAgents(r?.agents ?? []))
+  }, [settle])
   /**
    * What the model has written for this repository (#70).
    *
@@ -87,31 +117,38 @@ export function useSidebar(props: SidebarProps) {
   const [explanations, setExplanations] = useState<Record<string, string>>({})
   const [notes, setNotes] = useState<NoteEntry[]>([])
   const loadMemory = useCallback(() => {
-    ;(window.gitAPI as any).aiChangelogList?.()
-      .then((r: { entries?: ChangelogEntry[] }) => setChangelogs(r?.entries ?? []))
-      .catch((e: unknown) => console.warn('[sidebar] aiChangelogList failed:', e))
-    ;(window.gitAPI as any).aiGetExplanations?.()
-      .then((r: { explanations?: Record<string, string> }) => setExplanations(r?.explanations ?? {}))
-      .catch((e: unknown) => console.warn('[sidebar] aiGetExplanations failed:', e))
-    ;(window.gitAPI as any).aiNoteList?.()
-      .then((r: { entries?: NoteEntry[] }) => setNotes(r?.entries ?? []))
-      .catch((e: unknown) => console.warn('[sidebar] aiNoteList failed:', e))
-  }, [])
+    settle('changelogs', () => (window.gitAPI as any).aiChangelogList?.(),
+      (r: { entries?: ChangelogEntry[] }) => setChangelogs(r?.entries ?? []))
+    settle('explanations', () => (window.gitAPI as any).aiGetExplanations?.(),
+      (r: { explanations?: Record<string, string> }) => setExplanations(r?.explanations ?? {}))
+    settle('notes', () => (window.gitAPI as any).aiNoteList?.(),
+      (r: { entries?: NoteEntry[] }) => setNotes(r?.entries ?? []))
+  }, [settle])
   const loadWorktrees = useCallback(() => {
     // `facts` is two more git calls per worktree — the dirty flag and the
     // tracking counts a row shows (#285). A repository has a handful of
     // worktrees, not a page of them, so it is asked for every time.
-    window.gitAPI.listWorktrees({ facts: true }).then(r => setWorktrees(r.worktrees ?? []))
+    settle('worktrees', () => window.gitAPI.listWorktrees({ facts: true }), r => setWorktrees(r.worktrees ?? []))
     loadAgents()
-  }, [loadAgents])
+  }, [loadAgents, settle])
+  const loadReflog = useCallback(() =>
+    settle('reflog', () => window.gitAPI.getReflog(), r => setReflog(r.entries ?? [])), [settle])
+  // Only when the host can filter by author: a list nothing acts on is a list.
+  const canFilterAuthor = !!onFilterAuthor
+  const loadContributors = useCallback(() => {
+    if (canFilterAuthor) settle('contributors', () => window.gitAPI.getContributors?.(20), r => setContributors(r?.contributors ?? []))
+  }, [settle, canFilterAuthor])
+  const loadRemotes = useCallback(() =>
+    settle('remotes', () => window.gitAPI.getRemotes(), r => setRemotes(r.remotes ?? [])), [settle])
+  const loadSubmodules = useCallback(() =>
+    settle('submodules', () => window.gitAPI.getSubmodules(), r => setSubmodules(r.submodules ?? [])), [settle])
   useEffect(() => {
     if (!repoPath) return
-    window.gitAPI.getReflog().then(r => setReflog(r.entries ?? []))
-    // Only when the host can filter by author: a list nothing acts on is a list.
-    if (onFilterAuthor) window.gitAPI.getContributors?.(20).then(r => setContributors(r?.contributors ?? [])).catch(() => {})
-    window.gitAPI.getRemotes().then(r => setRemotes(r.remotes ?? []))
+    loadReflog()
+    loadContributors()
+    loadRemotes()
     window.gitAPI.getDefaultRemote?.().then(r => setDefaultRemote(r?.remote ?? null)).catch(() => {})
-    window.gitAPI.getSubmodules().then(r => setSubmodules(r.submodules ?? []))
+    loadSubmodules()
     window.gitAPI.getWorkingChanges?.()
       .then(w => setWork({ staged: w.staged.length, changed: w.unstaged.length + w.untracked.length }))
       .catch(() => {})
@@ -120,7 +157,15 @@ export function useSidebar(props: SidebarProps) {
     // Light poll so agent badges stay current while the sidebar is open.
     const interval = setInterval(loadAgents, 10000)
     return () => clearInterval(interval)
-  }, [repoPath, loadWorktrees, loadAgents, loadMemory])
+  }, [repoPath, loadWorktrees, loadAgents, loadMemory, loadReflog, loadContributors, loadRemotes, loadSubmodules])
+  /** Try again, for one list — the button a failed load shows in its place. */
+  const retryLoad = useCallback((list: SbList) => {
+    ;({
+      reflog: loadReflog, contributors: loadContributors, remotes: loadRemotes,
+      submodules: loadSubmodules, worktrees: loadWorktrees, agents: loadAgents,
+      changelogs: loadMemory, explanations: loadMemory, notes: loadMemory,
+    } satisfies Record<SbList, () => void>)[list]()
+  }, [loadReflog, loadContributors, loadRemotes, loadSubmodules, loadWorktrees, loadAgents, loadMemory])
   // On opening the stack, and whenever something new has been written into it.
   useEffect(() => { if (repoPath && (showAI || memoryToken)) loadMemory() },
     [showAI, repoPath, loadMemory, memoryToken])
@@ -213,8 +258,7 @@ export function useSidebar(props: SidebarProps) {
     const r = await window.gitAPI.initSubmodule(path)
     if (r.success) {
       showToast(t('sb.sub.initialized', path))
-      const updated = await window.gitAPI.getSubmodules()
-      setSubmodules(updated.submodules ?? [])
+      loadSubmodules()
     } else {
       showToast(t('toast.err', r.error ?? ''), 'err')
     }
@@ -223,8 +267,7 @@ export function useSidebar(props: SidebarProps) {
     const r = await window.gitAPI.updateSubmodule(path)
     if (r.success) {
       showToast(t('sb.sub.updated', path))
-      const updated = await window.gitAPI.getSubmodules()
-      setSubmodules(updated.submodules ?? [])
+      loadSubmodules()
     } else {
       showToast(t('toast.err', r.error ?? ''), 'err')
     }
@@ -233,8 +276,7 @@ export function useSidebar(props: SidebarProps) {
     const r = await window.gitAPI.syncSubmodule(path)
     if (r.success) {
       showToast(t('sb.sub.synced', path))
-      const updated = await window.gitAPI.getSubmodules()
-      setSubmodules(updated.submodules ?? [])
+      loadSubmodules()
     } else {
       showToast(t('toast.err', r.error ?? ''), 'err')
     }
@@ -252,8 +294,7 @@ export function useSidebar(props: SidebarProps) {
     const r = await window.gitAPI.deinitSubmodule(path)
     if (r.success) {
       showToast(t('sb.sub.deinited', path))
-      const updated = await window.gitAPI.getSubmodules()
-      setSubmodules(updated.submodules ?? [])
+      loadSubmodules()
     } else {
       showToast(t('toast.err', r.error ?? ''), 'err')
     }
@@ -266,8 +307,7 @@ export function useSidebar(props: SidebarProps) {
     const r = await window.gitAPI.addRemote(name, url)
     if (r.success) {
       showToast(t('sb.remote.added', name))
-      const updated = await window.gitAPI.getRemotes()
-      setRemotes(updated.remotes ?? [])
+      loadRemotes()
     } else {
       showToast(t('toast.err', r.error ?? ''), 'err')
     }
@@ -278,8 +318,7 @@ export function useSidebar(props: SidebarProps) {
     const r = await window.gitAPI.removeRemote(name)
     if (r.success) {
       showToast(t('sb.remote.removed', name))
-      const updated = await window.gitAPI.getRemotes()
-      setRemotes(updated.remotes ?? [])
+      loadRemotes()
     } else {
       showToast(t('toast.err', r.error ?? ''), 'err')
     }
@@ -290,8 +329,7 @@ export function useSidebar(props: SidebarProps) {
     const r = await window.gitAPI.renameRemote(name, newName)
     if (r.success) {
       showToast(t('sb.remote.renamed', newName))
-      const updated = await window.gitAPI.getRemotes()
-      setRemotes(updated.remotes ?? [])
+      loadRemotes()
     } else {
       showToast(t('toast.err', r.error ?? ''), 'err')
     }
@@ -438,6 +476,14 @@ export function useSidebar(props: SidebarProps) {
   // Either end of a worktree row: the folder it is in, or the branch it holds.
   const filteredWorktrees = worktrees.filter(wt => keep(wt.path) || keep(wt.branch ?? ''))
   /**
+   * What each header counts — the rule the panel's rail counts with too
+   * (#277), over the lists as the field lets them through.
+   */
+  const counts = sidebarCounts({
+    branches: localBranches, stashes: filteredStashes, tags: filteredTags,
+    remotes: filteredRemotes, worktrees: filteredWorktrees, prs: githubPRs, issues: githubIssues,
+  })
+  /**
    * List or tree, per view, kept on this machine. Held here rather than read
    * in each section so a re-render of one does not lose the other's choice.
    */
@@ -557,6 +603,7 @@ export function useSidebar(props: SidebarProps) {
 
   return {
     repoPath, repoName, currentBranch, branches, recentRepos, stashes, tags, wipCount, wipSelected, onViewWip, onOpenRepo, onClone, onSetRepo, onCheckout, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch, onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream, onCreateStash, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onRefreshStashes, onExplainBranch, onBranchChangelog, onOpenChangelog, onOpenExplanation, onOpenNote, onShowCommits, subjectFor, tab, onTab, memoryToken, onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag, onSelectCommit, onCompareBranch, soloBranch, visibility, onToggleSolo, onToggleHide, onToggleHideTag, onToggleHideRemote, onSetFamilyHidden, onPull, githubPRs, githubIssues, onOpenGithubItem, onComparePullRequest, onStartBranchFromIssue, onShowGithubDetail, githubDetailOpen, githubLogin, githubRepo, isFavorite, issueFor, onToggleFavorite, onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR, showAllBranches, onToggleAllBranches, onRefreshGithub, onStartPR, onNewIssue, githubRefreshing, githubRefreshTick, githubPollTick, onCopyBranchLink, onDeleteBranchBoth, showToast, showPrompt, showConfirm, onRefresh, view, single, activeTab, showAI, show, reflog, setReflog, contributors, onFilterAuthor, authorFilter, home, mergeTarget, launchpad, remotes, setRemotes, defaultRemote, setDefaultRemote, submodules, setSubmodules, worktrees, setWorktrees, agents, setAgents, work, setWork, t, loadAgents, changelogs, setChangelogs, explanations, setExplanations, notes, setNotes, loadMemory, loadWorktrees, agentsFor, handleAddWorktree, handleRemoveWorktree, handleInitSubmodule, handleUpdateSubmodule, handleSyncSubmodule, handleDeinitSubmodule, handleAddRemote, handleRemoveRemote, handleRenameRemote, stashMenu, setStashMenu, prsQuery, setPrsQuery, issuesQuery, setIssuesQuery, ghFilters, setGhFilters, filterEditor, setFilterEditor, mutateFilters, stashScopeItems, handleRenameStash, handlePruneRemote, handleSetDefaultRemote, handleFetchRemote, branchFilter, setBranchFilter, localBranches, branchHidden, tagHidden, remoteHidden, stashesHidden, familyMenu, foldersKey, closedFolders, setClosedFolders, toggleFolder, openFolders, filtering, rootRef, filterDraft, setFilterDraft, showAll, localMenu, remoteBranches, onReveal, onOpenCard, onRebaseOntoUpstream, onCompareUpstream, tipActions, handlePullBranchRow, handleChangeUpstreamRow, handleSquashFixupsRow, handleWorktreeTerminal, handleWorktreeReveal, handleToggleWorktreeLock, handleCopyChangesTo, worktreeOf, handleCreateWorktreeFor, handlePullRequestCode, onCompareStash, onSelectStashForCompare, handleCopyStashSha, handleCopyStashPatch, filteredTags, filteredStashes, filteredRemotes, filteredWorktrees, layouts, toggleLayout, layoutFor, layoutToggle, filterView, filterPlaceholder,
+    counts, loadErrors, retryLoad,
   }
 }
 

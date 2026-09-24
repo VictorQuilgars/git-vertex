@@ -7,11 +7,11 @@ import type { TagEntry } from '../types'
 import type { SidebarState } from '../useSidebar'
 
 export function TagsSection({ s }: { s: SidebarState }) {
-  const { onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag, onToggleHideTag, onReveal, onOpenCard, single, t, tagHidden, familyMenu, showAll, filteredTags, layoutFor, layoutToggle, toggleFolder, openFolders } = s
+  const { onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag, onToggleHideTag, onReveal, onOpenCard, single, t, tagHidden, familyMenu, showAll, filteredTags, layoutFor, layoutToggle, toggleFolder, openFolders, counts } = s
   const names = filteredTags.map(tg => tg.name)
   const asTree = layoutFor('tags', names) === 'tree'
   return (
-    <Section id="tags" title="TAGS" icon="tag" count={filteredTags.length} defaultOpen={single}
+    <Section id="tags" title="TAGS" icon="tag" count={counts.tags} defaultOpen={single}
             onAdd={onCreateTag} addLabel={t('sb.newTag')}
             menuItems={familyMenu('tags')}
             layout={layoutToggle('tags', names)}

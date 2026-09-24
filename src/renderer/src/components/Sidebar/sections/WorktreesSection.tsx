@@ -4,6 +4,7 @@ import { WorktreeItem } from '../rows'
 import { localBranchProps } from '../localBranchProps'
 import { branchItemMenu, type BranchItemProps } from '../BranchItem'
 import type { SidebarState } from '../useSidebar'
+import { LoadError } from '../notices'
 
 /**
  * The branch menu as a worktree row offers it (#286).
@@ -18,11 +19,13 @@ function forWorktreeRow(p: BranchItemProps): BranchItemProps {
 }
 
 export function WorktreesSection({ s }: { s: SidebarState }) {
-  const { onSetRepo, onReveal, onViewWip, repoPath, single, t, agentsFor, handleAddWorktree, handleRemoveWorktree, filteredWorktrees, handleWorktreeTerminal, handleWorktreeReveal, handleToggleWorktreeLock, handleCopyChangesTo } = s
+  const { onSetRepo, onReveal, onViewWip, repoPath, single, t, agentsFor, handleAddWorktree, handleRemoveWorktree, filteredWorktrees, handleWorktreeTerminal, handleWorktreeReveal, handleToggleWorktreeLock, handleCopyChangesTo, counts, loadErrors, retryLoad } = s
+  const failed = loadErrors.worktrees
   return (
-    <Section id="worktrees" title="WORKTREES" icon="worktree" count={filteredWorktrees.length} defaultOpen={single}
+    <Section id="worktrees" title="WORKTREES" icon="worktree" count={failed ? undefined : counts.worktrees} defaultOpen={single}
             onAdd={handleAddWorktree} addLabel={t('sb.addWorktree')}>
-            {filteredWorktrees.length === 0
+            {failed ? <LoadError error={failed} onRetry={() => retryLoad('worktrees')} t={t} />
+              : filteredWorktrees.length === 0
               ? <div className="sb-empty">{t('sb.noWorktree')}</div>
               : filteredWorktrees.map(wt => {
                   // A detached worktree is on no branch — git-core names that
