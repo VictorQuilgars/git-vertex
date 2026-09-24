@@ -556,6 +556,128 @@ describe('git-core — against a real repository, on both hosts', () => {
 
     expect((await onBothHosts(repo, r => core.restoreConflict(r, '--all'))).error).toContain('Invalid')
   })
+
+  // ── What the side bar's rows say beyond a name (#278) ──
+  // Every fact comes out of the call that builds the list; these check the
+  // facts are there on both hosts, and the same.
+
+  test('a branch row carries the age of its tip, from the list call itself', async () => {
+    run('git branch topic')
+    run(`GIT_COMMITTER_DATE="2001-09-09T01:46:40Z" git commit -q --allow-empty -m "dated"`)
+    const { rows } = await onBothHosts(repo, r => core.branchRows(r))
+    expect(rows.find(b => b.name === 'main')!.date).toBe(1_000_000_000)
+    expect(rows.find(b => b.name === 'topic')!.date).toBeGreaterThan(1_600_000_000)
+  })
+
+  test('stashList names the branch each stash was made on, and when — a rename keeps the branch', async () => {
+    run('git checkout -q -b feature/x')
+    write('a.txt', 'stashed on the feature\n')
+    run(`GIT_COMMITTER_DATE="2001-09-09T01:46:40Z" git stash push -q -m "tidy up"`)
+    run('git checkout -q main')
+    write('a.txt', 'stashed on main\n')
+    run('git stash -q')
+    const { stashes } = await onBothHosts(repo, r => core.stashList(r))
+    expect(stashes).toHaveLength(2)
+    expect(stashes[0]).toMatchObject({ index: 0, branch: 'main' })
+    expect(stashes[0].message).toMatch(/^WIP on main: [0-9a-f]+ second$/)
+    expect(stashes[1]).toEqual({ index: 1, message: 'On feature/x: tidy up', branch: 'feature/x', date: 1_000_000_000 })
+
+    // `stash store -m` rewrites the reflog, not the commit: the label changes,
+    // the branch it was made on does not.
+    const sha = run('git rev-parse stash@{1}').trim()
+    run('git stash drop -q stash@{1}')
+    run(`git stash store -m "renamed" ${sha}`)
+    const renamed = (await onBothHosts(repo, r => core.stashList(r))).stashes[0]
+    expect(renamed).toMatchObject({ index: 0, message: 'renamed', branch: 'feature/x', date: 1_000_000_000 })
+  })
+
+  test('stashList is empty, not an error, where there is no stash', async () => {
+    expect(await onBothHosts(repo, r => core.stashList(r))).toEqual({ stashes: [] })
+  })
+
+  test('tagList carries each annotation, peels to the commit, and sorts by version', async () => {
+    run(`git tag v1.9.0 ${first}`)
+    run(`GIT_COMMITTER_DATE="2001-09-09T01:46:40Z" git tag -a v1.10.0 -m "The tenth" -m "A body the row does not show." ${second}`)
+    // A branch with a tag's name: `%(refname:short)` would say `tags/same`.
+    run(`git branch same && git tag same ${first}`)
+    const { tags } = await onBothHosts(repo, r => core.tagList(r))
+    expect(tags.map(t => t.name)).toEqual(['v1.10.0', 'v1.9.0', 'same'])
+    const [ten, nine, same] = tags
+    expect(ten).toEqual({ name: 'v1.10.0', hash: second.slice(0, ten.hash.length), annotated: true, message: 'The tenth', date: 1_000_000_000 })
+    expect(ten.hash.length).toBeGreaterThanOrEqual(7)
+    // A lightweight tag has no message of its own — never the commit's subject.
+    expect(nine.message).toBeUndefined()
+    expect(nine.annotated).toBeUndefined()
+    expect(nine.hash).toBe(first.slice(0, nine.hash.length))
+    expect(same.name).toBe('same')
+  })
+})
+
+// ── The tag and stash lists (#278) ─────────────────────────────
+//
+// The shapes git hands back, without a repository.
+describe('parseStashList', () => {
+  const US = '\x1f'
+  const line = (...fields: string[]) => fields.join(US)
+
+  test('reads the index, the branch from the commit subject, and the date', () => {
+    const rows = core.parseStashList([
+      line('stash@{0}', '1758153600', 'WIP on main: 1a2b3c4 fix it', 'WIP on main: 1a2b3c4 fix it'),
+      line('stash@{1}', '1000000000', 'On feat/x: tidy', 'renamed by hand'),
+    ].join('\n'))
+    expect(rows).toEqual([
+      { index: 0, message: 'WIP on main: 1a2b3c4 fix it', branch: 'main', date: 1758153600 },
+      { index: 1, message: 'renamed by hand', branch: 'feat/x', date: 1000000000 },
+    ])
+  })
+
+  test('a stash made on a detached HEAD names no branch', () => {
+    const [row] = core.parseStashList(line('stash@{0}', '1758153600', 'WIP on (no branch): 1a2b3c4 s', 'WIP on (no branch): 1a2b3c4 s'))
+    expect(row.branch).toBeUndefined()
+  })
+
+  test('a subject git did not write names no branch, and a message may hold the separator', () => {
+    const [row] = core.parseStashList(line('stash@{0}', '', 'something else', 'a', 'b'))
+    expect(row).toEqual({ index: 0, message: `a${US}b` })
+  })
+
+  test('an empty message falls back to the selector', () => {
+    expect(core.parseStashList(line('stash@{0}', '1', 'On main: x', ''))[0].message).toBe('stash@{0}')
+  })
+
+  test('stashBranch reads both of git\'s phrasings', () => {
+    expect(core.stashBranch('On release/1.2: note')).toBe('release/1.2')
+    expect(core.stashBranch('WIP on main: 1a2b3c4 subject: with a colon')).toBe('main')
+    expect(core.stashBranch('main: nothing')).toBeUndefined()
+  })
+})
+
+describe('parseTagList', () => {
+  const record = (...fields: string[]) => fields.join('\x1f') + '\x1e'
+
+  test('an annotated tag carries its subject and points at the peeled commit', () => {
+    const [tag] = core.parseTagList(record('refs/tags/v1', 'tag', 'aaaaaaa', 'bbbbbbb', '1758153600', 'First release'))
+    expect(tag).toEqual({ name: 'v1', hash: 'bbbbbbb', annotated: true, message: 'First release', date: 1758153600 })
+  })
+
+  test('a lightweight tag keeps no message — that subject is the commit\'s', () => {
+    const [tag] = core.parseTagList(record('refs/tags/light', 'commit', 'ccccccc', '', '1758153600', 'the commit subject'))
+    expect(tag).toEqual({ name: 'light', hash: 'ccccccc', date: 1758153600 })
+  })
+
+  test('a signed tag with no message offers no signature as one, and whitespace folds', () => {
+    const rows = core.parseTagList(
+      record('refs/tags/signed', 'tag', 'a', 'b', '1', '-----BEGIN PGP SIGNATURE-----') + '\n' +
+      record('refs/tags/multi', 'tag', 'a', 'b', '1', 'line one\n  line two'),
+    )
+    expect(rows[0].message).toBeUndefined()
+    expect(rows[1].message).toBe('line one line two')
+  })
+
+  test('the names keep their folders, and nothing is lost to the prefix', () => {
+    const rows = core.parseTagList(record('refs/tags/release/1.2', 'commit', 'a', '', '', ''))
+    expect(rows).toEqual([{ name: 'release/1.2', hash: 'a' }])
+  })
 })
 
 // ── The branch list ───────────────────────────────────────────

@@ -7,6 +7,7 @@ import { stashRowActions, tagRowActions, remoteRowActions, worktreeRowActions } 
 import { useRowClick } from './rowClick'
 import { useLang } from '../../i18n/LanguageContext'
 import { type StashEntry, type TagEntry, type ReflogEntry, type RemoteEntry, type SubmoduleEntry, type WorktreeEntry, type AgentEntry } from './types'
+import { stashLabel, stashFacts, stashTooltip, tagTooltip } from './rowFacts'
 
 // ── Stash item ────────────────────────────────────────────────────
 export function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, onExplain, onReveal, onCompareHead, onCompareWorking, onSelectForCompare, onCopySha, onCopyPatch, hidden }: {
@@ -43,7 +44,11 @@ export function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, 
 }) {
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const { t } = useLang()
-  const label = stash.message.replace(/^stash@\{\d+\}: /, '')
+  // What the menu copies is the message as git holds it; what the row reads
+  // as drops the branch it now names beside it (#278).
+  const message = stash.message.replace(/^stash@\{\d+\}: /, '')
+  const label = stashLabel(stash)
+  const facts = stashFacts(stash, t)
   // Without a reveal the row is what it was: one click, the preview.
   const click = useRowClick(onReveal, onReveal ? onPreview : undefined)
 
@@ -57,7 +62,7 @@ export function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, 
   ]
   const copies: MenuItemDef[] = [
     ...(onCopySha ? [{ label: t('graph.menu.copyFullHash'), action: onCopySha }] : []),
-    { label: t('graph.menu.copyMessage'), action: () => navigator.clipboard.writeText(label) },
+    { label: t('graph.menu.copyMessage'), action: () => navigator.clipboard.writeText(message) },
     ...(onCopyPatch ? [{ label: t('graph.menu.copyPatch'), action: onCopyPatch }] : []),
   ]
   const menuItems: MenuItemDef[] = [
@@ -79,10 +84,11 @@ export function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, 
         onMouseDown={onReveal ? click.onMouseDown : undefined}
         onClick={onReveal ? undefined : onPreview}
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
-        title={onPreview ? t('sb.stash.title', stash.message) : stash.message}
+        title={stashTooltip(stash, t, !!onPreview)}
       >
         <Icon name="stash" size={11} className="stash-icon" />
         <span className="sb-stash-label">{label}</span>
+        {facts && <span className="sb-row-facts">{facts}</span>}
         <RowActionBar actions={stashRowActions()} t={t} label={label}
           handlers={{
             apply: () => { click.cancel(); onApply() },
@@ -147,10 +153,13 @@ export function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDel
         className={`sb-tag-item${hidden ? ' is-hidden' : ''}`}
         onMouseDown={click.onMouseDown}
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
-        title={onGoTo ? t('sb.tag.hint', tag.name, tag.hash) : `${tag.name} → ${tag.hash}`}
+        title={tagTooltip(tag, t, !!onGoTo)}
       >
         <Icon name="tag" size={13} className="sb-tag-icon" />
-        <span className="sb-tag-name">{displayAs ?? tag.name}</span>
+        <span className={`sb-tag-name${tag.message ? ' sb-tag-name--fit' : ''}`}>{displayAs ?? tag.name}</span>
+        {/* The annotation, where there is one (#278) — muted, and the first
+            thing to give way when the row is narrow. */}
+        {tag.message && <span className="sb-tag-msg">{tag.message}</span>}
         {hidden && <span className="sb-row-flag" title={t('sb.hidden.flag')}>⊘</span>}
         <RowActionBar actions={tagRowActions()} t={t} label={tag.name}
           handlers={{

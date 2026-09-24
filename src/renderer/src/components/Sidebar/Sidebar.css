@@ -584,6 +584,37 @@
   flex-shrink: 0;
 }
 
+/* ── What a row says beyond its name (#278) ───────────────────
+   The annotation of a tag, the branch and age of a stash, the age of a
+   branch's tip: muted, one line, and the first thing to give way when the
+   side bar is narrow — the name is what the row is found by. */
+.sb-tag-name--fit { flex: 0 1 auto; max-width: 60%; }
+.sb-tag-msg {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-tiny);
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.sb-row-facts,
+.sb-branch-age {
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 45%;
+  font-size: var(--text-tiny);
+  color: var(--text-disabled);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.sb-branch-age { flex-shrink: 0; }
+/* Checked out in another worktree: the switch would be refused there. */
+.sb-branch-wt { display: inline-flex; align-items: center; color: var(--text-tertiary); }
+
 /* ── Reflog ─────────────────────────────────────────────────── */
 .sb-reflog-item {
   display: flex;

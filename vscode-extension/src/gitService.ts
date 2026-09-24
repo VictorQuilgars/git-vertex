@@ -902,32 +902,14 @@ export class GitService {
     }
   }
 
-  async getStashes(): Promise<{ stashes: { index: number; message: string }[] }> {
-    try {
-      // %gs (reflog subject), not %s (commit subject): `stash store -m` only
-      // rewrites the reflog, so a renamed stash would keep its old label.
-      const out = await this.git.raw(['stash', 'list', '--pretty=format:%gd|%gs'])
-      const stashes = out.trim().split('\n').filter(Boolean).map((line, i) => {
-        const [, message] = line.split('|')
-        return { index: i, message: message || `stash@{${i}}` }
-      })
-      return { stashes }
-    } catch {
-      return { stashes: [] }
-    }
+  async getStashes(): Promise<{ stashes: core.StashRow[] }> {
+    // The list, the branch each was made on and when — one call (#278).
+    return core.stashList(this.run)
   }
 
-  async getTags(): Promise<{ tags: { name: string; hash: string }[] }> {
-    try {
-      const out = await this.git.raw(['tag', '--format=%(refname:short)|%(objectname)'])
-      const tags = out.trim().split('\n').filter(Boolean).map(line => {
-        const [name, hash] = line.split('|')
-        return { name, hash: hash || '' }
-      })
-      return { tags }
-    } catch {
-      return { tags: [] }
-    }
+  async getTags(): Promise<{ tags: core.TagRow[] }> {
+    // The list and each annotation's subject — one call (#278).
+    return core.tagList(this.run)
   }
 
   // ── Conflict / tracking state ──────────────────────────────────

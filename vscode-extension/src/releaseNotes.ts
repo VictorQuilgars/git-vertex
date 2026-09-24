@@ -29,6 +29,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 📅 Merged since, closed since
 - Filters of pull requests and issues take **\`merged:\`** and **\`closed:\`**, typed or described: *PRs merged since September 1st* now keeps its date.
+
+### 🧾 Side bar rows say more
+- A **branch** row shows the age of its last commit, a mark when **another worktree** holds it, and a tooltip with what it tracks, its **pull request** and that worktree. A **tag** row shows its **annotation**, and its hash is the commit it points at. A **stash** row names the **branch it was made on**, and when. All of it read with the lists themselves — nothing per row.
 `,
   '1.37.0': `## What's new in 1.37.0
 

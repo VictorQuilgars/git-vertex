@@ -58,6 +58,7 @@ export function RemoteSection({ s }: { s: SidebarState }) {
                     pr={prIntentFor?.(b.name)}
                     onCreatePR={onCreatePR}
                     publishedAs={b.name.replace(/^remotes\//, '')}
+                    date={b.date}
                     onCopyLink={onCopyBranchLink && (() => onCopyBranchLink(b.name))}
                   />
               )

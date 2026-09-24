@@ -1,12 +1,12 @@
 // The shapes the sidebar is given: its entries, and every prop of the panel.
-import { BranchInfo, StashScope } from '../../types'
+import { BranchInfo, StashScope, type StashInfo, type TagInfo } from '../../types'
 import type { PRIntent } from '../ContextMenu/prIntent'
 import { type GraphVisibility, type RefFamily } from '../../utils/graphVisibility'
 import { type IssueRef as LinkedIssueRef } from '../../utils/issueRef'
 
-export interface StashEntry { index: number; message: string }
+export type StashEntry = StashInfo
 
-export interface TagEntry   { name: string; hash: string }
+export type TagEntry = TagInfo
 
 // Single-view mode (VS Code panel): the rail on the left selects which one of
 // these views the resizable side-panel shows. When `view` is undefined the
