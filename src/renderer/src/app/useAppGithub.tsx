@@ -62,6 +62,7 @@ export function useAppGithub(app: AppChrome & RepoSession) {
         createdAt: x.createdAt, comments: x.comments, labels: x.labels,
         headRef: x.headRef, baseRef: x.baseRef,
         body: x.body, assignees: x.assignees, reviewers: x.reviewers,
+        fork: kind === 'pr' ? x.fork : undefined, headRepo: kind === 'pr' ? x.headRepo : undefined,
       }))
     try {
       // `only` narrows it to the section whose button was pressed: the two are

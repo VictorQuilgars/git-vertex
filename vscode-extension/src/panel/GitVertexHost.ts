@@ -21,7 +21,7 @@ import {
   githubListPRs, githubListIssues, githubGetIssue, githubCreatePR, githubListBranches,
   githubSearchIssues, githubCloseIssue, githubListRepos, githubCreateGist, type GithubApi,
   githubIssueComments, githubAddIssueComment, githubUpdateIssue,
-  githubListAssignees, githubListRepoLabels, githubGetPR, githubGetChecks, githubMergePR, githubBranchPRs,
+  githubListAssignees, githubListRepoLabels, githubGetPR, githubGetChecks, githubMergePR, githubBranchPRs, githubPRFacts,
   githubRepoParent, githubRequestReviewers, githubCreateLabel, githubCreateIssue,
 } from '../githubApi'
 import { githubRepo, githubApiBase, GITHUB_COM } from '../../../src/renderer/src/utils/remoteUrl'
@@ -990,6 +990,9 @@ export class GitVertexHost implements vscode.Disposable {
         return githubGetPR(await this._githubApi(), args[0], args[1], args[2])
       case 'githubBranchPRs':
         return githubBranchPRs(await this._githubApi(), args[0], args[1], args[2])
+      // A row's hover: checks, review decision and size, one query per list (#291).
+      case 'githubPRFacts':
+        return githubPRFacts(await this._githubApi(), args[0], args[1], args[2])
       case 'githubGetChecks':
         return githubGetChecks(await this._githubApi(), args[0], args[1], args[2])
       case 'githubMergePR':

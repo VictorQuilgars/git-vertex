@@ -2,7 +2,7 @@ import * as assert from 'assert'
 import {
   githubListPRs, githubListIssues, githubGetIssue,
   githubSearchIssues, githubCloseIssue, githubListRepos, githubCreateGist, clearSearchCache,
-  bypassVerdict, githubBranchPRs,
+  bypassVerdict, githubBranchPRs, githubPRFacts,
 } from '../../githubApi'
 
 // The first GitHub logic here with real coverage. githubApi.ts imports nothing
@@ -290,6 +290,63 @@ suite('githubApi — closing, listing, sharing', () => {
       assert.ok(f.calls.every((u: string) => u.startsWith('https://github.acme.com/api/v3/')),
         `every call goes to the instance, got ${JSON.stringify(f.calls)}`)
       assert.ok(f.calls.some((u: string) => u.includes('/repos/team/app/pulls')))
+    } finally { f.restore() }
+  })
+})
+
+// #291: the fork is read off the list row itself; checks, review decision and
+// size are one GraphQL query for a whole list — the desktop's github:pr-facts.
+suite('githubApi — a pull request row, and what its hover adds', () => {
+  test('the list says which rows come from a fork, with no request of its own', async () => {
+    const baseRepo = { full_name: 'o/r' }
+    const f = stubFetch([{ body: [
+      { number: 1, head: { ref: 'a', repo: { full_name: 'o/r' } }, base: { ref: 'main', repo: baseRepo } },
+      { number: 2, head: { ref: 'b', repo: { full_name: 'alice/r' } }, base: { ref: 'main', repo: baseRepo } },
+      { number: 3, head: { ref: 'c', repo: null }, base: { ref: 'main', repo: baseRepo } },
+    ] }])
+    try {
+      const r: any = await githubListPRs(API, 'fork-list', 'r')
+      assert.deepStrictEqual(r.prs.map((p: any) => [p.number, p.fork, p.headRepo]),
+        [[1, false, undefined], [2, true, 'alice/r'], [3, true, undefined]])
+      assert.strictEqual(f.calls.length, 1)
+    } finally { f.restore() }
+  })
+
+  test('one POST for every number, to the GraphQL beside the instance', async () => {
+    const real = globalThis.fetch
+    const calls: { url: string; init: any }[] = []
+    globalThis.fetch = (async (url: any, init: any) => {
+      calls.push({ url: String(url), init })
+      return {
+        ok: true, status: 200,
+        json: async () => ({ data: { repository: {
+          p12: { number: 12, additions: 5, deletions: 1, changedFiles: 2, reviewDecision: 'APPROVED',
+            commits: { nodes: [{ commit: { statusCheckRollup: { state: 'PENDING' } } }] } },
+          p13: null,
+        } } }),
+      }
+    }) as unknown as typeof globalThis.fetch
+    try {
+      const ENT = { base: 'https://github.acme.com/api/v3', token: 'acme' }
+      const r: any = await githubPRFacts(ENT, 'team', 'app', [12, 13, 12])
+      assert.strictEqual(calls.length, 1)
+      assert.strictEqual(calls[0].url, 'https://github.acme.com/api/graphql')
+      assert.strictEqual(calls[0].init.method, 'POST')
+      const body = JSON.parse(calls[0].init.body)
+      assert.deepStrictEqual(body.variables, { o: 'team', r: 'app' })
+      assert.strictEqual(body.query.match(/pullRequest\(/g).length, 2)
+      assert.deepStrictEqual(r.facts[12],
+        { number: 12, checks: 'pending', reviewDecision: 'APPROVED', additions: 5, deletions: 1, changedFiles: 2 })
+      assert.strictEqual(r.facts[13], undefined)
+    } finally { globalThis.fetch = real }
+  })
+
+  test('no token asks nothing; a rate limit reads as the saved filters say it', async () => {
+    const f = stubFetch([{ status: 200, body: { errors: [{ type: 'RATE_LIMITED', message: 'limit' }] } }])
+    try {
+      assert.deepStrictEqual(await githubPRFacts(ANON, 'o', 'r', [1]), { error: 'not_authenticated' })
+      assert.strictEqual(f.calls.length, 0)
+      assert.deepStrictEqual(await githubPRFacts(API, 'o', 'r', [1]), { error: 'rate_limited' })
     } finally { f.restore() }
   })
 })

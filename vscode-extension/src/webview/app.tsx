@@ -231,6 +231,7 @@ function VertexApp() {
       createdAt: x.createdAt, comments: x.comments, labels: x.labels,
       headRef: x.headRef, baseRef: x.baseRef,
       body: x.body, assignees: x.assignees, reviewers: x.reviewers,
+      fork: kind === 'pr' ? x.fork : undefined, headRepo: kind === 'pr' ? x.headRepo : undefined,
     })
     // `only` narrows it to the section whose button was pressed — the desktop's
     // twin, and for the same reason (#133).

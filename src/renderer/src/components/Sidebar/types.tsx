@@ -72,6 +72,10 @@ export interface GithubListItem {
   assignees?: string[]
   /** Logins whose review is requested — what Awaiting My Review groups on. */
   reviewers?: string[]
+  /** A pull request whose head lives in another repository (#291). */
+  fork?: boolean
+  /** That repository, `owner/name` — absent when the fork was deleted. */
+  headRepo?: string
 }
 
 export interface RemoteEntry { name: string; fetchUrl: string; pushUrl: string }

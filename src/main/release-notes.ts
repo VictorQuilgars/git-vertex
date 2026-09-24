@@ -12,6 +12,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 📅 Merged since, closed since
 - Filters of pull requests and issues take **\`merged:\`** and **\`closed:\`**, typed or described: *PRs merged since September 1st* now keeps its date.
+
+### 🔢 A pull request by its number
+- Type **\`#123\`** in the Pull requests search box: when the list does not hold it, the view offers to **fetch it whatever its state** — merged and closed ones included — and opens it. Rows from a **fork** say so, and the hover now shows the request's **checks**, **review decision** and **size**.
 `,
   '1.39.0': `## What's new in 1.39.0
 

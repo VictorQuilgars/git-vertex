@@ -11,6 +11,7 @@ import { state } from '../app-state'
 import { readSettings, writeSettings } from '../settings-store'
 import { ghApi, detectGithubRepo, avatarCache, githubIdenticonUrl, loadAuthedUserEmails, conditionalGet, prBlockedSupplement, searchCache } from '../github-client'
 import { branchPRsPath, toBranchPRs } from '../github-branch-prs'
+import { graphqlUrl, prFactsNumbers, prFactsQuery, prFactsFailure, prFork, toPRFacts } from '../github-pr-facts'
 
 
 
@@ -222,9 +223,35 @@ export function registerGithubHandlers(): void {
           url: pr.html_url,
           headRef: pr.head?.ref ?? '',
           baseRef: pr.base?.ref ?? '',
+          // The fork is on the row already — no request of its own (#291).
+          ...prFork(pr),
         }))
         }),
       )
+    } catch (e: any) { return { error: e.message } }
+  })
+
+  // What a row's hover adds (#291): checks, review decision, size. The list
+  // above cannot carry them — the REST list endpoint has none of the three —
+  // so they are ONE GraphQL query for every number asked, never one request
+  // per row (see github-pr-facts.ts). Not conditional: GraphQL has no ETag,
+  // which is why the renderer asks only when a card opens, and holds the
+  // answer for a minute.
+  handle('github:pr-facts', async (_e, owner: string, repo: string, numbers: number[]) => {
+    const api = await ghApi()
+    const token = api.token
+    if (!token) return { error: 'not_authenticated' }
+    const asked = prFactsNumbers(Array.isArray(numbers) ? numbers : [])
+    if (!asked.length) return { facts: {} }
+    try {
+      const res = await fetch(graphqlUrl(api.base), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: prFactsQuery(asked), variables: { o: owner, r: repo } }),
+      })
+      const data = await res.json().catch(() => null)
+      const failed = prFactsFailure(res.status, data)
+      return failed ? { error: failed } : { facts: toPRFacts(data) }
     } catch (e: any) { return { error: e.message } }
   })
 
