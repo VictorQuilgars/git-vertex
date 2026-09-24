@@ -5,12 +5,18 @@
 // merge/rebase with both sides labelled (branch + subject), apply a
 // surgical resolution to a conflicted file, and continue/abort the
 // operation. Runs on stdio, entirely on your machine — no cloud.
+// Besides tools, it serves the other MCP primitives most servers leave out:
+// resources (status, log, staged diff — subscribable), prompts (review a
+// branch, release notes, explain a commit), sampling and elicitation.
 //
 // Writes are limited to conflict resolution (a file already in conflict,
-// staged after write; never history rewriting) and can be disabled
+// staged after write; never history rewriting), are confirmed by the user
+// through the client when it supports elicitation, and can be disabled
 // entirely with --read-only or GV_MCP_READONLY=1.
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
+import { ErrorCode, McpError, SubscribeRequestSchema, UnsubscribeRequestSchema } from '@modelcontextprotocol/sdk/types.js'
+import { createHash } from 'node:crypto'
 import { z } from 'zod'
 import { simpleGit, SimpleGit } from 'simple-git'
 import * as path from 'node:path'
@@ -30,6 +36,10 @@ const VERSION: string = (() => {
   }
 })()
 const READ_ONLY = process.argv.includes('--read-only') || process.env.GV_MCP_READONLY === '1'
+// For clients that already gate every tool call behind a permission prompt of
+// their own, where a second question from the server would be the same one
+// asked twice. See confirmWithUser below.
+const NO_ELICITATION = process.argv.includes('--no-elicitation') || process.env.GV_MCP_NO_ELICITATION === '1'
 
 // ── Repo resolution ────────────────────────────────────────────
 // Every tool takes an optional `repo` path; default is $GV_REPO or cwd.
@@ -79,6 +89,13 @@ function simpleGitEnv(): Record<string, string> {
     if (value !== undefined) env[key] = value
   }
   env.LC_ALL = 'C'
+  // `git status` refreshes the index's stat cache when it can, which means
+  // taking index.lock for a moment. A subscribed resource re-reads the status
+  // every couple of seconds in the background (see Resources below), and a
+  // lock held by us at the instant the user runs `git add` fails their command
+  // with "index.lock exists". Every write this server makes takes its lock
+  // regardless — only the opportunistic ones are given up.
+  env.GIT_OPTIONAL_LOCKS = '0'
   return env
 }
 
@@ -111,8 +128,105 @@ const errText = (e: unknown) => ({
 
 const repoParam = z.string().optional().describe('Absolute path to the git repository (default: $GV_REPO or current working directory)')
 
+// ── Shared readers ─────────────────────────────────────────────
+// The status, the log and the staged diff are each reachable two ways — as a
+// tool the agent calls, and as a resource a client pins to its context (see
+// Resources below). Both go through these, so the two can never disagree on
+// what "the status" looks like.
+
+async function statusText(git: SimpleGit, root: string): Promise<string> {
+  const s = await git.status()
+  return [
+    `repo: ${root}`,
+    `branch: ${s.current ?? '(detached)'}${s.tracking ? ` → ${s.tracking}` : ''}`,
+    `ahead/behind: +${s.ahead} / -${s.behind}`,
+    '',
+    `staged (${s.staged.length}): ${s.staged.join(', ') || '—'}`,
+    `modified (${s.modified.length}): ${s.modified.join(', ') || '—'}`,
+    `untracked (${s.not_added.length}): ${s.not_added.join(', ') || '—'}`,
+    `deleted (${s.deleted.length}): ${s.deleted.join(', ') || '—'}`,
+    `conflicted (${s.conflicted.length}): ${s.conflicted.join(', ') || '—'}`,
+  ].join('\n')
+}
+
+async function logText(git: SimpleGit, opts: { maxCount?: number; all?: boolean; author?: string; since?: string; path?: string } = {}): Promise<string> {
+  const args = [
+    'log',
+    '--pretty=format:%h|%p|%an|%ad|%D|%s',
+    '--date=short',
+    `--max-count=${opts.maxCount ?? 50}`,
+    '--date-order',
+  ]
+  if (opts.all !== false) args.push('--all')
+  if (opts.author) args.push(`--author=${safeArg(opts.author, 'author')}`)
+  if (opts.since) args.push(`--since=${safeArg(opts.since, 'since')}`)
+  if (opts.path) args.push('--', safeArg(opts.path, 'path'))
+  const out = await git.raw(args)
+  return truncate(out.trim() || '(no commits)')
+}
+
+async function stagedDiffText(git: SimpleGit): Promise<string> {
+  const out = await git.raw(['diff', '--cached'])
+  return truncate(out.trim() || '(no differences)')
+}
+
 // ── Server & tools ─────────────────────────────────────────────
 const server = new McpServer({ name: 'git-vertex', version: VERSION })
+
+// ── Human confirmation via MCP elicitation ─────────────────────
+// The review step for a write is the desktop app: the agent proposes, the user
+// saves in the real 3-way editor. Without the app installed, that step used to
+// be a request in the chat — which the agent could skip, word loosely, or ask
+// after the fact. Elicitation puts the question to the user through the client
+// itself, from this server, before anything is written: the agent cannot answer
+// it on the user's behalf.
+//
+// It degrades exactly like sampling does: a client that did not declare the
+// capability (or declared only URL-mode elicitation) is never sent the request,
+// and the tool behaves as it always has, relying on the confirmation in chat
+// that its description asks for. A client that did declare it and then fails to
+// answer is a different case — the write does NOT go ahead on a question nobody
+// saw, so that path throws.
+type Confirmation = 'confirmed' | 'declined' | 'unsupported'
+
+// A human reads the question; the SDK's default 60 s request timeout is sized
+// for machines, and would turn a user reading a long resolution into an error.
+const CONFIRM_TIMEOUT_MS = 10 * 60 * 1000
+
+async function confirmWithUser(message: string): Promise<Confirmation> {
+  if (NO_ELICITATION || !server.server.getClientCapabilities()?.elicitation?.form) return 'unsupported'
+  let res
+  try {
+    res = await server.server.elicitInput({
+      message,
+      requestedSchema: {
+        type: 'object',
+        // An explicit tick rather than the accept button alone: some clients
+        // submit a form on Enter, and a write should take a deliberate act.
+        properties: {
+          confirm: { type: 'boolean', title: 'Go ahead', description: 'Tick to let the change be made. Nothing has been written yet.', default: false },
+        },
+        required: ['confirm'],
+      },
+    }, { timeout: CONFIRM_TIMEOUT_MS })
+  } catch (e) {
+    throw new Error(`Could not ask the user to confirm (${e instanceof Error ? e.message : String(e)}) — nothing was changed`)
+  }
+  return res.action === 'accept' && res.content?.confirm === true ? 'confirmed' : 'declined'
+}
+
+const notConfirmed = (what: string) =>
+  text(`The user did not confirm: ${what}. Nothing was changed. Ask them what they want instead — do not retry the same call unprompted.`)
+
+// The first lines of a proposed file, for a confirmation question: enough to
+// recognise the resolution, short enough for a dialog.
+function preview(content: string, maxLines = 40, maxChars = 2000): string {
+  const lines = content.split('\n')
+  let out = lines.slice(0, maxLines).join('\n')
+  if (out.length > maxChars) out = out.slice(0, maxChars)
+  const cut = out.length < content.length
+  return cut ? `${out}\n… (${lines.length} lines in all)` : out
+}
 
 server.tool(
   'git_status',
@@ -121,19 +235,7 @@ server.tool(
   async ({ repo }) => {
     try {
       const { git, root } = await openRepo(repo)
-      const s = await git.status()
-      const lines = [
-        `repo: ${root}`,
-        `branch: ${s.current ?? '(detached)'}${s.tracking ? ` → ${s.tracking}` : ''}`,
-        `ahead/behind: +${s.ahead} / -${s.behind}`,
-        '',
-        `staged (${s.staged.length}): ${s.staged.join(', ') || '—'}`,
-        `modified (${s.modified.length}): ${s.modified.join(', ') || '—'}`,
-        `untracked (${s.not_added.length}): ${s.not_added.join(', ') || '—'}`,
-        `deleted (${s.deleted.length}): ${s.deleted.join(', ') || '—'}`,
-        `conflicted (${s.conflicted.length}): ${s.conflicted.join(', ') || '—'}`,
-      ]
-      return text(lines.join('\n'))
+      return text(await statusText(git, root))
     } catch (e) { return errText(e) }
   }
 )
@@ -152,19 +254,7 @@ server.tool(
   async ({ repo, maxCount, all, author, since, path: filePath }) => {
     try {
       const { git } = await openRepo(repo)
-      const args = [
-        'log',
-        '--pretty=format:%h|%p|%an|%ad|%D|%s',
-        '--date=short',
-        `--max-count=${maxCount ?? 50}`,
-        '--date-order',
-      ]
-      if (all !== false) args.push('--all')
-      if (author) args.push(`--author=${safeArg(author, 'author')}`)
-      if (since) args.push(`--since=${safeArg(since, 'since')}`)
-      if (filePath) args.push('--', safeArg(filePath, 'path'))
-      const out = await git.raw(args)
-      return text(truncate(out.trim() || '(no commits)'))
+      return text(await logText(git, { maxCount, all, author, since, path: filePath }))
     } catch (e) { return errText(e) }
   }
 )
@@ -475,7 +565,7 @@ server.tool(
   'resolve_conflict',
   READ_ONLY
     ? 'DISABLED (--read-only): would write the resolved content of ONE conflicted file and stage it.'
-    : 'DIRECT-APPLY, no review step: write the fully-resolved content of ONE conflicted file and stage it (git add) immediately. Guard-rails: the file must currently be in conflict, and the content must not contain any conflict markers. Never touches history. PREFER open_in_git_vertex with a `resolution` instead — it lets the user review/edit before anything is written. Only use this tool directly when the desktop app isn\'t installed, or the user explicitly said to just apply the fix without reviewing it.',
+    : 'DIRECT-APPLY, no review step: write the fully-resolved content of ONE conflicted file and stage it (git add) immediately. Guard-rails: the file must currently be in conflict, and the content must not contain any conflict markers. Never touches history. PREFER open_in_git_vertex with a `resolution` instead — it lets the user review/edit before anything is written. Only use this tool directly when the desktop app isn\'t installed, or the user explicitly said to just apply the fix without reviewing it. When the MCP client supports elicitation, the server itself asks the user to confirm (with a preview of the content) before writing; if they do not, nothing is written and the result says so.',
   {
     repo: repoParam,
     file: z.string().describe('Conflicted file path, relative to the repo root'),
@@ -489,6 +579,10 @@ server.tool(
       if (!st.files.includes(file)) throw new Error(`"${file}" is not currently conflicted (conflicted: ${st.files.join(', ') || 'none'})`)
       if (/^[<=>]{7}/m.test(content)) throw new Error('Content still contains conflict markers (<<<<<<< / ======= / >>>>>>>)')
       const abs = safeRepoFile(root, file)
+      const answer = await confirmWithUser(
+        `Write this resolution to ${file} and stage it? (${st.mode ?? 'conflict'} in ${root})\n\n${preview(content)}`
+      )
+      if (answer === 'declined') return notConfirmed(`${file} was not written or staged`)
       fs.writeFileSync(abs, content, 'utf-8')
       await git.raw(['add', '--', file])
       const remaining = st.files.filter(f => f !== file)
@@ -505,7 +599,7 @@ server.tool(
   'continue_operation',
   READ_ONLY
     ? 'DISABLED (--read-only): would run git rebase/merge/cherry-pick/revert --continue.'
-    : 'Continue the ongoing rebase/merge/cherry-pick/revert once every conflicted file is resolved and staged (equivalent of `git <op> --continue`, editor suppressed). Before calling this, the user should have had a chance to review each resolution — via open_in_git_vertex if the desktop app is installed, otherwise a quick confirmation in chat. Don\'t call this right after resolve_conflict without that step unless the user explicitly told you to just proceed.',
+    : 'Continue the ongoing rebase/merge/cherry-pick/revert once every conflicted file is resolved and staged (equivalent of `git <op> --continue`, editor suppressed). Before calling this, the user should have had a chance to review each resolution — via open_in_git_vertex if the desktop app is installed, otherwise a quick confirmation in chat. Don\'t call this right after resolve_conflict without that step unless the user explicitly told you to just proceed. When the MCP client supports elicitation, the server also asks the user to confirm before continuing.',
   { repo: repoParam },
   async ({ repo }) => {
     if (READ_ONLY) return errText(new Error('This server runs with --read-only: continue_operation is disabled'))
@@ -514,6 +608,10 @@ server.tool(
       const st = await detectConflictState(git, root)
       if (!st.mode) throw new Error('No operation in progress')
       if (st.files.length > 0) throw new Error(`Still conflicted: ${st.files.join(', ')} — resolve them first`)
+      const answer = await confirmWithUser(
+        `Continue the ${st.mode} in ${root}? Every conflicted file is resolved and staged; continuing records the result as commit(s).`
+      )
+      if (answer === 'declined') return notConfirmed(`the ${st.mode} was not continued and is still in progress`)
       // Plain execFile: simple-git forbids GIT_EDITOR overrides, and we need
       // core.editor=true (a no-op editor) so --continue never blocks on one.
       const { execFile } = await import('node:child_process')
@@ -529,7 +627,7 @@ server.tool(
   'abort_operation',
   READ_ONLY
     ? 'DISABLED (--read-only): would run git rebase/merge/cherry-pick/revert --abort.'
-    : 'Abort the ongoing rebase/merge/cherry-pick/revert and restore the pre-operation state (equivalent of `git <op> --abort`).',
+    : 'Abort the ongoing rebase/merge/cherry-pick/revert and restore the pre-operation state (equivalent of `git <op> --abort`). Every resolution made so far in the operation is lost. When the MCP client supports elicitation, the server asks the user to confirm first.',
   { repo: repoParam },
   async ({ repo }) => {
     if (READ_ONLY) return errText(new Error('This server runs with --read-only: abort_operation is disabled'))
@@ -537,6 +635,10 @@ server.tool(
       const { git, root } = await openRepo(repo)
       const st = await detectConflictState(git, root)
       if (!st.mode) throw new Error('No operation in progress')
+      const answer = await confirmWithUser(
+        `Abort the ${st.mode} in ${root}? Every resolution made so far in it is thrown away, and the repository goes back to where it was before the ${st.mode} started.`
+      )
+      if (answer === 'declined') return notConfirmed(`the ${st.mode} was not aborted and is still in progress`)
       await git.raw([OP_CMD[st.mode], '--abort'])
       return text(`${st.mode} aborted — repository restored to its pre-operation state.`)
     } catch (e) { return errText(e) }
@@ -660,7 +762,7 @@ async function openDeepLink(params: URLSearchParams): Promise<void> {
 
 server.tool(
   'open_in_git_vertex',
-  'Open the Git Vertex desktop app on this repository for human review: the commit graph ("graph"), the 3-way conflict resolver on a conflicted file ("resolve" + file, optionally with a proposed `resolution` preloaded into the editor for the user to review/edit/save themselves — nothing is written to disk by this call), or a commit\'s details ("commit" + hash). PREFER this — with `resolution` set — over calling resolve_conflict directly, so the user reviews the change in the real editor instead of a text diff; only call resolve_conflict directly if this tool errors (app not installed) or the user asked you to just apply it. Requires the desktop app to be installed — if this errors, tell the user your proposed resolution in chat and ask for a go/no-go there instead of skipping review.',
+  'Open the Git Vertex desktop app on this repository for human review: the commit graph ("graph"), the 3-way conflict resolver on a conflicted file ("resolve" + file, optionally with a proposed `resolution` preloaded into the editor for the user to review/edit/save themselves — nothing is written to disk by this call), or a commit\'s details ("commit" + hash). PREFER this — with `resolution` set — over calling resolve_conflict directly, so the user reviews the change in the real editor instead of a text diff; only call resolve_conflict directly if this tool errors (app not installed) or the user asked you to just apply it. Requires the desktop app to be installed — if this errors, call resolve_conflict: when the MCP client supports elicitation the server asks the user for a go/no-go itself, and otherwise tell the user your proposed resolution in chat and ask for a go/no-go there instead of skipping review.',
   {
     repo: repoParam,
     view: z.enum(['graph', 'resolve', 'commit']).optional().describe('Surface to open (default "graph")'),
@@ -802,6 +904,270 @@ server.tool(
         ],
       }
     } catch (e) { return errText(e) }
+  }
+)
+
+// ── Resources ──────────────────────────────────────────────────
+// What an agent would otherwise have to ask for with a tool call, offered as
+// context a client can pin: open-source clients (Cline, Continue, Zed…) attach a
+// resource to the conversation directly, and keep it fresh through a
+// subscription. They read the DEFAULT repository — $GV_REPO, or the directory the
+// client started the server in — since a resource URI carries no arguments.
+
+type GitResource = {
+  name: string
+  title: string
+  description: string
+  mimeType: string
+  read: (git: SimpleGit, root: string) => Promise<string>
+}
+
+const RESOURCES: Record<string, GitResource> = {
+  'git://status': {
+    name: 'status',
+    title: 'Working-tree status',
+    description: 'Current branch, upstream ahead/behind, staged, modified, untracked, deleted and conflicted files — the same text as the git_status tool.',
+    mimeType: 'text/plain',
+    read: statusText,
+  },
+  'git://log': {
+    name: 'log',
+    title: 'Recent history',
+    description: 'The last 50 commits across all branches, most recent first: hash | parents | author | date | refs | subject — the same text as the git_log tool with its defaults.',
+    mimeType: 'text/plain',
+    read: (git) => logText(git),
+  },
+  'git://diff/staged': {
+    name: 'diff-staged',
+    title: 'Staged changes',
+    description: 'The patch that the next commit would record (git diff --cached), truncated at 24k characters.',
+    mimeType: 'text/x-diff',
+    read: (git) => stagedDiffText(git),
+  },
+}
+
+async function readResourceText(uri: string): Promise<string> {
+  const r = RESOURCES[uri]
+  if (!r) throw new McpError(ErrorCode.InvalidParams, `Unknown resource: ${uri}`)
+  const { git, root } = await openRepo()
+  return r.read(git, root)
+}
+
+for (const [uri, r] of Object.entries(RESOURCES)) {
+  server.registerResource(r.name, uri, { title: r.title, description: r.description, mimeType: r.mimeType }, async () => ({
+    contents: [{ uri, mimeType: r.mimeType, text: await readResourceText(uri) }],
+  }))
+}
+
+// Subscriptions. git has no change feed, and watching the working tree for
+// events is not portable (recursive fs.watch needs Node 20 on Linux, and the
+// events fire on every editor save whether or not git's answer changed). So a
+// subscribed resource is re-read on an interval and compared with the last text
+// the client could have seen: a notification means the CONTENT changed, never
+// merely that a file was touched. Nothing is polled while nothing is subscribed.
+// The status is read without optional locks (see simpleGitEnv), so the polling
+// cannot collide with the user's own git commands.
+const POLL_MS = Math.max(50, Number(process.env.GV_MCP_RESOURCE_POLL_MS) || 2000)
+const subscriptions = new Map<string, string>() // uri → fingerprint of the last text
+let pollTimer: NodeJS.Timeout | null = null
+let polling = false
+
+// A failing read (the directory stopped being a repository, say) is a state
+// too: its message is what the client would read, so it is fingerprinted like
+// any other text rather than dropped.
+async function fingerprint(uri: string): Promise<string> {
+  let body: string
+  try { body = await readResourceText(uri) } catch (e) { body = `error: ${e instanceof Error ? e.message : String(e)}` }
+  return createHash('sha1').update(body).digest('hex')
+}
+
+async function pollSubscriptions(): Promise<void> {
+  // A slow git (a large repository, a cold cache) must not stack reads.
+  if (polling) return
+  polling = true
+  try {
+    for (const [uri, last] of subscriptions) {
+      const now = await fingerprint(uri)
+      // Unsubscribed while the read was in flight: say nothing.
+      if (!subscriptions.has(uri) || now === last) continue
+      subscriptions.set(uri, now)
+      await server.server.sendResourceUpdated({ uri }).catch(() => { /* client gone */ })
+    }
+  } finally {
+    polling = false
+  }
+}
+
+function syncPolling(): void {
+  if (subscriptions.size > 0 && !pollTimer) {
+    pollTimer = setInterval(() => { void pollSubscriptions() }, POLL_MS)
+    // The stdio transport is what keeps the process alive; a subscription left
+    // behind by a client that went away must not.
+    pollTimer.unref()
+  } else if (subscriptions.size === 0 && pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+
+// McpServer handles list and read, but not subscribe: the capability and its
+// two handlers are declared on the underlying server, before connecting.
+server.server.registerCapabilities({ resources: { subscribe: true, listChanged: true } })
+server.server.setRequestHandler(SubscribeRequestSchema, async (req) => {
+  const { uri } = req.params
+  if (!RESOURCES[uri]) throw new McpError(ErrorCode.InvalidParams, `Unknown resource: ${uri}`)
+  // The baseline is taken now, so the first notification is for a change made
+  // after the subscription — not for the state the client just read.
+  subscriptions.set(uri, await fingerprint(uri))
+  syncPolling()
+  return {}
+})
+server.server.setRequestHandler(UnsubscribeRequestSchema, async (req) => {
+  subscriptions.delete(req.params.uri)
+  syncPolling()
+  return {}
+})
+
+// ── Prompts ────────────────────────────────────────────────────
+// Slash commands any MCP client lists natively (/review-branch, /release-notes,
+// /explain-commit). Each one gathers the git material itself and hands it over
+// inside the prompt, so it works in a client that never calls a tool — and the
+// model's answer comes from the client's own LLM, whichever provider that is.
+// Arguments of a prompt are strings by protocol, all of them optional but one.
+
+const promptRepoArg = z.string().optional().describe('Absolute path to the git repository (default: $GV_REPO or the server\'s working directory)')
+
+const userPrompt = (description: string, body: string) => ({
+  description,
+  messages: [{ role: 'user' as const, content: { type: 'text' as const, text: body } }],
+})
+
+// Where a branch is to be reviewed against when the caller does not say: the
+// remote's default branch if the clone recorded one, else the usual local names.
+// Both probes use --quiet, whose miss is an exit 1 with empty stderr — simple-git
+// reports that as success with empty output, so the OUTPUT is what is tested.
+async function defaultBase(git: SimpleGit): Promise<string> {
+  const originHead = (await git.raw(['symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD']).catch(() => '')).trim()
+  if (originHead) return originHead
+  for (const name of ['main', 'master', 'trunk', 'develop']) {
+    const hit = (await git.raw(['rev-parse', '--verify', '--quiet', `refs/heads/${name}`]).catch(() => '')).trim()
+    if (hit) return name
+  }
+  throw new Error('Could not guess the base branch (no origin/HEAD, main, master, trunk or develop) — pass `base`')
+}
+
+server.registerPrompt(
+  'review-branch',
+  {
+    title: 'Review a branch',
+    description: 'Code review of a branch against its base: the commits it adds and their combined diff, with instructions to look for bugs, risks and missing tests.',
+    argsSchema: {
+      repo: promptRepoArg,
+      branch: z.string().optional().describe('The branch to review (default: the current branch)'),
+      base: z.string().optional().describe('The branch it would merge into (default: origin\'s default branch, else main/master)'),
+    },
+  },
+  async ({ repo, branch, base }) => {
+    const { git, root } = await openRepo(repo)
+    let head = branch ? safeArg(branch, 'branch') : ''
+    if (!head) head = (await git.raw(['rev-parse', '--abbrev-ref', 'HEAD'])).trim()
+    const target = base ? safeArg(base, 'base') : await defaultBase(git)
+    // Resolve both first, for a clear error on a typo rather than git's own.
+    await git.revparse([head]); await git.revparse([target])
+    const commits = (await git.raw(['log', '--pretty=format:%h %s (%an, %ad)', '--date=short', `${target}..${head}`])).trim()
+    if (!commits) throw new Error(`${head} has no commits that ${target} does not already have — nothing to review`)
+    // Three dots: the changes since the branch left its base, not whatever the
+    // base has gained since — that is what a merge would bring in.
+    const stat = (await git.raw(['diff', '--stat', `${target}...${head}`])).replace(/^\n+/, '').trimEnd()
+    const patch = (await git.raw(['diff', `${target}...${head}`])).trim()
+    return userPrompt(`Review of ${head} against ${target}`, [
+      `Review the branch \`${head}\` against \`${target}\` in ${root}, as a careful senior reviewer would before it is merged.`,
+      '',
+      'Look for, in this order: bugs and behaviour changes the commit messages do not own up to; edge cases and error paths; security and data-loss risks; missing or weakened tests; then readability. Cite the file and the hunk for each point, say how sure you are, and separate what must change from what is a suggestion. If the branch looks right, say so plainly rather than inventing findings.',
+      '',
+      `Commits on ${head} not on ${target}:`,
+      commits,
+      '',
+      'Files changed:',
+      stat,
+      '',
+      'Combined diff:',
+      '```diff',
+      truncate(patch, 20000),
+      '```',
+    ].join('\n'))
+  }
+)
+
+server.registerPrompt(
+  'release-notes',
+  {
+    title: 'Draft release notes',
+    description: 'Release notes for a range of history — by default, everything since the latest tag — written for users from the commit subjects and bodies.',
+    argsSchema: {
+      repo: promptRepoArg,
+      from: z.string().optional().describe('Start of the range, exclusive (default: the latest tag before `to`)'),
+      to: z.string().optional().describe('End of the range, inclusive (default: HEAD)'),
+    },
+  },
+  async ({ repo, from, to }) => {
+    const { git, root } = await openRepo(repo)
+    const end = to ? safeArg(to, 'to') : 'HEAD'
+    await git.revparse([end])
+    let start = from ? safeArg(from, 'from') : ''
+    if (!start) {
+      // Described from the PARENT of `end`: when `end` is itself the tag being
+      // released, the notes are for what led up to it, not an empty range.
+      // No tag at all (git exits 128) means the whole history.
+      start = (await git.raw(['describe', '--tags', '--abbrev=0', `${end}^`]).catch(() => '')).trim()
+    } else {
+      await git.revparse([start])
+    }
+    const range = start ? `${start}..${end}` : end
+    const log = (await git.raw(['log', '--no-merges', '--max-count=300', '--pretty=format:- %h %s (%an)%n%w(0,4,4)%b', range])).trim()
+    if (!log) throw new Error(`No commits in ${range} — nothing to write notes for`)
+    return userPrompt(`Release notes for ${range}`, [
+      `Draft release notes for the changes in \`${range}\` of ${root}${start ? '' : ' (no earlier tag: the whole history)'}.`,
+      '',
+      'Write for the people who USE the software, not for its developers: group the changes under Added, Changed, Fixed and Removed (leave out empty groups), lead each entry with what a user notices, and say why it matters when the commit explains it. Fold together commits that are one change, and leave out what a user cannot see (refactors, CI, tests, typo fixes) unless it changes behaviour. Do not invent anything the commits do not say. Markdown, English.',
+      '',
+      'Commits (subject, then body, merges left out):',
+      truncate(log, 20000),
+    ].join('\n'))
+  }
+)
+
+server.registerPrompt(
+  'explain-commit',
+  {
+    title: 'Explain a commit',
+    description: 'Plain-language explanation of one commit — what it changes, why, and what to watch out for — from its message, its stats and its patch.',
+    argsSchema: {
+      repo: promptRepoArg,
+      ref: z.string().describe('The commit: a hash, a tag, a branch or any revision (e.g. HEAD~2)'),
+    },
+  },
+  async ({ repo, ref }) => {
+    const { git, root } = await openRepo(repo)
+    const r = safeArg(ref, 'ref')
+    const meta = (await git.raw(['show', '--no-patch', '--pretty=format:commit %H%nauthor: %an <%ae>%ndate: %ad%nrefs: %D%n%n%B', '--date=iso', r])).trim()
+    const stat = (await git.raw(['show', '--stat', '--pretty=format:', r])).replace(/^\n+/, '').trimEnd()
+    const patch = (await git.raw(['show', '--pretty=format:', '--patch', r])).trim()
+    return userPrompt(`Explanation of ${ref}`, [
+      `Explain the commit \`${ref}\` of ${root} to someone who knows the project but has not seen this change.`,
+      '',
+      'Say what it changes and why (from the message where it says so — and say so when it does not), how it does it, anything surprising or risky, and what someone building on top of it should know. Refer to files and functions by name. Keep it proportionate: a one-line fix needs a paragraph, not a report.',
+      '',
+      meta,
+      '',
+      'Files changed:',
+      stat || '(none)',
+      '',
+      'Patch:',
+      '```diff',
+      truncate(patch || '(empty — a merge or an empty commit)', 20000),
+      '```',
+    ].join('\n'))
   }
 )
 

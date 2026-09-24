@@ -54,6 +54,38 @@ the `GV_REPO` environment variable.
 | `propose_rebase_plan` 🖥️ | Open the visual interactive-rebase editor with an agent-proposed plan (squash/fixup/reword/drop + new messages) preloaded — the user reviews and launches it themselves |
 | `generate_commit_message` 🎲 | Draft a commit message from the staged diff using the MCP **client's own LLM** (sampling) — no API key on this server, works with any provider; falls back to returning the diff if the client doesn't support sampling |
 
+## Resources
+
+The status, the history and the staged diff are also offered as **resources**,
+so a client can pin them to the conversation without a tool call — Cline,
+Continue, Zed and others attach them directly. They read the default
+repository (`GV_REPO`, or the directory the client started the server in).
+
+| URI | What it holds |
+|---|---|
+| `git://status` | Same text as `git_status` |
+| `git://log` | Same text as `git_log` with its defaults: the last 50 commits, all branches |
+| `git://diff/staged` | The staged patch (`git diff --cached`) |
+
+All three are **subscribable**: while a client is subscribed, the server re-reads
+the resource every 2 seconds and sends `notifications/resources/updated` when its
+text has changed — not merely when a file was touched. Nothing is polled while
+nothing is subscribed, and the reads take no optional lock, so they cannot make
+your own `git add` fail on `index.lock`. `GV_MCP_RESOURCE_POLL_MS` changes the
+interval.
+
+## Prompts
+
+Three prompts that MCP clients list as slash commands. Each gathers the git
+material itself and hands it to the client's own model, so they work with any
+provider and in a client that never calls a tool.
+
+| Prompt | Arguments | What it asks for |
+|---|---|---|
+| `/review-branch` | `branch` (default: current), `base` (default: origin's default branch, else `main`/`master`), `repo` | A code review of the branch's commits and of its diff since it left the base |
+| `/release-notes` | `from` (default: the latest tag before `to`), `to` (default: `HEAD`), `repo` | User-facing release notes grouped as Added / Changed / Fixed / Removed |
+| `/explain-commit` | `ref` (required), `repo` | A plain-language explanation of one commit: what, why, how, what to watch |
+
 ## Design notes
 
 - **Writes are surgical and opt-out** — the only mutating tools (✏️) operate
@@ -61,6 +93,14 @@ the `GV_REPO` environment variable.
   and continue/abort the operation. They can never rewrite history, push, or
   touch a non-conflicted file. Run with `--read-only` (or `GV_MCP_READONLY=1`)
   to disable them entirely: your repository, your rules.
+- **The user confirms writes, even without the app** — when the MCP client
+  supports elicitation, `resolve_conflict`, `continue_operation` and
+  `abort_operation` ask the user through the client before acting (the
+  resolution is previewed in the question); if the user does not tick
+  "Go ahead", nothing is changed. A client without elicitation is never asked
+  and the tools behave as before, relying on a confirmation in chat. If your
+  client already puts every tool call behind a permission prompt, run with
+  `--no-elicitation` (or `GV_MCP_NO_ELICITATION=1`) not to be asked twice.
 - **The agent proposes, the human disposes** — the 🖥️ tools hand off to the
   Git Vertex desktop app (via the `gitgui://` scheme, so the app must be
   installed) with the agent's proposal preloaded into the real UI. They write
@@ -85,7 +125,9 @@ npm test           # end-to-end suite: builds, regenerates fixture repos
 ```
 
 The suite covers all tools, `--read-only`, `GV_REPO`, argv-injection and
-path-traversal guards, a full bisect session, and MCP sampling (simulated
-client). The desktop-handoff happy paths (`gitgui://`) are validation-only —
-they would open the app. Two `KNOWN-BUG (locale fr)` tests pin the current
-behaviour under a French git locale; invert them when fixing it.
+path-traversal guards, a full bisect session, MCP sampling and elicitation
+(simulated client, including a client without either), the three resources
+and their subscriptions, and the three prompts. The desktop-handoff happy
+paths (`gitgui://`) are validation-only — they would open the app. Two
+`locale fr` tests start the server under a French git locale and expect
+English output.
