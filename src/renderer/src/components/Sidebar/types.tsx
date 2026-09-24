@@ -326,6 +326,19 @@ export interface SidebarProps {
   githubPRs?: GithubListItem[]
   githubIssues?: GithubListItem[]
   /**
+   * Why a list above is undefined, per list (#292): `no_remote`,
+   * `not_authenticated`, or the error the read ended on (forgeGap.ts). Absent
+   * while nothing has been asked — the view then stays as blank as before,
+   * rather than claim a reason it does not have yet.
+   */
+  githubErrors?: { prs?: string; issues?: string }
+  /**
+   * Open the host's settings at a section — what an empty GitHub view offers
+   * when the fix is an account or an Enterprise host (#292). Omitted ⇒ the
+   * button is not drawn.
+   */
+  onOpenSettings?: (section: 'github') => void
+  /**
    * A comparison the host opens, for a pull request that has been fetched
    * (#290). `diverged` is what the request itself shows — what the head did
    * since the two parted — and `endpoints` is the two trees as they stand.

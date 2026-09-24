@@ -23,6 +23,7 @@ import { ContributorsSection } from './sections/ContributorsSection'
 import { OverviewSection } from './sections/OverviewSection'
 import { PrsSection } from './sections/PrsSection'
 import { IssuesSection } from './sections/IssuesSection'
+import { ForgeGapSection } from './notices'
 import './Sidebar.css'
 
 // Kept on this module for the hosts that import them from here.
@@ -190,15 +191,12 @@ export default function Sidebar(props: SidebarProps) {
 
           {/* PULL REQUESTS — a section, not a view of its own: it is read
               beside the branches, and a tab would replace what is being worked
-              on. Absent entirely when the host has no GitHub here. */}
-          {githubPRs && show('prs') && (
-            <PrsSection s={s} />
-          )}
+              on. With no list, the reason there is none (#292) — or nothing,
+              on the desktop, for a repository that is not on GitHub. */}
+          {show('prs') && (githubPRs ? <PrsSection s={s} /> : <ForgeGapSection s={s} kind="prs" />)}
 
           {/* GITHUB ISSUES */}
-          {githubIssues && show('issues') && (
-            <IssuesSection s={s} />
-          )}
+          {show('issues') && (githubIssues ? <IssuesSection s={s} /> : <ForgeGapSection s={s} kind="issues" />)}
 
           {/* STASH */}
           {show('stash') && (

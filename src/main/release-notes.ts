@@ -16,8 +16,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### ⌨️ A key per side bar view
 - **\`1\` to \`9\`** bring a side bar view into sight — Overview, AI, Worktrees, Branches, Remotes, Stash, Tags, Pull requests, Issues. Never while typing; the \`?\` sheet lists them.
 
-### 🧭 A list that failed says so
+### 🧭 Empty says why
 - A side bar list that **could not be loaded** says so, quoted, with **Try again** — it used to show an empty list, which reads as *there are none*.
+- The **pull request and issue sections** of a GitHub repository with no account connected say so and open **Settings › GitHub**, instead of not being there at all.
 `,
   '1.39.0': `## What's new in 1.39.0
 

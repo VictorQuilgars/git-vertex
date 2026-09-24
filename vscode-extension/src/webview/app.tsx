@@ -21,6 +21,7 @@ import { LOG_PAGE, StashPreview } from '../../../src/renderer/src/app/shared'
 import AIReadingTab from './AIReadingTab'
 import MemoryTab from './MemoryTab'
 import SettingsModal from '../../../src/renderer/src/components/SettingsModal/SettingsModal'
+import { askForSettingsSection } from '../../../src/renderer/src/components/SettingsModal/shared'
 import ThemeGallery from '../../../src/renderer/src/components/ThemeGallery/ThemeGallery'
 import ThemeBuilder from '../../../src/renderer/src/components/ThemeBuilder/ThemeBuilder'
 import CommitGraph from '../../../src/renderer/src/components/CommitGraph/CommitGraph'
@@ -35,6 +36,7 @@ import type { ConflictKind, StashScope } from '../../../src/renderer/src/types'
 import Sidebar, { SidebarView, type GithubListItem } from '../../../src/renderer/src/components/Sidebar/Sidebar'
 import { sidebarCounts } from '../../../src/renderer/src/components/Sidebar/sidebarCounts'
 import { SIDEBAR_VIEWS, viewForKey } from '../../../src/renderer/src/components/Sidebar/viewKeys'
+import { NO_FORGE_REMOTE, listError } from '../../../src/renderer/src/components/Sidebar/forgeGap'
 import IssueDetail from '../../../src/renderer/src/components/IssueDetail/IssueDetail'
 import PRDetail from '../../../src/renderer/src/components/IssueDetail/PRDetail'
 import { usePullRequestCode } from '../../../src/renderer/src/hooks/usePullRequestCode'
@@ -122,6 +124,8 @@ function VertexApp() {
   const githubPRsRef = useRef(githubPRs); githubPRsRef.current = githubPRs
   const [githubIssues, setGithubIssues] = useState<GithubListItem[] | undefined>()
   const githubIssuesRef = useRef(githubIssues); githubIssuesRef.current = githubIssues
+  // Why a list is undefined, per list — what the empty views say (#292).
+  const [githubErrors, setGithubErrors] = useState<{ prs?: string; issues?: string }>({})
   // The signed-in login — what the account groups of PULL REQUESTS filter on.
   const [githubLogin, setGithubLogin] = useState<string | null>(null)
   // The issue being read in the centre (§3 bis): graph replaced, commit
@@ -238,20 +242,27 @@ function VertexApp() {
     // `only` narrows it to the section whose button was pressed — the desktop's
     // twin, and for the same reason (#133).
     const [prs, issues] = await Promise.all([
-      only === 'issues' ? null : (window.gitAPI as any).githubListPRs(base.owner, base.repo).catch(() => null),
-      only === 'prs' ? null : (window.gitAPI as any).githubListIssues(base.owner, base.repo).catch(() => null),
+      // A call that throws is a refusal like any other, and says why (#292).
+      only === 'issues' ? null : (window.gitAPI as any).githubListPRs(base.owner, base.repo).catch((e: any) => ({ error: e?.message ?? String(e) })),
+      only === 'prs' ? null : (window.gitAPI as any).githubListIssues(base.owner, base.repo).catch((e: any) => ({ error: e?.message ?? String(e) })),
     ])
     // ⚠️ Only skip when there is already something to keep: the ETag cache
     // lives in the host and outlives this webview, so the first load after a
     // reload can answer 304 while this side holds nothing. Skipping there is
     // what makes the sections vanish rather than show empty.
-    const put = (r: any, current: any, apply: (v: any) => void, shape: () => any) => {
+    // The refusal is kept beside the list it cost — the desktop's twin (#292).
+    const put = (section: 'prs' | 'issues', r: any, current: any, apply: (v: any) => void, shape: () => any) => {
       if (r?.notModified && current !== undefined) return
-      if (r?.error) { if (!silent) apply(undefined); return }
+      const error = listError(r)
+      if (error) {
+        if (!silent) { apply(undefined); setGithubErrors(e => ({ ...e, [section]: error })) }
+        return
+      }
+      setGithubErrors(e => e[section] === undefined ? e : { ...e, [section]: undefined })
       apply(shape())
     }
-    if (only !== 'issues') put(prs, githubPRsRef.current, setGithubPRs, () => (prs?.prs ?? []).map((x: any) => row(x, 'pr')))
-    if (only !== 'prs') put(issues, githubIssuesRef.current, setGithubIssues, () => (issues?.issues ?? []).map((x: any) => row(x, 'issue')))
+    if (only !== 'issues') put('prs', prs, githubPRsRef.current, setGithubPRs, () => (prs?.prs ?? []).map((x: any) => row(x, 'pr')))
+    if (only !== 'prs') put('issues', issues, githubIssuesRef.current, setGithubIssues, () => (issues?.issues ?? []).map((x: any) => row(x, 'issue')))
   }, [])
 
   // The panel had no loop at all, so its lists were whatever they were when it
@@ -374,6 +385,7 @@ function VertexApp() {
           await loadGhLists({ owner: gh.owner, repo: gh.repo })
         } else {
           setGithubPRs(undefined); setGithubIssues(undefined)
+          setGithubErrors({ prs: NO_FORGE_REMOTE, issues: NO_FORGE_REMOTE })
         }
       } catch { setGithubRepo(null) }
       // The worktrees, for the rail's count (#277) — the side bar lists its own.
@@ -1683,6 +1695,8 @@ function VertexApp() {
             isFavorite={branchMeta.isFavorite}
             githubPRs={githubPRs}
             githubIssues={githubIssues}
+            githubErrors={githubErrors}
+            onOpenSettings={(section) => { askForSettingsSection(section); setSettingsOpen(true) }}
             onStartBranchFromIssue={handleCreateBranchFromIssue}
             onOpenGithubItem={(url) => window.gitAPI.openExternal(url)}
             onComparePullRequest={(base: string, head: string, axis: 'diverged' | 'endpoints') => {

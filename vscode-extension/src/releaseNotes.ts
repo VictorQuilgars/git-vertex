@@ -34,8 +34,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 - Each icon of the rail carries **how many rows its view holds** — the same count as the view's header. **\`1\` to \`9\`** open the views in the rail's order; the tooltip names each one's key.
 - The button at the **foot of the rail** keeps the side view **docked** beside the graph or **floating** over it, whatever the panel's width — or **Auto**, as before.
 
-### 🧭 A list that failed says so
+### 🧭 Empty says why
 - A view whose list **could not be loaded** says so, quoted, with **Try again**.
+- **Pull requests** and **Issues** say why they are empty — no GitHub account, no remote, no remote on GitHub, or a read that failed — each with the button that fixes it.
 `,
   '1.37.0': `## What's new in 1.37.0
 
