@@ -3,9 +3,10 @@ import type { BranchInfo } from '../../types'
 import type { BranchItemProps } from './BranchItem'
 import type { SidebarState } from './useSidebar'
 import { publishedNameFor } from '../ContextMenu/branchRefs'
+import { recomposeOffer, unpushedSubject } from './refReadings'
 
 export function localBranchProps(s: SidebarState, b: BranchInfo): BranchItemProps {
-  const { currentBranch, branches, onReveal, onOpenCard, onDeleteBranch, onMergeBranch, onRenameBranch, onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream, onExplainBranch, onBranchChangelog, onGoTo, onCompareBranch, soloBranch, onToggleSolo, onToggleHide, onPull, isFavorite, issueFor, onToggleFavorite, onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR, onCopyBranchLink, onDeleteBranchBoth, onRebaseOntoUpstream, onCompareUpstream, tipActions, mergeTarget, handlePullBranchRow, handleChangeUpstreamRow, handleSquashFixupsRow, worktreeOf, handleCreateWorktreeFor, onSetRepo, branchHidden } = s
+  const { currentBranch, branches, onReveal, onOpenCard, onDeleteBranch, onMergeBranch, onRenameBranch, onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream, onExplainBranch, onBranchChangelog, onRecomposeBranch, onGoTo, onCompareBranch, soloBranch, onToggleSolo, onToggleHide, onPull, isFavorite, issueFor, onToggleFavorite, onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR, onCopyBranchLink, onDeleteBranchBoth, onRebaseOntoUpstream, onCompareUpstream, tipActions, mergeTarget, handlePullBranchRow, handleChangeUpstreamRow, handleSquashFixupsRow, worktreeOf, handleCreateWorktreeFor, onSetRepo, branchHidden } = s
   return {
     name: b.name,
     current: b.current,
@@ -49,6 +50,16 @@ export function localBranchProps(s: SidebarState, b: BranchInfo): BranchItemProp
     onAssociateIssue: onAssociateIssue && (() => onAssociateIssue(b.name)),
     onExplain: onExplainBranch && (() => onExplainBranch(b.name)),
     onChangelog: onBranchChangelog && (() => onBranchChangelog(b.name)),
+    // The same reading, of only what the upstream has not received (#293).
+    onExplainUnpushed: (() => {
+      const subject = unpushedSubject(b)
+      return subject && onExplainBranch ? () => onExplainBranch(subject) : undefined
+    })(),
+    // Offered on every local branch; the menu disables it where it is not
+    // checked out, and the host is only ever called for the one that is.
+    onRecompose: onRecomposeBranch && recomposeOffer(b)
+      ? () => { if (recomposeOffer(b) === 'here') onRecomposeBranch(b.name) }
+      : undefined,
     pr: prIntentFor?.(b.name),
     onCreatePR,
     publishedAs: publishedNameFor(b.name, branches) ?? undefined,

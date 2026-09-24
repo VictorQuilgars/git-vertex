@@ -5,9 +5,11 @@ import { BranchTree } from '../tree'
 import { buildBranchTree } from '../branchTree'
 import type { TagEntry } from '../types'
 import type { SidebarState } from '../useSidebar'
+import { tagChangelogSubject } from '../refReadings'
+import { readRange } from '../../../../../main/ai-range'
 
 export function TagsSection({ s }: { s: SidebarState }) {
-  const { onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag, onToggleHideTag, onReveal, onOpenCard, single, t, tagHidden, familyMenu, showAll, filteredTags, layoutFor, layoutToggle, toggleFolder, openFolders } = s
+  const { onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag, onToggleHideTag, onReveal, onOpenCard, onBranchChangelog, branches, single, t, tagHidden, familyMenu, showAll, filteredTags, layoutFor, layoutToggle, toggleFolder, openFolders } = s
   const names = filteredTags.map(tg => tg.name)
   const asTree = layoutFor('tags', names) === 'tree'
   return (
@@ -27,7 +29,14 @@ export function TagsSection({ s }: { s: SidebarState }) {
                   onDelete={() => onDeleteTag(tag.name)}
                   onPush={() => onPushTag(tag.name)} onDeleteRemote={() => onDeleteRemoteTag(tag.name)}
                   hidden={tagHidden(tag.name)}
-                  onToggleHide={onToggleHideTag && (() => onToggleHideTag(tag.name))} />
+                  onToggleHide={onToggleHideTag && (() => onToggleHideTag(tag.name))}
+                  changelog={(() => {
+                    // `<tag>..<current branch>` — see refReadings.ts (#293).
+                    const subject = tagChangelogSubject(tag.name, branches)
+                    return subject && onBranchChangelog
+                      ? { branch: readRange(subject).tip, run: () => onBranchChangelog(subject) }
+                      : undefined
+                  })()} />
               )
               if (!filteredTags.length) return <div className="sb-empty">{t('sb.noTag')}</div>
               // `v1.2.0` holds no slash, but `release/1.2` does — and a

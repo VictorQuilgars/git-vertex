@@ -118,6 +118,7 @@ const gitAPI = {
   duplicateCommits: (branch: string, target: string) => invoke('git:duplicate-commits', branch, target),
   listRemoteBranches: () => invoke('git:list-remote-branches'),
   squashFixups: (base: string) => invoke('git:squash-fixups', base),
+  recomposeReset: (branch: string, onto: string, tip: string) => invoke('git:recompose-reset', branch, onto, tip),
   listFixups: (base: string) => invoke('git:list-fixups', base),
   moveBranchTo: (branch: string, hash: string) => invoke('git:move-branch-to', branch, hash),
   rebaseBranchOnto: (branch: string, hash: string) => invoke('git:rebase-branch-onto', branch, hash),
@@ -208,7 +209,7 @@ const gitAPI = {
   changelogSetScopePref: (pref: 'package' | 'branch') => invoke('changelog:set-scope-pref', pref),
   insertChangelog: (entry: string, opts?: { branch?: string; file?: string; section?: string; force?: boolean; preview?: boolean }) =>
     invoke('changelog:insert', entry, opts),
-  aiProposeCommitSplit: () => invoke('ai:propose-commit-split'),
+  aiProposeCommitSplit: (subject?: string) => invoke('ai:propose-commit-split', subject),
   aiResolveConflict: (filepath: string, instruction?: string) => invoke('ai:resolve-conflict', filepath, instruction),
   aiSearchCommits: (query: string) => invoke('ai:search-commits', query),
   aiListModels: () => invoke('ai:list-models'),

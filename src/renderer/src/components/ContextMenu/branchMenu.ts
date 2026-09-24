@@ -96,6 +96,17 @@ export interface BranchMenuActions {
   onExplain?: () => void
   /** Writes the changelog of what it carries (#70 P1). */
   onChangelog?: () => void
+  /**
+   * Reads aloud only what has not been pushed — `<upstream>..<branch>` (#293).
+   * The caller passes it only for a branch ahead of its upstream.
+   */
+  onExplainUnpushed?: () => void
+  /**
+   * Cuts the branch's commits again with the composer (#293). Passed for any
+   * local branch; the row runs only on the checked-out one and is drawn
+   * disabled elsewhere, saying why — see refReadings.ts::recomposeOffer.
+   */
+  onRecompose?: () => void
   onCopyName?: () => void
   /** Copies the branch's URL on the forge, next to opening it. */
   onCopyLink?: () => void
@@ -295,12 +306,21 @@ export function buildBranchMenu(
   compares.push(...(extras.compare ?? []))
   if (compares.length) inspect.push({ label: t('sb.branch.compareMenu'), submenu: compares })
   if (extras.exports?.length) inspect.push({ label: t('graph.menu.patchMenu'), submenu: extras.exports })
-  // Two readings of the same branch, folded behind one row like every other
-  // family of variants here — and in their own, because what a model writes
+  // What the model can do with the branch, folded behind one row like every
+  // other family of variants here — and in their own, because what a model writes
   // is not what git does, and the menu should not blur the two.
   const readings: MenuItemDef[] = []
   if (actions.onExplain) readings.push({ label: t('sb.branch.explain'), action: actions.onExplain, tone: 'ai' })
+  if (actions.onExplainUnpushed) readings.push({ label: t('sb.branch.explainUnpushed'), action: actions.onExplainUnpushed, tone: 'ai' })
   if (actions.onChangelog) readings.push({ label: t('sb.branch.changelog'), action: actions.onChangelog, tone: 'ai' })
+  // Recomposing rewrites the branch through the working tree, so it runs only
+  // where the branch is checked out. Elsewhere the row stays, disabled, and
+  // its label is the reason — a missing row would read as "not possible".
+  if (actions.onRecompose && !remote) {
+    readings.push(current
+      ? { label: t('sb.branch.recompose'), action: actions.onRecompose, tone: 'ai' }
+      : { label: t('sb.branch.recomposeCheckout', target.display), disabled: true, tone: 'ai' })
+  }
   // The mark and the ink, not the word: "AI" alone was one more verb in a
   // list of twenty, and nobody found it.
   if (readings.length) inspect.push({ label: t('sb.branch.aiMenu'), submenu: readings, icon: 'ai', tone: 'ai' })

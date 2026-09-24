@@ -124,3 +124,68 @@ describe('CommitComposer', () => {
     expect(screen.queryByRole('button', { name: /Create/ })).not.toBeInTheDocument()
   })
 })
+
+// Recomposing a branch's commits (#293): the same plan and the same apply,
+// preceded by one step — the branch taken back to its fork point — and
+// nothing at all when that step is refused.
+describe('CommitComposer — recomposing a branch', () => {
+  const recompose = { branch: 'feat', base: 'origin/main', onto: 'f0f0f0f', tip: 'abcdef1234567', commits: 3 }
+
+  test('asks for that branch, and says what applying will do to it', async () => {
+    const { mock } = open({ aiProposeCommitSplit: jest.fn().mockResolvedValue({ ...plan, recompose }) }, { subject: 'feat' })
+    await screen.findByText('refactor: extract the helper')
+    expect(mock.aiProposeCommitSplit).toHaveBeenCalledWith('feat')
+    expect(screen.getByText('Recompose feat')).toBeInTheDocument()
+    expect(screen.getByText(/Recomposes the 3 commits feat carries over origin\/main/)).toBeInTheDocument()
+  })
+
+  test('the working tree split asks for no subject and resets nothing', async () => {
+    const { mock } = open({ recomposeReset: jest.fn() })
+    await screen.findByText('refactor: extract the helper')
+    expect(mock.aiProposeCommitSplit).toHaveBeenCalledWith(undefined)
+    await userEvent.click(screen.getByRole('button', { name: 'Create 2 commits' }))
+    await waitFor(() => expect(mock.commit).toHaveBeenCalledTimes(2))
+    expect(mock.recomposeReset).not.toHaveBeenCalled()
+  })
+
+  test('unwinds the branch to the fork point it was proposed from, then applies', async () => {
+    const order: string[] = []
+    const { mock } = open({
+      aiProposeCommitSplit: jest.fn().mockResolvedValue({ ...plan, recompose }),
+      recomposeReset: jest.fn(async () => { order.push('reset'); return { success: true } }),
+      unstage: jest.fn(async () => { order.push('unstage'); return { success: true } }),
+      commit: jest.fn(async () => { order.push('commit'); return { success: true } }),
+    }, { subject: 'feat' })
+    await screen.findByText('refactor: extract the helper')
+    await userEvent.click(screen.getByRole('button', { name: 'Create 2 commits' }))
+    await waitFor(() => expect(mock.commit).toHaveBeenCalledTimes(2))
+    expect(mock.recomposeReset).toHaveBeenCalledWith('feat', 'f0f0f0f', 'abcdef1234567')
+    expect(order).toEqual(['reset', 'unstage', 'commit', 'commit'])
+  })
+
+  test('a refused reset stops everything and says why', async () => {
+    const { mock, onCommitted } = open({
+      aiProposeCommitSplit: jest.fn().mockResolvedValue({ ...plan, recompose }),
+      recomposeReset: jest.fn().mockResolvedValue({ success: false, error: 'feat has moved since the plan was proposed — propose it again' }),
+    }, { subject: 'feat' })
+    await screen.findByText('refactor: extract the helper')
+    await userEvent.click(screen.getByRole('button', { name: 'Create 2 commits' }))
+    await screen.findByText(/has moved since the plan was proposed/)
+    expect(mock.unstage).not.toHaveBeenCalled()
+    expect(mock.commit).not.toHaveBeenCalled()
+    expect(onCommitted).not.toHaveBeenCalled()
+  })
+
+  test('a failure after the reset says where the old tip is', async () => {
+    const { onCommitted } = open({
+      aiProposeCommitSplit: jest.fn().mockResolvedValue({ ...plan, recompose }),
+      recomposeReset: jest.fn().mockResolvedValue({ success: true }),
+      commit: jest.fn().mockResolvedValue({ success: false, error: 'pre-commit hook refused' }),
+    }, { subject: 'feat' })
+    await screen.findByText('refactor: extract the helper')
+    await userEvent.click(screen.getByRole('button', { name: 'Create 2 commits' }))
+    await screen.findByText(/previous tip is abcdef1; the reflog keeps it/)
+    // The branch did move, so the graph has to be told even with no commit made.
+    expect(onCommitted).toHaveBeenCalled()
+  })
+})

@@ -29,7 +29,16 @@ export interface CommitComposerProps {
   /** Committed something — the panel and the graph have to be reloaded. */
   onCommitted: () => void
   showToast: (msg: string, kind?: 'ok' | 'err') => void
+  /**
+   * A branch whose commits are recomposed instead of the working tree being
+   * split (#293). Only ever the checked-out one: the plan is applied where
+   * the composer commits, so the host refuses any other before asking.
+   */
+  subject?: string
 }
+
+/** What a recomposition was proposed from — see ai-features.ts::RecomposePlan. */
+interface RecomposePlan { branch: string; base: string; onto: string; tip: string; commits: number }
 
 /**
  * The drawer. In the VS Code panel there is no room for one, so the same body
@@ -42,14 +51,14 @@ export default function CommitComposer({ anchor, ...props }: CommitComposerProps
 }) {
   const { t } = useLang()
   return (
-    <PanelDrawer anchor={anchor} title={t('cc.title')} icon="ai"
+    <PanelDrawer anchor={anchor} title={props.subject ? t('cc.recomposeTitle', props.subject) : t('cc.title')} icon="ai"
       closeLabel={t('common.close')} onClose={props.onClose}>
       <CommitComposerBody {...props} />
     </PanelDrawer>
   )
 }
 
-export function CommitComposerBody({ onClose, onCommitted, showToast }: CommitComposerProps) {
+export function CommitComposerBody({ onClose, onCommitted, showToast, subject }: CommitComposerProps) {
   const { t } = useLang()
   const [busy, setBusy] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -59,12 +68,14 @@ export function CommitComposerBody({ onClose, onCommitted, showToast }: CommitCo
   /** The commit being made, while it is being made. Null when idle. */
   const [applying, setApplying] = useState<number | null>(null)
   const [made, setMade] = useState(0)
+  /** Set when the plan recomposes a branch: applying it unwinds that branch first. */
+  const [plan, setPlan] = useState<RecomposePlan | null>(null)
 
   const propose = useCallback(async () => {
     setBusy(true); setError(null)
     let r: any
     try {
-      r = await (window.gitAPI as any).aiProposeCommitSplit?.() ?? { error: 'not-implemented' }
+      r = await (window.gitAPI as any).aiProposeCommitSplit?.(subject) ?? { error: 'not-implemented' }
     } catch (e: any) {
       r = { error: e?.message ?? 'AI error' }
     }
@@ -76,7 +87,8 @@ export function CommitComposerBody({ onClose, onCommitted, showToast }: CommitCo
     setGroups(r.groups ?? [])
     setLoose(r.unassigned ?? [])
     setInvented(r.invented ?? [])
-  }, [t])
+    setPlan(r.recompose ?? null)
+  }, [t, subject])
 
   useEffect(() => { void propose() }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -147,10 +159,24 @@ export function CommitComposerBody({ onClose, onCommitted, showToast }: CommitCo
   const apply = async () => {
     const all = [...groups.flatMap(g => g.files), ...loose]
     setApplying(0); setMade(0); setError(null)
+    // Once a branch has been unwound, a failure leaves its work uncommitted —
+    // never lost — and the message says where its old tip is.
+    let unwound = false
     const fail = (msg: string, done: number) => {
       setApplying(null)
-      setError(done > 0 ? t('cc.failedAfter', done, msg) : msg)
-      if (done > 0) onCommitted()
+      const text = done > 0 ? t('cc.failedAfter', done, msg) : msg
+      setError(unwound && plan ? `${text} ${t('cc.recomposeRecover', plan.tip.slice(0, 7))}` : text)
+      if (done > 0 || unwound) onCommitted()
+    }
+    // Recomposing: take the branch back to its fork point, everything it
+    // carried left staged — then the plan is applied exactly as a split of
+    // the working tree is. The host refuses if the branch moved, is not the
+    // one checked out, or the tree has changes of its own.
+    if (plan) {
+      const reset = await window.gitAPI.recomposeReset(plan.branch, plan.onto, plan.tip)
+        .catch((e: any) => ({ success: false, error: e?.message }))
+      if ((reset as any)?.success === false) { fail((reset as any).error ?? t('cc.clearFailed'), 0); return }
+      unwound = true
     }
     const clear = await window.gitAPI.unstage(all).catch((e: any) => ({ success: false, error: e?.message }))
     if ((clear as any)?.success === false) { fail((clear as any).error ?? t('cc.clearFailed'), 0); return }
@@ -203,6 +229,7 @@ export function CommitComposerBody({ onClose, onCommitted, showToast }: CommitCo
             <div className="cc-summary">
               {t('cc.summary', total, groups.length)}
               <span className="cc-note">{t('cc.wholeFiles')}</span>
+              {plan && <span className="cc-note">{t('cc.recomposeNote', plan.commits, plan.branch, plan.base)}</span>}
             </div>
 
             {invented.length > 0 && (

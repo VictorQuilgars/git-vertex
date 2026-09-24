@@ -1463,6 +1463,11 @@ export class GitService {
     return { branches: await core.remoteBranchNames(this.run) }
   }
 
+  /** Unwind the checked-out branch to its fork point, its work left staged, for the composer (#293). */
+  async recomposeReset(branch: string, onto: string, tip: string): Promise<{ success: boolean; error?: string }> {
+    return core.resetForRecompose(this.run, branch, onto, tip)
+  }
+
   /** Fold the `fixup!` / `squash!` commits over a base into their targets (#280). */
   async squashFixups(base: string): Promise<core.SquashFixupsResult> {
     return core.squashFixups(this.run, base)

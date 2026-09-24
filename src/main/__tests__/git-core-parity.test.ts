@@ -64,6 +64,7 @@ const SHARED: Record<string, string> = {
   pullBranch: 'fastForwardBranch',
   listRemoteBranches: 'remoteBranchNames',
   squashFixups: 'squashFixups',
+  recomposeReset: 'resetForRecompose',
   listFixups: 'fixupCommits',
   listWorktrees: 'worktrees',
   copyWorktreeChanges: 'copyChangesToWorktree',

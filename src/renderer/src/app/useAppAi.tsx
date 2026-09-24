@@ -26,7 +26,11 @@ export function useAppAi(app: AppChrome & RepoSession & AppGithub & AppConflicts
     | { kind: 'stash'; index: number | string; label: string }
     | { kind: 'working' }
     | null>(null)
-  const [composerOpen, setComposerOpen] = useState(false)
+  /**
+   * The commit composer: `true` splits the working tree, a branch name
+   * recomposes that branch's commits (#293), `false` is closed.
+   */
+  const [composerOpen, setComposerOpen] = useState<boolean | string>(false)
   /**
    * Which stack the panel shows, and a token bumped whenever the model has
    * written something. Both live here rather than in the Sidebar because a

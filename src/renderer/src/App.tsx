@@ -44,7 +44,7 @@ import AIAnswer from './components/AIAnswer/AIAnswer'
 import { timeAgo } from './components/GitHubPanel/GithubRow'
 import CommitComposer from './components/CommitComposer/CommitComposer'
 import { branchNeedsPush } from './components/ContextMenu/prIntent'
-import { shortName } from './components/ContextMenu/branchRefs'
+import { readingLabel } from './components/Sidebar/refReadings'
 import GitflowModal from './components/GitflowModal/GitflowModal'
 import CenterFileDiff from './components/CenterFileDiff/CenterFileDiff'
 import IssueDetail, { detailKey } from './components/IssueDetail/IssueDetail'
@@ -776,9 +776,11 @@ export default function App() {
               recentRepos={recentRepos}
               stashes={stashes}
               onExplainStash={(index, message) => setAiRead({ kind: 'stash', index, label: message })}
-              onExplainBranch={(name) => setAiRead({ kind: 'branch', ref: name, label: shortName(name, new Set(remoteNames)) })}
-              onBranchChangelog={(name) => setAiRead({ kind: 'changelog', ref: name, label: shortName(name, new Set(remoteNames)) })}
-              onOpenChangelog={(name) => setAiRead({ kind: 'changelog', ref: name, label: shortName(name, new Set(remoteNames)) })}
+              // A name may be a range subject (#293) — readingLabel keeps its base.
+              onExplainBranch={(name) => setAiRead({ kind: 'branch', ref: name, label: readingLabel(name, new Set(remoteNames)) })}
+              onBranchChangelog={(name) => setAiRead({ kind: 'changelog', ref: name, label: readingLabel(name, new Set(remoteNames)) })}
+              onRecomposeBranch={(name) => setComposerOpen(name)}
+              onOpenChangelog={(name) => setAiRead({ kind: 'changelog', ref: name, label: readingLabel(name, new Set(remoteNames)) })}
               tab={sidebarTab}
               onTab={setSidebarTab}
               memoryToken={memoryToken}
@@ -1445,8 +1447,12 @@ export default function App() {
         />
       )}
 
+      {/* A string is a branch being recomposed (#293); keyed so switching
+          from one to the other proposes again rather than keeping the plan. */}
       {composerOpen && (
         <CommitComposer
+          key={typeof composerOpen === 'string' ? `recompose:${composerOpen}` : 'split'}
+          subject={typeof composerOpen === 'string' ? composerOpen : undefined}
           anchor={sidebarPanelRef}
           onClose={() => setComposerOpen(false)}
           onCommitted={loadRepoData}

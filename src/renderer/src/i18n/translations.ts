@@ -1054,6 +1054,11 @@ const fr = {
   'cc.clearFailed': "Impossible de vider l'index",
   'cc.stageFailed': "Impossible d'indexer les fichiers de ce commit",
   'cc.commitFailed': 'Commit impossible',
+  // Recomposing a branch's commits (#293)
+  'cc.recomposeTitle': (branch: string) => `Recomposer ${branch}`,
+  'cc.recomposeNote': (n: number, branch: string, base: string) =>
+    `Recompose le${n > 1 ? 's' : ''} ${n} commit${n > 1 ? 's' : ''} que ${branch} porte au-dessus de ${base}. Appliquer ramène ${branch} à son point de départ puis crée ces commits — rien ne change avant. Déjà poussée, elle demandera un push forcé.`,
+  'cc.recomposeRecover': (sha: string) => `L'ancienne pointe de la branche est ${sha} ; le reflog la garde.`,
 
   // RightPanel — commit
   'panel.commitMsg.placeholder': 'Message de commit…',
@@ -1540,6 +1545,9 @@ const fr = {
   'sb.branch.aiMenu': 'IA',
   'sb.branch.explain': 'Expliquer cette branche',
   'sb.branch.changelog': 'Générer un changelog',
+  'sb.branch.explainUnpushed': 'Expliquer les changements non poussés',
+  'sb.branch.recompose': 'Recomposer les commits',
+  'sb.branch.recomposeCheckout': (name: string) => `Recomposer les commits — basculez d'abord sur ${name}`,
   'sb.branch.openOnRemote': 'Ouvrir la branche sur GitHub',
   'sb.github.noPRs': 'Aucune pull request ouverte',
   'sb.github.noIssues': 'Aucune issue ouverte',
@@ -1607,6 +1615,7 @@ const fr = {
   'sb.tag.checkoutCommit': 'Checkout du commit (HEAD détaché)',
   'sb.tag.hint': (name: string, hash: string) => `${name} → ${hash} — double-clic : créer une branche ici`,
   'sb.tag.push': 'Pousser le tag',
+  'sb.tag.changelogSince': (branch: string) => `Générer le changelog de ${branch} depuis ce tag`,
   'sb.tag.hide': 'Masquer du graphe',
   'sb.tag.show': 'Réafficher dans le graphe',
   'sb.tag.deleteLocal': 'Supprimer (local)',
@@ -3398,6 +3407,11 @@ const en: typeof fr = {
   'cc.clearFailed': 'Could not clear the index',
   'cc.stageFailed': 'Could not stage this commit\'s files',
   'cc.commitFailed': 'Could not commit',
+  // Recomposing a branch's commits (#293)
+  'cc.recomposeTitle': (branch: string) => `Recompose ${branch}`,
+  'cc.recomposeNote': (n: number, branch: string, base: string) =>
+    `Recomposes the ${n} commit${n > 1 ? 's' : ''} ${branch} carries over ${base}. Applying takes ${branch} back to where it forked, then creates these commits — nothing changes until then. If it was pushed, publishing it again will need a force push.`,
+  'cc.recomposeRecover': (sha: string) => `The branch's previous tip is ${sha}; the reflog keeps it.`,
 
   // RightPanel — commit
   'panel.commitMsg.placeholder': 'Commit message…',
@@ -3883,6 +3897,9 @@ const en: typeof fr = {
   'sb.branch.aiMenu': 'AI',
   'sb.branch.explain': 'Explain Branch',
   'sb.branch.changelog': 'Generate Changelog',
+  'sb.branch.explainUnpushed': 'Explain Unpushed Changes',
+  'sb.branch.recompose': 'Recompose Commits',
+  'sb.branch.recomposeCheckout': (name: string) => `Recompose Commits — check out ${name} first`,
   'sb.branch.openOnRemote': 'Open Branch on Remote',
   'sb.github.noPRs': 'No open pull requests',
   'sb.github.noIssues': 'No open issues',
@@ -3951,6 +3968,7 @@ const en: typeof fr = {
   'sb.tag.checkoutCommit': 'Check out the commit (detached HEAD)',
   'sb.tag.hint': (name: string, hash: string) => `${name} → ${hash} — double-click: create a branch here`,
   'sb.tag.push': 'Push tag',
+  'sb.tag.changelogSince': (branch: string) => `Generate Changelog of ${branch} Since This Tag`,
   'sb.tag.hide': 'Hide from Graph',
   'sb.tag.show': 'Show in Graph',
   'sb.tag.deleteLocal': 'Delete (local)',

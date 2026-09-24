@@ -264,8 +264,15 @@ export interface SplitProposal {
  */
 export function splitPrompt(
   files: string[], diffstat: string, diff: string, diffOpts: DiffOpts = {},
+  /**
+   * What the work is, when it is not the working tree: a branch being
+   * recomposed (#293) hands over the whole of what it carries as one diff.
+   * The rules and the format do not change — only the sentence that says
+   * where the work comes from.
+   */
+  about = 'the uncommitted work in a repository',
 ): string {
-  return `You are a Git expert. Below is the uncommitted work in a repository. Cut it into a sequence of small, atomic commits — each one a single self-contained change that would build and read on its own.
+  return `You are a Git expert. Below is ${about}. Cut it into a sequence of small, atomic commits — each one a single self-contained change that would build and read on its own.
 
 Rules:
 - Every file goes in EXACTLY ONE commit. Use the paths below verbatim; never invent, shorten or complete a path.

@@ -99,7 +99,7 @@ export function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, 
 }
 
 // ── Tag item ──────────────────────────────────────────────────────
-export function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDeleteRemote, onReveal, onOpenCard, hidden, onToggleHide, displayAs }: {
+export function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDeleteRemote, onReveal, onOpenCard, hidden, onToggleHide, displayAs, changelog }: {
   tag: TagEntry
   /** Last path segment, when the tree already spells the folders (#276). */
   displayAs?: string
@@ -114,6 +114,12 @@ export function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDel
   onDelete: () => void; onPush: () => void; onDeleteRemote: () => void
   hidden?: boolean
   onToggleHide?: () => void
+  /**
+   * *Generate changelog since this tag* (#293): the branch it is written for
+   * — the one checked out — and the call. Absent on a detached HEAD, where
+   * there is no branch for the changelog to be about.
+   */
+  changelog?: { branch: string; run: () => void }
 }) {
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const { t } = useLang()
@@ -130,6 +136,12 @@ export function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDel
       action: onToggleHide,
       checked: !!hidden,
     }] : []),
+    // What a model writes is not what git does: its own group, in its own
+    // ink, as the branch menu keeps its readings.
+    ...(changelog ? [
+      { separator: true as const },
+      { label: t('sb.tag.changelogSince', changelog.branch), action: changelog.run, icon: 'ai' as const, tone: 'ai' as const },
+    ] : []),
     { separator: true },
     { label: t('sb.tag.deleteLocal'), action: onDelete, danger: true },
     { label: t('sb.tag.deleteRemote'), action: onDeleteRemote, danger: true },
