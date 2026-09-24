@@ -1,5 +1,10 @@
 # Changelog — Git Vertex MCP
 
+## Unreleased
+
+### Added
+- **`propose_split` — cut the uncommitted work into logical commits, for the human to review** (#88). The agent sends the commits in order, each a message and the files it takes; the Git Vertex desktop app opens its commit composer with that plan preloaded, beside the working changes, where the user edits messages, moves files between commits, reorders or drops commits, and creates them with one button. **Nothing is staged or committed by the call.** Commits take **whole files**, staged and unstaged hunks alike — because that is what the composer applies; a hunk-level schema with a file-level apply behind it would promise what the review screen cannot do. The paths are checked before anything opens, so the agent hears about a mistake while it can still fix it: a path with no uncommitted change and a file placed in two commits are refused with the list of what is actually changed, `./a.ts` is `a.ts`, and changed files left out of every commit are named in the answer — and shown to the user as *in no commit*, never dropped. The app measures the plan again when the drawer opens, since the working tree may have moved in between. Like `propose_commit`, it hands off through the `gitgui://` scheme, so the desktop app must be installed; if the hand-off fails, the agent is told to describe the split in chat instead.
+
 ## 0.5.3
 
 ### Fixed

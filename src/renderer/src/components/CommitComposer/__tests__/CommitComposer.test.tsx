@@ -124,3 +124,65 @@ describe('CommitComposer', () => {
     expect(screen.queryByRole('button', { name: /Create/ })).not.toBeInTheDocument()
   })
 })
+
+// An agent's split (MCP propose_split, #88) arrives as `proposal` and lands on
+// this same screen. The model is not asked; the plan is measured against the
+// working tree as it is when the drawer opens, and applied only on the button.
+describe('CommitComposer — a split proposed by an agent', () => {
+  const working = {
+    staged: [{ path: 'src/a.ts', status: 'M' }],
+    unstaged: [{ path: 'src/b.ts', status: 'M' }, { path: 'src/a.ts', status: 'M' }],
+    untracked: ['docs/notes.md'],
+  }
+  const agentPlan = [
+    { message: 'refactor: extract the helper', files: ['src/a.ts'] },
+    // src/gone.ts was committed between the agent's call and the review.
+    { message: 'feat: use it', files: ['src/b.ts', 'src/gone.ts'] },
+  ]
+  const openAgent = (api: Record<string, any> = {}) => open({
+    aiProposeCommitSplit: jest.fn(),
+    getWorkingChanges: jest.fn().mockResolvedValue(working),
+    ...api,
+  }, { proposal: agentPlan })
+
+  test('shows the agent\'s plan, measured against what is uncommitted now, without asking the model', async () => {
+    const { mock } = openAgent()
+    await screen.findByText('refactor: extract the helper')
+    expect(mock.aiProposeCommitSplit).not.toHaveBeenCalled()
+    expect(screen.getByText(/Proposed by your agent/)).toBeInTheDocument()
+    expect(screen.getByText('2 files in 2 commits')).toBeInTheDocument()
+    expect(screen.getByText('1 path the agent named has no uncommitted change, dropped.')).toBeInTheDocument()
+    // What the agent left out is shown, not silently left behind.
+    expect(screen.getByText('1 file in no commit')).toBeInTheDocument()
+    expect(screen.getByText('docs/notes.md')).toBeInTheDocument()
+  })
+
+  test('nothing is staged or committed until the button, then the plan on screen is applied', async () => {
+    const { mock, showToast } = openAgent()
+    await screen.findByText('feat: use it')
+    expect(mock.unstage).not.toHaveBeenCalled()
+    expect(mock.stage).not.toHaveBeenCalled()
+    expect(mock.commit).not.toHaveBeenCalled()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create 2 commits' }))
+    await waitFor(() => expect(mock.commit).toHaveBeenCalledTimes(2))
+    expect(mock.unstage).toHaveBeenCalledWith(['src/a.ts', 'src/b.ts', 'docs/notes.md'])
+    expect(mock.stage).toHaveBeenNthCalledWith(1, ['src/a.ts'])
+    expect(mock.commit).toHaveBeenNthCalledWith(1, 'refactor: extract the helper')
+    expect(mock.stage).toHaveBeenNthCalledWith(2, ['src/b.ts'])
+    expect(mock.commit).toHaveBeenNthCalledWith(2, 'feat: use it')
+    expect(showToast).toHaveBeenCalledWith('2 commits created', 'ok')
+  })
+
+  test('a plan none of whose files still has changes says so, and offers nothing to apply', async () => {
+    openAgent({ getWorkingChanges: jest.fn().mockResolvedValue({ staged: [], unstaged: [], untracked: ['other.txt'] }) })
+    await waitFor(() => expect(screen.getByText(/None of the files the agent named/)).toBeInTheDocument())
+    expect(screen.queryByRole('button', { name: /Create/ })).not.toBeInTheDocument()
+  })
+
+  test('a working tree with nothing uncommitted says the plan has nothing to apply', async () => {
+    openAgent({ getWorkingChanges: jest.fn().mockResolvedValue({ staged: [], unstaged: [], untracked: [] }) })
+    await waitFor(() => expect(screen.getByText(/Nothing is uncommitted any more/)).toBeInTheDocument())
+    expect(screen.queryByRole('button', { name: /Create/ })).not.toBeInTheDocument()
+  })
+})

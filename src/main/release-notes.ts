@@ -12,6 +12,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 📅 Merged since, closed since
 - Filters of pull requests and issues take **\`merged:\`** and **\`closed:\`**, typed or described: *PRs merged since September 1st* now keeps its date.
+
+### ✂️ Your agent proposes a split, you make the commits
+- An agent connected through the Git Vertex MCP server can now propose cutting your uncommitted work into several commits. Its plan opens in **Split into commits**, next to your working changes, checked against the files as they are now — edit the messages, move files, reorder, and **nothing is committed until you press Create**.
 `,
   '1.39.0': `## What's new in 1.39.0
 

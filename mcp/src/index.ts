@@ -704,7 +704,7 @@ server.tool(
   }
 )
 
-// ── Agent proposals: commit & rebase plan ──────────────────────
+// ── Agent proposals: commit, rebase plan & split ───────────────
 // Same philosophy as view=resolve above: the agent PROPOSES, the human
 // reviews in the real UI, nothing is written/staged/rewritten by the tool.
 // The proposal travels as a single-use JSON file in PROPOSAL_DIR, consumed
@@ -759,6 +759,84 @@ server.tool(
       const params = new URLSearchParams({ repo: root, view: 'propose-rebase', hash: baseHash, proposal: proposalPath })
       await openDeepLink(params)
       return text(`Opened the Git Vertex rebase editor on ${base} (${range.length} commit(s) in range) with your ${steps.length}-step plan preloaded (${root}).\nNothing was rewritten — the user reviews and launches the rebase in the app.\nIf nothing happened, the desktop app may not be installed — describe the plan in chat instead.`)
+    } catch (e) { return errText(e) }
+  }
+)
+
+// Every path with uncommitted work — staged, unstaged or untracked — in the
+// same three reads the app's composer measures a split against, so what this
+// tool accepts is what the review screen will show. `-z` because without it
+// git quotes a path with a non-ASCII byte ("d\303\251mo.txt"), which would
+// then match nothing the agent sent. Through simple-git rather than execGit,
+// whose output carries stderr after stdout: a warning would have been read as
+// one more changed path.
+async function uncommittedFiles(git: SimpleGit): Promise<string[]> {
+  const names = async (args: string[]) =>
+    (await git.raw(args)).split('\0').filter(Boolean).map(nfc)
+  const all = [
+    ...await names(['diff', '--cached', '--name-only', '-z']),
+    ...await names(['diff', '--name-only', '-z']),
+    // `repo` may name a subdirectory, and ls-files, unlike diff, answers for
+    // the directory it runs in: `:/` and --full-name make it the whole tree,
+    // spelled from the root like the two diffs above.
+    ...await names(['ls-files', '--others', '--exclude-standard', '--full-name', '-z', '--', ':/']),
+  ]
+  return [...new Set(all)].sort()
+}
+
+// The paths an agent sends are checked here AND measured again by the app
+// when the review screen opens: here so the agent hears about a path it got
+// wrong while it can still fix it, there because the working tree may move
+// between the two. Refusing is kinder than repairing: a split that quietly
+// lost a file is a split the agent then describes wrongly to the user.
+server.tool(
+  'propose_split',
+  'Propose cutting the UNCOMMITTED work (staged, unstaged and untracked) into a sequence of logical commits, for HUMAN REVIEW in the Git Vertex desktop app: opens the commit composer with your commits — a message and whole files each — preloaded, where the user edits messages, moves files between commits, reorders or drops commits, and creates them with one button. NOTHING is staged or committed by this call. Each commit takes WHOLE files (every hunk, staged or not): a file cannot be split across two commits, so group by file. Every path must have uncommitted changes and appear in at most one commit; changed files you leave out are shown to the user as "in no commit" and stay uncommitted. Order the commits as they should be applied. For a single commit, use propose_commit instead. Requires the desktop app to be installed; if this errors, describe the split in chat instead.',
+  {
+    repo: repoParam,
+    commits: z.array(z.object({
+      message: z.string().trim().min(1).describe('Full commit message: first line = summary (English, imperative, ≤72 chars), optional body after a blank line'),
+      files: z.array(z.string().min(1)).min(1).describe('Paths relative to the repo root, each with uncommitted changes — the whole file goes into this commit'),
+    })).min(1).describe('The commits in the order they should be made'),
+  },
+  async ({ repo, commits }) => {
+    try {
+      const { git, root } = await openRepo(repo)
+      const changed = await uncommittedFiles(git)
+      if (changed.length === 0) throw new Error('Nothing uncommitted to split')
+      const known = new Set(changed)
+
+      const owner = new Map<string, number>()
+      const unknown: string[] = []
+      const twice: string[] = []
+      const plan = commits.map((c, i) => {
+        const files: string[] = []
+        for (const f of c.files) {
+          // Normalized to the repo-relative, forward-slash spelling git
+          // prints, so "./src/a.ts" and "src/a.ts" are the same file.
+          const rel = nfc(path.relative(root, safeRepoFile(root, f)).split(path.sep).join('/'))
+          if (!known.has(rel)) { unknown.push(f); continue }
+          const first = owner.get(rel)
+          if (first === undefined) { owner.set(rel, i); files.push(rel) }
+          else if (first !== i) twice.push(`${rel} (commits ${first + 1} and ${i + 1})`)
+        }
+        return { message: c.message, files }
+      })
+      if (unknown.length) {
+        throw new Error(`No uncommitted changes in: ${unknown.join(', ')}. Files with uncommitted changes: ${truncate(changed.join(', '), 2000)}`)
+      }
+      if (twice.length) {
+        throw new Error(`A file can go in only one commit — the composer commits whole files: ${twice.join(', ')}`)
+      }
+
+      const proposalPath = writeProposal(JSON.stringify({ kind: 'split', commits: plan }))
+      const params = new URLSearchParams({ repo: root, view: 'propose-split', proposal: proposalPath })
+      await openDeepLink(params)
+      const loose = changed.filter(f => !owner.has(f))
+      return text(`Opened the Git Vertex commit composer with your ${plan.length}-commit split preloaded (${owner.size} file(s)) (${root}).`
+        + (loose.length ? `\n${loose.length} changed file(s) are in no commit and are listed to the user as such: ${truncate(loose.join(', '), 2000)}` : '')
+        + '\nNothing was staged or committed — the user reviews, edits and creates the commits in the app.'
+        + '\nIf nothing happened, the desktop app may not be installed — describe the split in chat instead.')
     } catch (e) { return errText(e) }
   }
 )
