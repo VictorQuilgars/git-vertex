@@ -263,6 +263,11 @@ const fr = {
   'search.reach.beyond': (n: number, position: string) => n === 1
     ? `Un résultat est au-delà de ce que le graphe charge, en position ${position}.`
     : `${n} résultats sont au-delà de ce que le graphe charge, le plus proche en position ${position}.`,
+  'search.ai.capped': (shown: number, total: number) => `Les ${shown} plus probables sur ${total} correspondances sont affichées.`,
+  'search.ai.readOnly': (n: string) => `Seuls les ${n} commits les plus récents ont été lus.`,
+  'search.ai.partial': (failed: number, of: number) => failed === of
+    ? `Aucune partie de l’historique n’a répondu.`
+    : `${failed} partie${failed > 1 ? 's' : ''} de l’historique sur ${of} n’${failed > 1 ? 'ont' : 'a'} pas répondu — le reste a été lu.`,
   'search.reach.unreached': (n: number) => n === 1
     ? `Un résultat est sur une branche que le graphe n'affiche pas.`
     : `${n} résultats sont sur des branches que le graphe n'affiche pas.`,
@@ -2603,6 +2608,11 @@ const en: typeof fr = {
   'search.reach.beyond': (n: number, position: string) => n === 1
     ? `One hit is beyond what the graph loads, at position ${position}.`
     : `${n} hits are beyond what the graph loads, the nearest at position ${position}.`,
+  'search.ai.capped': (shown: number, total: number) => `The ${shown} most likely of ${total} matches are shown.`,
+  'search.ai.readOnly': (n: string) => `Only the latest ${n} commits were read.`,
+  'search.ai.partial': (failed: number, of: number) => failed === of
+    ? `No part of the history answered.`
+    : `${failed} of ${of} parts of the history did not answer — the rest was read.`,
   'search.reach.unreached': (n: number) => n === 1
     ? `One hit is on a branch the graph does not show.`
     : `${n} hits are on branches the graph does not show.`,

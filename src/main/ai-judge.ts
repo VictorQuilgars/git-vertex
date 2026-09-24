@@ -102,8 +102,8 @@ export const JUDGE_SEARCH_MAX = 1000
  * above it or fall away fast — 0.70 for the one commit that was wanted, then
  * 0.27, 0.18, 0.10 and a cliff — so where exactly it sits inside that gap
  * changes little. What it must not do is drift down: the ranking below cannot
- * rescue a permissive cut, because the graph takes the hashes as a SET and
- * highlights all of them alike. Every hit that passes is a hit the user sees.
+ * rescue a permissive cut. The graph goes to the BEST hit, but it lights every
+ * one that passed alike — every hit that passes is a hit the user sees.
  */
 export const JUDGE_HIT = 0.5
 
@@ -290,10 +290,24 @@ export type JudgeRun = (state: unknown, questions: Record<string, JudgeQuestion>
   => Promise<{ answers?: Record<string, JudgeAnswer>; error?: string }>
 
 export interface JudgeSearchResult {
+  /** Best first: the order is the ranking, and the caller keeps it. */
   hashes?: string[]
   error?: string
   /** Batches that never answered, when some did. The caller may say so. */
   partial?: number
+  /** How many batches were asked, so `partial` can be said as a share. */
+  batches?: number
+  /**
+   * How many commits passed the cut, before the cap. Only set when it is more
+   * than `hashes` holds: a capped answer and a complete one look the same
+   * otherwise, and fifty rows read as "these are all of them".
+   */
+  total?: number
+  /**
+   * The history goes on past what the search reads. Set to the number that
+   * was read, so the caller can say which part of the history was asked.
+   */
+  readOnly?: number
 }
 
 /**
@@ -317,10 +331,14 @@ export async function searchCommitsByJudgement(
   if (!query.trim()) return { hashes: [] }
   let commits: JudgedCommit[]
   try {
-    commits = parseJudgeLog(await log(['log', '--all', `--max-count=${JUDGE_SEARCH_MAX}`,
+    // One more than is read: the only way to know the history goes on is to
+    // ask for a commit past the ceiling and see whether git has one.
+    commits = parseJudgeLog(await log(['log', '--all', `--max-count=${JUDGE_SEARCH_MAX + 1}`,
       '--date=short', `--pretty=format:${JUDGE_LOG_FORMAT}`]))
   } catch { return { error: 'Could not read the history' } }
   if (!commits.length) return { hashes: [] }
+  const cut = commits.length > JUDGE_SEARCH_MAX
+  if (cut) commits = commits.slice(0, JUDGE_SEARCH_MAX)
 
   const batches = batchCommits(commits)
   const results = await Promise.all(batches.map(async batch => {
@@ -331,8 +349,14 @@ export async function searchCommitsByJudgement(
 
   const failed = results.filter(r => 'error' in r) as { error: string }[]
   if (failed.length === results.length) return { error: failed[0].error }
-  const hashes = rankHits(results.map(r => ('hits' in r ? r.hits : []) as JudgedHit[]))
-  return failed.length ? { hashes, partial: failed.length } : { hashes }
+  const hits = results.map(r => ('hits' in r ? r.hits : []) as JudgedHit[])
+  const hashes = rankHits(hits)
+  const passed = hits.reduce((n, b) => n + b.length, 0)
+  const out: JudgeSearchResult = { hashes }
+  if (failed.length) { out.partial = failed.length; out.batches = results.length }
+  if (passed > hashes.length) out.total = passed
+  if (cut) out.readOnly = commits.length
+  return out
 }
 
 // ── The filter query ───────────────────────────────────────────
@@ -363,7 +387,7 @@ const USER_KEYS = new Set([
   'author', 'assignee', 'involves', 'mentions', 'review-requested', 'reviewed-by',
 ])
 /** Qualifiers whose value is a date expression rather than a word. */
-const DATE_KEYS = new Set(['created', 'updated'])
+const DATE_KEYS = new Set(['created', 'updated', 'merged', 'closed'])
 
 /**
  * The words a value could be taken from — the request's own.
@@ -559,6 +583,11 @@ export function readFilterAnswers(
     if (!(a.choice in (q as { criteria: Record<string, unknown> }).criteria)) continue
     if ((a.confidence ?? 1) < FILTER_CONFIDENCE) continue
     if (key === 'state' && answers?.['q:is']?.choice && answers['q:is'].choice !== FILTER_NONE) continue
+    // A merged pull request is a closed one: asked separately, the two date
+    // questions both light up on "merged this year" — measured, `closed:`
+    // came back beside `merged:` with the same date. It adds nothing, so it
+    // steps aside the way `state:` does for `is:`.
+    if (key === 'closed' && tokens.some(t => t.startsWith('merged:'))) continue
     tokens.push(`${key}:${a.choice}`)
     taken.add(a.choice.toLowerCase())
   }

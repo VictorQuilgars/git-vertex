@@ -23,6 +23,12 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### ⚖️ Search and filter, answered as judgements
 - **TypeSafe (Jev)** joins the AI providers. It does not write prose: it answers with **typed verdicts**, so it serves the two features that *select* — **search in words** and **describe a filter** — and the settings offer it there, and only there, under **Built for this feature**, with the pair one click away. A search reads **a thousand commits** instead of two hundred, cannot come back with an invented hash, and keeps the fifty most probable, in about three seconds. A described filter is **composed by the extension** from the qualifiers the field knows, so what lands in the field is always a valid query.
+
+### 🎯 A search in words goes to its best answer
+- The model answers **best first**, and the graph now goes to the **most probable** commit — growing the page when it is further back than what is loaded, for every hit it found. When the answer is not the whole answer it says so: *the 50 most likely of 250*, *only the latest 1,000 commits were read*, or *part of the history did not answer*.
+
+### 📅 Merged since, closed since
+- Filters of pull requests and issues take **\`merged:\`** and **\`closed:\`**, typed or described: *PRs merged since September 1st* now keeps its date.
 `,
   '1.37.0': `## What's new in 1.37.0
 

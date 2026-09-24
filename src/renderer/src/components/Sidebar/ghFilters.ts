@@ -46,12 +46,13 @@ export function saveGhFilters(repoKey: string, store: GhFilterStore): void {
  */
 export const ISSUE_KEYS = [
   'assignee', 'author', 'mentions', 'state', 'milestone', 'label',
-  'created', 'updated', 'involves', 'no', 'is', 'sort',
+  'created', 'updated', 'closed', 'involves', 'no', 'is', 'sort',
 ] as const
+// `merged:` is a pull request's alone: an issue is closed, never merged.
 export const PR_KEYS = [
   'author', 'assignee', 'involves', 'review-requested', 'reviewed-by',
   'base', 'head', 'draft', 'label', 'review', 'status', 'no',
-  'created', 'updated', 'state', 'is', 'sort',
+  'created', 'updated', 'merged', 'closed', 'state', 'is', 'sort',
 ] as const
 
 /**
@@ -85,6 +86,8 @@ export const KEY_SYNTAX: Record<string, { label: string; syntax: string }> = {
   no: { label: 'No value', syntax: 'no:assignee or no:label or no:milestone or no:review-requested' },
   created: { label: 'Created', syntax: 'created:2026-01-31 or created:>=2026-01-01 or created:2026-01-01..2026-01-31' },
   updated: { label: 'Updated', syntax: 'updated:2026-01-31 or updated:>=2026-01-01' },
+  merged: { label: 'Merged', syntax: 'merged:2026-01-31 or merged:>=2026-01-01' },
+  closed: { label: 'Closed', syntax: 'closed:2026-01-31 or closed:>=2026-01-01' },
   sort: { label: 'Sorting', syntax: 'sort:created or sort:updated or sort:comments' },
 }
 

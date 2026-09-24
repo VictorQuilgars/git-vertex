@@ -16,7 +16,7 @@ import EmptyRepo from './EmptyRepo'
 import WelcomeTab from './WelcomeTab'
 import { resolvePanelLayout, clampDetailsHeight, overlayWidth, autoDetailsSide, compactWorkingHolds, DETAILS_MIN, LIST_BELOW, type DetailsLocation, type DetailsSide } from './panelLayout'
 import DetailsToggle from './DetailsToggle'
-import { planReach } from '../../../src/renderer/src/app/search-reach'
+import { planReach, planAnswer, reachMessage, answerMessage } from '../../../src/renderer/src/app/search-reach'
 import { LOG_PAGE, StashPreview } from '../../../src/renderer/src/app/shared'
 import AIReadingTab from './AIReadingTab'
 import MemoryTab from './MemoryTab'
@@ -163,30 +163,6 @@ function VertexApp() {
   // `file:` is git's to answer; the rest of the query is matched by the graph.
   const searchOps = useSearchOperators(keptSearch.restored || aiSearchHashes ? '' : searchQuery, repoPath ?? null)
   const [searchMatches, setSearchMatches] = useState(-1)
-  // Asked, not armed — the desktop's search in words. An answer that comes
-  // back after the query or the repository changed is about neither any more,
-  // and is dropped rather than lit on rows it was not asked about.
-  const runAiSearch = useCallback(async () => {
-    const query = searchQuery.trim()
-    if (!query || !repoPath) return
-    const seq = ++aiAskSeq.current
-    keptSearch.clear()
-    setAiSearchLoading(true)
-    try {
-      const r = await (window.gitAPI as any).aiSearchCommits(query)
-      if (seq !== aiAskSeq.current) return
-      if (r?.error) {
-        showToast(r.error === 'NO_API_KEY' ? t('toast.noAiKey') : r.error, 'err')
-        return
-      }
-      setAiSearchHashes(new Set(r?.hashes ?? []))
-    } catch (e: any) {
-      if (seq === aiAskSeq.current) showToast(e?.message ?? t('toast.aiError'), 'err')
-    } finally {
-      if (seq === aiAskSeq.current) setAiSearchLoading(false)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, repoPath, showToast, t])
   const [rightW, setRightW] = useState(380)
   const [showAllBranches, setShowAllBranches] = useState(true)
   const [stashCount, setStashCount] = useState(0)
@@ -1048,6 +1024,55 @@ function VertexApp() {
   }, [commits, loadRepoData, showToast, t])
   const revealRef = useRef(revealCommit)
   revealRef.current = revealCommit
+  // Asked, not armed — the desktop's search in words. The answer comes back
+  // best first: every hit is lit, the page grown for the ones it does not hold
+  // yet, and the graph goes to the MOST PROBABLE one (search-reach.ts). What
+  // the answer leaves out is said. An answer that comes back after the query
+  // or the repository changed is about neither any more, and is dropped rather
+  // than lit on rows it was not asked about.
+  const runAiSearch = useCallback(async () => {
+    const query = searchQuery.trim()
+    if (!query || !repoPath) return
+    const seq = ++aiAskSeq.current
+    keptSearch.clear()
+    setAiSearchLoading(true)
+    try {
+      const r = await (window.gitAPI as any).aiSearchCommits(query)
+      if (seq !== aiAskSeq.current) return
+      if (r?.error) {
+        showToast(r.error === 'NO_API_KEY' ? t('toast.noAiKey') : r.error, 'err')
+        return
+      }
+      const ranked: string[] = r?.hashes ?? []
+      setAiSearchHashes(new Set(ranked))
+      const loaded = new Set(commits.map(c => c.hash))
+      const missing = ranked.filter(h => !loaded.has(h))
+      let positions: Record<string, number> = {}
+      if (missing.length) {
+        const opts = logOptionsFor({ maxCount: 0, all: showAllRef.current, solo: soloRef.current, visibility: hiddenRef.current })
+        try { positions = (await window.gitAPI.locateInHistory(missing, { all: opts.all, refs: opts.refs, excludes: opts.excludes })).positions } catch { /* said as unreached */ }
+        if (seq !== aiAskSeq.current) return
+      }
+      const plan = planAnswer(ranked, loaded, positions, logLimitRef.current)
+      if (plan.select) {
+        const shown = commits.find(c => c.hash === plan.select)
+        if (shown) setSelectedCommit(shown)
+        // Selected by the reveal's retry once the grown page is in.
+        else revealing.current = plan.select
+      }
+      if (plan.loadTo > logLimitRef.current) {
+        logLimitRef.current = plan.loadTo
+        void loadRepoData(true)
+      }
+      const said = [answerMessage(t, r ?? {}), reachMessage(t, plan)].filter(Boolean).join(' ')
+      if (said) toast.info(said)
+    } catch (e: any) {
+      if (seq === aiAskSeq.current) showToast(e?.message ?? t('toast.aiError'), 'err')
+    } finally {
+      if (seq === aiAskSeq.current) setAiSearchLoading(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, repoPath, commits, loadRepoData, showToast, toast, t])
   useEffect(() => {
     const cb = (ref: string, quiet?: boolean) => { void revealRef.current(ref, !!quiet) }
     window.gitAPI.onRevealCommit(cb)
