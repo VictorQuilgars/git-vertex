@@ -834,9 +834,15 @@ export default function App() {
               authorFilter={authorOfQuery(searchQuery)}
               onReveal={ref => { void revealRef(ref) }}
               onOpenCard={(ref, kind) => { void openRefCard(ref, kind) }}
-              onCompareStash={(ref, against) => openViewTab(against === 'working'
-                ? { view: 'compare', a: ref, b: null, axis: 'endpoints', label: `${ref} … working tree` }
-                : { view: 'compare', a: 'HEAD', b: ref, axis: 'endpoints', label: `HEAD … ${ref}` })}
+              onCompareRef={(ref, against) => {
+                // A tag arrives as its resolved commit (#288): a full sha in a
+                // tab's title is forty characters of noise, so it is cut the
+                // way every other commit in a title is.
+                const name = /^[0-9a-f]{40,64}$/.test(ref) ? ref.slice(0, 7) : ref
+                openViewTab(against === 'working'
+                  ? { view: 'compare', a: ref, b: null, axis: 'endpoints', label: `${name} … working tree` }
+                  : { view: 'compare', a: 'HEAD', b: ref, axis: 'endpoints', label: `HEAD … ${name}` })
+              }}
               onSelectStashForCompare={setCompareBaseHash}
               onRebaseOntoUpstream={upstream => { void handleRebaseOnto(upstream) }}
               onCompareUpstream={(name, upstream) => openViewTab({ view: 'compare', a: upstream, b: name, axis: 'diverged', label: `${upstream} … ${name}` })}

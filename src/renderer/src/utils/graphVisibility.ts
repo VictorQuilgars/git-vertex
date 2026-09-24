@@ -84,6 +84,21 @@ export function excludeGlobs(v: GraphVisibility): string[] {
 }
 
 /**
+ * The solo value for a tag — "show only this tag's history" (#288).
+ *
+ * Solo is one tip handed to `git log`, and nothing in it is branch-specific:
+ * a tag is a tip like any other, and `log` peels an annotated tag to the
+ * commit it points at on its own. What a tag needs is its FULL refname: a
+ * branch called `v1.2` would otherwise answer for the tag — or read as soloed
+ * on its own row, which compares the solo value with its short name — and
+ * `refs/tags/…` is not a name `getBranches` ever reports, so the two cannot
+ * be confused in either direction.
+ */
+export function tagSolo(name: string): string {
+  return `refs/tags/${name}`
+}
+
+/**
  * The `getLog` options for the graph as it is currently filtered.
  *
  * Both hosts had this inline and identical, down to the `refs/` strip — the

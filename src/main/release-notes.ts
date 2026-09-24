@@ -12,6 +12,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 📅 Merged since, closed since
 - Filters of pull requests and issues take **\`merged:\`** and **\`closed:\`**, typed or described: *PRs merged since September 1st* now keeps its date.
+
+### 🏷 A tag row does what its commit can
+- Right-click a tag: **Compare** it with HEAD or the working tree, select it for a comparison, **copy** its sha or its commit's message, **reset the current branch to it**, or **show only its history** — without finding its row in the graph first. An annotated tag is resolved to the **commit** it points at, so every entry acts on that commit and not on the tag object.
 `,
   '1.39.0': `## What's new in 1.39.0
 

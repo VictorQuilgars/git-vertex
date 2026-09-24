@@ -1609,7 +1609,7 @@ function VertexApp() {
             authorFilter={authorOfQuery(searchQuery)}
             onReveal={(ref: string) => { void revealCommit(ref) }}
             onOpenCard={(ref: string, kind: 'head' | 'remote' | 'tag') => { void openRefCard(ref, kind) }}
-            onCompareStash={(ref: string, against: 'HEAD' | 'working') => {
+            onCompareRef={(ref: string, against: 'HEAD' | 'working') => {
               if (against === 'working') void window.gitAPI.openCompareWorkingTab(ref)
               else void window.gitAPI.openCompare('HEAD', ref, 'endpoints')
             }}

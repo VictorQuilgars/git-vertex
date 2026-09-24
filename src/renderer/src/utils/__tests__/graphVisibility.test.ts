@@ -1,5 +1,5 @@
 import {
-  emptyVisibility, isAnythingHidden, excludeGlobs, isRefHidden,
+  emptyVisibility, isAnythingHidden, excludeGlobs, isRefHidden, logOptionsFor, tagSolo,
   type GraphVisibility,
 } from '../graphVisibility'
 
@@ -101,5 +101,22 @@ describe('isRefHidden — the decorations %D actually hands out', () => {
     expect(isRefHidden('topic', v({ families: new Set(['branches']) }))).toBe(true)
     expect(isRefHidden('topic', emptyVisibility())).toBe(false)
     expect(isRefHidden('', emptyVisibility())).toBe(false)
+  })
+})
+
+describe('solo — one tip, a branch or a tag (#288)', () => {
+  test("a tag solos by its full refname, which git log reads as that tag's history", () => {
+    expect(tagSolo('v1.2.0')).toBe('refs/tags/v1.2.0')
+    // Solo wins over what is hidden, exactly as it does for a branch.
+    expect(logOptionsFor({ maxCount: 50, all: true, solo: tagSolo('v1.2.0'), visibility: v({ tags: new Set(['v1.2.0']) }) }))
+      .toEqual({ maxCount: 50, refs: ['refs/tags/v1.2.0'] })
+  })
+
+  test('a tag named like a branch is not that branch', () => {
+    // A branch row reads as soloed when the solo value is its short name;
+    // the tag's value never is one.
+    expect(tagSolo('release')).not.toBe('release')
+    expect(logOptionsFor({ maxCount: 1, all: true, solo: 'remotes/origin/release', visibility: emptyVisibility() }).refs)
+      .toEqual(['origin/release'])
   })
 })
