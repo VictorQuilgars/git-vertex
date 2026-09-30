@@ -411,7 +411,9 @@
 
 .sb-branch-item.is-hidden { opacity: 0.4; }
 .sb-branch-item.is-hidden .sb-branch-name { text-decoration: line-through; }
-.sb-branch-item.soloed { background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); }
+/* A tag can be soloed too (#288), and reads the same when it is. */
+.sb-branch-item.soloed,
+.sb-tag-item.soloed { background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); }
 
 .branch-icon { flex-shrink: 0; pointer-events: none; }
 .sb-branch-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-sm); pointer-events: none; user-select: none; -webkit-user-select: none; }
@@ -665,6 +667,23 @@
 }
 .sb-remote-item:hover { background: var(--surface-hover); }
 .remote-icon { flex-shrink: 0; margin-top: var(--space-2xs); }
+/* Opens the remote onto its branches (#289). It takes its room out of the
+   row's inset rather than pushing the name right, so an opened and a closed
+   remote read at the same place. */
+.sb-remote-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  width: 14px; height: 14px;
+  margin: var(--space-2xs) 0 0 calc(-1 * var(--space-lg));
+  padding: 0;
+  background: none; border: none; cursor: pointer;
+  color: var(--text-tertiary);
+  border-radius: var(--radius-xs);
+}
+.sb-remote-toggle:hover { color: var(--text-primary); background: var(--surface-hover); }
+.sb-remote-toggle:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
+/* The branches of an opened remote: the same rows as Branches › REMOTE. */
+.sb-remote-branches { padding-bottom: var(--space-xs); }
 .sb-remote-info {
   display: flex;
   flex-direction: column;

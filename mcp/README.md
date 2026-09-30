@@ -52,6 +52,7 @@ the `GV_REPO` environment variable.
 | `open_in_git_vertex` 🖥️ | Open the Git Vertex desktop app on the repo: commit graph, a commit's details, or the 3-way conflict resolver — optionally with an agent-proposed resolution preloaded for the user to review |
 | `propose_commit` 🖥️ | Open the staging view with an agent-proposed commit message preloaded (and an optional proposed file selection) — the user reviews, stages and commits themselves |
 | `propose_rebase_plan` 🖥️ | Open the visual interactive-rebase editor with an agent-proposed plan (squash/fixup/reword/drop + new messages) preloaded — the user reviews and launches it themselves |
+| `propose_split` 🖥️ | Open the commit composer with an agent-proposed cut of the uncommitted work into several commits (a message and whole files each) preloaded — the user edits, reorders and creates the commits themselves |
 | `generate_commit_message` 🎲 | Draft a commit message from the staged diff using the MCP **client's own LLM** (sampling) — no API key on this server, works with any provider; falls back to returning the diff if the client doesn't support sampling |
 
 ## Resources

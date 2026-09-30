@@ -207,6 +207,8 @@ declare global {
     getDefaultRemote: () => Promise<{ remote: string | null; explicit: boolean }>
     getDefaultBranch: () => Promise<{ branch: string | null }>
     setDefaultRemote: (name: string) => Promise<R>
+    /** Forget the explicit choice: origin, or the first remote, is the default again. */
+    unsetDefaultRemote: () => Promise<R>
     getGoneBranches: () => Promise<{ branches: string[] }>
     pruneGoneBranches: (names: string[]) => Promise<R & { deleted: string[] }>
     // Staging & commit

@@ -300,6 +300,25 @@ describe('git-core — against a real repository, on both hosts', () => {
     expect(refused.error).toBeTruthy()
   })
 
+  // What a tag row's entries act on (#288): the side bar asks by the tag's
+  // full refname, and must get the COMMIT — for an annotated tag, whose own
+  // object is what the tag list carries, and when a branch has its name.
+  test('a tag by its full refname resolves to its commit, annotated or not', async () => {
+    run(`git tag light ${first}`)
+    run(`git tag -a v1 -m "annotated" ${first}`)
+    const object = run('git rev-parse refs/tags/v1').trim()
+    expect(object).not.toBe(first)
+    expect((await onBothHosts(repo, r => core.resolveCommit(r, 'refs/tags/v1'))).hash).toBe(first)
+    expect((await onBothHosts(repo, r => core.resolveCommit(r, 'refs/tags/light'))).hash).toBe(first)
+    // A branch called like the tag, somewhere else: the refname is the tag's.
+    run(`git branch v1 ${second}`)
+    expect((await onBothHosts(repo, r => core.resolveCommit(r, 'refs/tags/v1'))).hash).toBe(first)
+    expect((await onBothHosts(repo, r => core.resolveCommit(r, 'refs/tags/gone'))).hash).toBeNull()
+    // A tag of a tree names no commit, and nothing is offered on it.
+    run(`git tag tree ${first}^{tree}`)
+    expect((await onBothHosts(repo, r => core.resolveCommit(r, 'refs/tags/tree'))).hash).toBeNull()
+  })
+
   test('commitsTouching answers file: — a path, a folder, a bare word, a pattern', async () => {
     fs.mkdirSync(path.join(repo, 'src/Cache'), { recursive: true })
     write('src/Cache/keys.ts', 'k\n')
@@ -884,5 +903,29 @@ describe('refArgs — the families the app can name', () => {
     expect(core.refArgs({ all: true, excludes: ['refs/heads/*'], extraRevs: ['c0ffee1'] })).toEqual([
       '--exclude=*', '--branches', '--remotes', '--tags', '--glob=refs/stas[h]', 'HEAD', 'c0ffee1',
     ])
+  })
+})
+
+describe('the default remote — what reaches git (#289)', () => {
+  test('a name read as an option is refused before git runs', async () => {
+    const calls: string[][] = []
+    const spy: core.GitRunner = async args => { calls.push(args); return '' }
+    expect((await core.setDefaultRemote(spy, '--global')).success).toBe(false)
+    expect(calls).toEqual([])
+  })
+
+  // "Nothing to unset" is git's exit 5, which a throwing runner cannot tell
+  // from any other failure — so the core reads first, and never parses a
+  // message git would have translated.
+  test('unset reads first, and asks git to unset only what is there', async () => {
+    const calls: string[][] = []
+    const nothing: core.GitRunner = async args => { calls.push(args); throw new Error('exit 1') }
+    expect(await core.unsetDefaultRemote(nothing)).toEqual({ success: true })
+    expect(calls).toEqual([['config', '--local', '--get-all', core.DEFAULT_REMOTE_KEY]])
+
+    calls.length = 0
+    const chosen: core.GitRunner = async args => { calls.push(args); return 'fork\n' }
+    expect(await core.unsetDefaultRemote(chosen)).toEqual({ success: true })
+    expect(calls[1]).toEqual(['config', '--local', '--unset-all', core.DEFAULT_REMOTE_KEY])
   })
 })

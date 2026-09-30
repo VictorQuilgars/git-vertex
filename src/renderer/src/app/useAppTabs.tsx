@@ -7,9 +7,10 @@ import type { RepoSession } from './useRepoSession'
 import type { AppGithub } from './useAppGithub'
 import type { AppConflicts } from './useAppConflicts'
 import type { AppAi } from './useAppAi'
+import { readSplitProposal } from '../../../main/split-plan'
 
 export function useAppTabs(app: AppChrome & RepoSession & AppGithub & AppConflicts & AppAi) {
-  const { t, showToast, repoPath, setRepoPath, saveSnapshot, restoreSnapshot, forgetRepo, repoName, setRepoName, setCommits, selectedCommit, setSelectedCommit, setRecentRepos, clearRepoView, detectGithub, rebaseHash, setRebaseHash, setRebasePlanProposal, conflictResolverFile, setConflictResolverFile, setConflictResolverProposal, setCommitProposal } = app
+  const { t, showToast, repoPath, setRepoPath, saveSnapshot, restoreSnapshot, forgetRepo, repoName, setRepoName, setCommits, selectedCommit, setSelectedCommit, setRecentRepos, clearRepoView, detectGithub, rebaseHash, setRebaseHash, setRebasePlanProposal, conflictResolverFile, setConflictResolverFile, setConflictResolverProposal, setCommitProposal, setComposerProposal } = app
 
   // ── Tabs (home / repo / launchpad) ──
   const [tabs, setTabs] = useState<AppTab[]>(() => [{ id: 'home-initial', kind: 'home' }])
@@ -135,6 +136,23 @@ export function useAppTabs(app: AppChrome & RepoSession & AppGithub & AppConflic
         setRebasePlanProposal(p.steps)
         setRebaseHash(link.hash)
       } catch (e) { proposalUnreadable(t('deeplink.what.rebasePlanCap'), e) }
+    } else if (link.view === 'propose-split') {
+      // MCP propose_split (#88): the agent's cut lands in the commit composer
+      // — the same review screen as the model's own split, where every commit
+      // can be edited, reordered or dropped, and nothing is committed until
+      // the user presses its button. The working-changes view opens beside
+      // it, so the files the plan talks about are in sight.
+      if (!link.proposalContent) { proposalMissing(t('deeplink.what.splitPlan')); return }
+      try {
+        const groups = readSplitProposal(link.proposalContent)
+        if (!groups.length) throw new Error('proposal has no commits')
+        setSelectedCommit({
+          hash: '__WIP__', shortHash: 'WIP', message: '//WIP',
+          author: '', authorEmail: '', date: '', parents: [], refs: []
+        })
+        // Opens the composer by itself — see composerProposal in useAppAi.
+        setComposerProposal({ id: Date.now(), repo: link.repo, groups })
+      } catch (e) { proposalUnreadable(t('deeplink.what.splitPlanCap'), e) }
     } else if (link.view !== 'graph') {
       // "graph" is just "open this repo" and needs nothing more; anything else
       // reaching here is a view we know but whose required parameter is absent.

@@ -1818,3 +1818,75 @@ export async function setBranchUpstream(
     return { success: false, error: reason(e) }
   }
 }
+
+// ── The default remote ──────────────────────────────────────────
+//
+// Moved here with its inverse (#289): the two services held the same reading
+// of it, character for character, and a third method written out twice is how
+// the next drift starts.
+
+/**
+ * Where the choice of a default remote is kept: the repository's own git
+ * config rather than either product's settings, so it is per-repository by
+ * nature, readable from the command line, and the very value the other
+ * product reads (v1.23.0).
+ */
+export const DEFAULT_REMOTE_KEY = 'gitvertex.defaultRemote'
+
+/**
+ * Which remote an action targets when nothing says otherwise.
+ *
+ * Order: the explicit choice → `origin` → the first remote. `explicit` says
+ * whether the first of those answered, which is what decides whether there is
+ * a choice to take back (#289) — `origin` winning by default is not one.
+ */
+export async function defaultRemote(run: GitRunner): Promise<{ remote: string | null; explicit: boolean }> {
+  let remotes: string[] = []
+  try {
+    remotes = (await run(['remote'])).trim().split('\n').map(r => r.trim()).filter(Boolean)
+  } catch {
+    return { remote: null, explicit: false }
+  }
+  if (remotes.length === 0) return { remote: null, explicit: false }
+  // Unset makes git exit 1, which the runner turns into a rejection: absent,
+  // not an error to report.
+  const chosen = (await run(['config', '--local', '--get', DEFAULT_REMOTE_KEY]).catch(() => '')).trim()
+  // A remote that has since been renamed or removed must not win.
+  if (chosen && remotes.includes(chosen)) return { remote: chosen, explicit: true }
+  return { remote: remotes.includes('origin') ? 'origin' : remotes[0], explicit: false }
+}
+
+export async function setDefaultRemote(
+  run: GitRunner, name: string,
+): Promise<{ success: boolean; error?: string }> {
+  const bad = assertRef(name, 'remote')
+  if (bad) return { success: false, error: bad }
+  try {
+    await run(['config', '--local', DEFAULT_REMOTE_KEY, name])
+    return { success: true }
+  } catch (e) {
+    return { success: false, error: reason(e) }
+  }
+}
+
+/**
+ * Take the choice back (#289): the default returns to what it is when nobody
+ * chose — `origin`, or the first remote.
+ *
+ * Asking with nothing set is a success, not an error: the state asked for is
+ * the state the repository is in. It is read first rather than told apart by
+ * `--unset`'s exit code — 5, for "nothing to unset", which this runner cannot
+ * see — and never by its message, which git translates.
+ */
+export async function unsetDefaultRemote(run: GitRunner): Promise<{ success: boolean; error?: string }> {
+  const chosen = (await run(['config', '--local', '--get-all', DEFAULT_REMOTE_KEY]).catch(() => '')).trim()
+  if (!chosen) return { success: true }
+  try {
+    // --unset-all: a hand-edited config can carry the key twice, and a plain
+    // --unset refuses to choose between them.
+    await run(['config', '--local', '--unset-all', DEFAULT_REMOTE_KEY])
+    return { success: true }
+  } catch (e) {
+    return { success: false, error: reason(e) }
+  }
+}

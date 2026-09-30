@@ -82,6 +82,10 @@ const SHARED: Record<string, string> = {
   // each row now carries facts read in the same call.
   getTags: 'tagList',
   getStashes: 'stashList',
+  // The default remote, moved with its inverse (#289).
+  getDefaultRemote: 'defaultRemote',
+  setDefaultRemote: 'setDefaultRemote',
+  unsetDefaultRemote: 'unsetDefaultRemote',
 }
 
 describe('the shared git core is what both products run', () => {
