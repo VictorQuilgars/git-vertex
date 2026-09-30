@@ -241,6 +241,70 @@ export function githubRepo(
   return { owner: parsed.owner, repo: parsed.repo, host }
 }
 
+/** A remote that is on a GitHub we know, and the repository it points at. */
+export interface GithubRemote { name: string; url: string; owner: string; repo: string; host: string }
+
+/**
+ * The remote GitHub is asked about: `origin` when it is on GitHub, otherwise
+ * the first remote that is, otherwise none.
+ *
+ * "Otherwise the first remote that is" is what the rule was missing. It used to
+ * be `origin`, or whatever came first when there is no origin — and then
+ * "is that one on GitHub?", so a repository whose origin is on GitLab and whose
+ * `upstream` is on GitHub answered "no GitHub remote", and the pull request and
+ * issue views said so in words that claimed to have looked at every remote.
+ *
+ * `knownHosts` is the Enterprise server the user has declared, the same list
+ * `githubRepo` takes. The rule used to be written out seven times — four in the
+ * desktop, three in the extension host — and not one passed it, so a declared
+ * Enterprise host never made a repository on it detectable: the token was
+ * configured, the API base was right, and the answer was still "not GitHub".
+ * Every place that means "the GitHub remote" asks here, so they cannot disagree
+ * about which remote that is.
+ */
+export function githubRemote(
+  remotes: readonly { name: string; fetchUrl?: string; pushUrl?: string }[],
+  knownHosts: string[] = [],
+): GithubRemote | null {
+  const ordered = [...remotes.filter(r => r.name === 'origin'), ...remotes.filter(r => r.name !== 'origin')]
+  for (const r of ordered) {
+    const url = r.fetchUrl || r.pushUrl || ''
+    const { owner, repo, host } = githubRepo(url, knownHosts)
+    if (owner && repo && host) return { name: r.name, url, owner, repo, host }
+  }
+  return null
+}
+
+/**
+ * A detected GitHub remote in the shape `githubRepo` answers — { owner, repo,
+ * host }, every one null when there is none — which is what `githubDetectRepo`
+ * puts on the wire in both products.
+ */
+export function detectedRepo(found: GithubRemote | null): { owner: string | null; repo: string | null; host: string | null } {
+  return found ? { owner: found.owner, repo: found.repo, host: found.host } : { owner: null, repo: null, host: null }
+}
+
+/**
+ * The remotes of a repository, read from `git remote -v` — for a path that is
+ * not the open repository, where there is no service to ask.
+ *
+ * `(fetch)` and `(push)` are literals in git's output, not translated text, so
+ * this does not fall under the rule against matching git's messages; it is what
+ * simple-git reads too. A remote with only one of the two keeps the other empty.
+ */
+export function parseRemoteVerbose(stdout: string): Remote[] {
+  const byName = new Map<string, Remote>()
+  for (const line of stdout.split('\n')) {
+    const m = line.match(/^(\S+)\t(.+) \((fetch|push)\)\s*$/)
+    if (!m) continue
+    const remote = byName.get(m[1]) ?? { name: m[1], fetchUrl: '', pushUrl: '' }
+    if (m[3] === 'fetch') remote.fetchUrl = m[2]
+    else remote.pushUrl = m[2]
+    byName.set(m[1], remote)
+  }
+  return [...byName.values()]
+}
+
 /**
  * A ref as it goes into a URL. Slashes are real path separators in every shape
  * above — `feature/x` must stay `feature/x`, not become `feature%2Fx` — so each

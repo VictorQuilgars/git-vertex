@@ -24,7 +24,7 @@ import {
   githubListAssignees, githubListRepoLabels, githubGetPR, githubGetChecks, githubMergePR, githubBranchPRs,
   githubRepoParent, githubRequestReviewers, githubCreateLabel, githubCreateIssue,
 } from '../githubApi'
-import { githubRepo, githubApiBase, GITHUB_COM } from '../../../src/renderer/src/utils/remoteUrl'
+import { githubRemote, parseRemoteVerbose, detectedRepo, githubApiBase, GITHUB_COM } from '../../../src/renderer/src/utils/remoteUrl'
 import { providerById } from '../../../src/renderer/src/utils/aiProviders'
 import { listAgents } from '../agents'
 import { resolveIdentity, signIn } from '../githubAuth'
@@ -940,8 +940,7 @@ export class GitVertexHost implements vscode.Disposable {
       // GitHub (PAT from the gvSettings memento, set via gitVertex.setGithubToken)
       case 'githubDetectRepo': {
         const { remotes } = await svc.getRemotes()
-        const origin = remotes.find(r => r.name === 'origin') ?? remotes[0]
-        return githubRepo(origin?.fetchUrl || origin?.pushUrl || '')
+        return detectedRepo(githubRemote(remotes, this._knownGithubHosts()))
       }
       // The same detection for a path that is not the open repository. The
       // desktop uses it to read the recent-repos list; here it is one more
@@ -949,11 +948,9 @@ export class GitVertexHost implements vscode.Disposable {
       case 'githubDetectRepoAt': {
         try {
           const exec = promisify(execFile)
-          const { stdout } = await exec(
-            'git', ['-C', args[0], 'remote', 'get-url', 'origin'], { env: gitEnv() },
-          )
-          return githubRepo(stdout.trim())
-        } catch { return { owner: null, repo: null } }
+          const { stdout } = await exec('git', ['-C', args[0], 'remote', '-v'], { env: gitEnv() })
+          return detectedRepo(githubRemote(parseRemoteVerbose(stdout), this._knownGithubHosts()))
+        } catch { return detectedRepo(null) }
       }
       case 'githubListPRs': return githubListPRs(await this._githubApi(), args[0], args[1])
       case 'githubListIssues': return githubListIssues(await this._githubApi(), args[0], args[1])
@@ -1445,6 +1442,12 @@ export class GitVertexHost implements vscode.Disposable {
     return (all.githubEnterpriseHost ?? '').trim().toLowerCase()
   }
 
+  /** The hosts that count as GitHub besides github.com: the declared Enterprise server, if any. */
+  private _knownGithubHosts(): string[] {
+    const enterprise = this._enterpriseHost()
+    return enterprise ? [enterprise] : []
+  }
+
   /**
    * Where this repository's GitHub answers, and what may be sent there.
    *
@@ -1462,9 +1465,8 @@ export class GitVertexHost implements vscode.Disposable {
       const svc = this._gitService
       if (svc && enterprise) {
         const { remotes } = await svc.getRemotes()
-        const origin = remotes.find(r => r.name === 'origin') ?? remotes[0]
-        const parsed = githubRepo(origin?.fetchUrl || origin?.pushUrl || '', [enterprise])
-        if (parsed.host) host = parsed.host
+        const found = githubRemote(remotes, [enterprise])
+        if (found) host = found.host
       }
     } catch { /* no repo, or no remotes — github.com it is */ }
 

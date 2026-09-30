@@ -15,6 +15,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 🛰 A remote, on its forge and opened onto its branches
 - Right-click a remote: **Open Repository on Remote**, **Open Branches on Remote**, **Copy Branches URL** — that remote's own pages, on GitHub, GitLab or Bitbucket. **Unset as Default Remote** takes a chosen default back. And a remote **opens** onto its branches, with the same acts and menu as Branches › REMOTE. (#289)
+
+### 🔗 A remote that is not \`origin\` can be the GitHub one
+- A repository is on GitHub if **any** of its remotes is: an \`upstream\` on GitHub behind an \`origin\` on GitLab now gets its pull requests and issues instead of *no GitHub remote*. And the **Enterprise Server** you declared in Settings is recognised — the repository on it used to be reported as not on GitHub even with its token set. \`origin\` still wins when it is on GitHub, and a host you have not declared is still not GitHub.
 `,
   '1.39.0': `## What's new in 1.39.0
 
