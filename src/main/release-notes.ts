@@ -15,6 +15,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 🏷 A tag row does what its commit can
 - Right-click a tag: **Compare** it with HEAD or the working tree, select it for a comparison, **copy** its sha or its commit's message, **reset the current branch to it**, or **show only its history** — without finding its row in the graph first. An annotated tag is resolved to the **commit** it points at, so every entry acts on that commit and not on the tag object.
+
+### 🔗 A remote that is not \`origin\` can be the GitHub one
+- A repository is on GitHub if **any** of its remotes is: an \`upstream\` on GitHub behind an \`origin\` on GitLab now gets its pull requests and issues instead of *no GitHub remote*. And the **Enterprise Server** you declared in Settings is recognised — the repository on it used to be reported as not on GitHub even with its token set. \`origin\` still wins when it is on GitHub, and a host you have not declared is still not GitHub.
 `,
   '1.39.0': `## What's new in 1.39.0
 
