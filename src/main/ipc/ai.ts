@@ -6,9 +6,8 @@ import { is } from '@electron-toolkit/utils'
 import { providerById, providerCredential, authHeaders } from '../../renderer/src/utils/aiProviders'
 import { SECRET_MASK, maskSecrets, resolveSecretWrite } from '../settings-secrets'
 import { commitMessagePrompt, rewordCommitPrompt, explainCommitPrompt, pullRequestPrompt, parsePullRequest, truncateDiff } from '../ai-prompts'
-import { explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit, changelogState, changelogList, noteList, insertedIn, withInserted, scopeHasChanges, type NoteRecord } from '../ai-features'
-import { resolveBase } from '../ai-material'
-import { findChangelogs, isMergedInto, mergeIntoChangelog } from '../changelog-file'
+import { explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit, changelogState, changelogList, noteList, insertedIn, withInserted, scopeHasChanges, insertRefusal, type NoteRecord } from '../ai-features'
+import { findChangelogs, mergeIntoChangelog } from '../changelog-file'
 import fs from 'fs'
 import path from 'path'
 import { readFileSync, writeFileSync } from 'fs'
@@ -544,13 +543,10 @@ export function registerAiHandlers(): void {
     // it was deleted — at which point these bullets are already in the file, and
     // inserting them adds a release's worth of duplicates to whatever branch is
     // checked out.
+    // Asked of the shared module, which knows a range subject from a branch.
     if (!opts?.force && opts?.branch) {
-      const alive = await raw(['rev-parse', '--verify', '--quiet', opts.branch]).catch(() => '')
-      if (!alive.trim()) return { branchGone: true, branch: opts.branch, path: rel }
-      const base = await resolveBase(raw, opts.branch)
-      if (base && await isMergedInto(raw, opts.branch, base)) {
-        return { alreadyMerged: true, branch: opts.branch, base, path: rel }
-      }
+      const refused = await insertRefusal(raw, opts.branch)
+      if (refused) return { ...refused, branch: opts.branch, path: rel }
     }
 
     const abs = join(state.gitService.repoPath, rel)
@@ -613,6 +609,8 @@ export function registerAiHandlers(): void {
     }
   })
 
-  handle('ai:propose-commit-split', async () =>
-    state.gitService ? proposeCommitSplit(rawGit(), runFeature, diffOptsFor('compose')) : { error: 'No repository open' })
+  // `subject` given: a branch's commits recomposed rather than the working
+  // tree split (#293). The shared module refuses what cannot be applied.
+  handle('ai:propose-commit-split', async (_e, subject?: string) =>
+    state.gitService ? proposeCommitSplit(rawGit(), runFeature, diffOptsFor('compose'), subject) : { error: 'No repository open' })
 }

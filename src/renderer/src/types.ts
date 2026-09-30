@@ -194,6 +194,8 @@ declare global {
     /** Every remote-tracking branch — what *Change upstream…* picks from. */
     listRemoteBranches: () => Promise<{ branches: string[] }>
     squashFixups: (base: string) => Promise<R & { squashed?: number }>
+    /** Unwind the checked-out branch to `onto`, its work staged — the composer's first step (#293). */
+    recomposeReset: (branch: string, onto: string, tip: string) => Promise<R>
     listFixups: (base: string) => Promise<{ commits: { hash: string; subject: string }[] }>
     moveBranchTo: (branch: string, hash: string) => Promise<R>
     rebaseBranchOnto: (branch: string, hash: string) => Promise<R>
@@ -499,7 +501,15 @@ declare global {
       similar?: { line: string; existing: string }[]
       error?: string
     }>
-    aiProposeCommitSplit: () => Promise<{ groups?: { message: string; files: string[] }[]; unassigned?: string[]; invented?: string[]; error?: string }>
+    /**
+     * No subject: the working tree, cut into commits. A branch subject: that
+     * branch's commits over its base, cut again (#293) — `recompose` then says
+     * what applying it resets the branch to.
+     */
+    aiProposeCommitSplit: (subject?: string) => Promise<{
+      groups?: { message: string; files: string[] }[]; unassigned?: string[]; invented?: string[]; error?: string
+      recompose?: { branch: string; base: string; onto: string; tip: string; commits: number }
+    }>
     aiResolveConflict: (filepath: string, instruction?: string) => Promise<Unnarrowed>
     aiSearchCommits: (query: string) => Promise<Unnarrowed>
     aiListModels: () => Promise<Unnarrowed>

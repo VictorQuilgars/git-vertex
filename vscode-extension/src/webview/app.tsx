@@ -1716,6 +1716,9 @@ function VertexApp() {
             showConfirm={showConfirm}
             onExplainBranch={(name) => openAI('branch', name, name)}
             onBranchChangelog={(name) => openAI('changelog', name, name)}
+            // The composer's own tab, on that branch's commits (#293). Only
+            // ever the checked-out branch — the side bar disables the rest.
+            onRecomposeBranch={(name) => openAI('split', name, name)}
             onExplainStash={(index, message) => openAI('stash', String(index), message)}
             onOpenChangelog={(name) => openAI('changelog', name, name)}
             onOpenNote={(n) => openAI(n.kind, n.key, n.title)}

@@ -1293,6 +1293,61 @@ export async function squashFixups(run: GitRunner, against: string): Promise<Squ
   }
 }
 
+/**
+ * The first step of recomposing a branch's commits (#293): take the branch
+ * back to its fork point and leave everything it carried staged, so the
+ * commit composer can cut it again through the calls it already makes.
+ *
+ * ⚠️ Only the CHECKED-OUT branch, and only on a clean tree. The composer
+ * applies a plan by unstaging, staging and committing in the working tree —
+ * the only tree there is — so a branch that is not checked out cannot be
+ * rewritten by it without switching to it, and this refuses rather than
+ * switching behind the user's back. Tracked changes are refused because a
+ * soft reset keeps them and the composer would commit them as part of the
+ * branch's history. Untracked files are left alone: nothing here stages them.
+ *
+ * `tip` is the commit the plan was proposed from. If the branch has moved
+ * since, the plan describes a different branch and is refused, not applied.
+ * The old tip stays reachable through the reflog (and ORIG_HEAD), which is
+ * the whole of the undo a rewrite can honestly offer.
+ */
+export async function resetForRecompose(
+  run: GitRunner, branch: string, onto: string, tip: string,
+): Promise<{ success: boolean; error?: string }> {
+  const bad = assertRef(branch, 'branch')
+  if (bad) return { success: false, error: bad }
+  if (!/^[0-9a-f]{7,64}$/.test(onto) || !/^[0-9a-f]{7,64}$/.test(tip)) {
+    return { success: false, error: 'Recompose needs the commits it was proposed from' }
+  }
+  try {
+    const head = (await run(['symbolic-ref', '--quiet', '--short', 'HEAD']).catch(() => '')).trim()
+    if (head !== branch) {
+      return { success: false, error: `${branch} is not checked out — only the checked-out branch can be recomposed` }
+    }
+    const at = (await run(['rev-parse', 'HEAD'])).trim()
+    if (!at.startsWith(tip) && !tip.startsWith(at)) {
+      return { success: false, error: `${branch} has moved since the plan was proposed — propose it again` }
+    }
+    const dirty = (await run(['status', '--porcelain', '--untracked-files=no'])).trim()
+    if (dirty) {
+      return { success: false, error: 'Commit or stash your uncommitted changes first — they would be mixed into the recomposed commits' }
+    }
+    // `onto` has to be behind the tip: resetting anywhere else would not be
+    // unwinding the branch, it would be moving it. Asked as a merge base that
+    // PRINTS rather than `--is-ancestor`, which answers by exit code alone —
+    // and simple-git reads a silent non-zero exit as success (see
+    // changelog-file.ts::isMergedInto).
+    const common = (await run(['merge-base', onto, 'HEAD']).catch(() => '')).trim()
+    if (!common || !(common.startsWith(onto) || onto.startsWith(common))) {
+      return { success: false, error: `${onto.slice(0, 7)} is not where ${branch} forked — propose it again` }
+    }
+    await run(['reset', '--soft', onto])
+    return { success: true }
+  } catch (e) {
+    return { success: false, error: reason(e) }
+  }
+}
+
 // ── The worktrees, and where each one stands ────────────────────
 //
 // The list was parsed identically in both services, word for word, and both

@@ -28,7 +28,11 @@ export function useAppAi(app: AppChrome & RepoSession & AppGithub & AppConflicts
     | { kind: 'stash'; index: number | string; label: string }
     | { kind: 'working' }
     | null>(null)
-  const [composerOpen, setComposerOpen] = useState(false)
+  /**
+   * The commit composer: `true` splits the working tree, a branch name
+   * recomposes that branch's commits (#293), `false` is closed.
+   */
+  const [composerOpen, setComposerOpen] = useState<boolean | string>(false)
   /**
    * A split an agent proposed (MCP propose_split, #88), under review in the
    * composer instead of the model's own. Its presence OPENS the composer, on

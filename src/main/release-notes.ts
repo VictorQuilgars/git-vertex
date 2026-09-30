@@ -4,6 +4,9 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🏷 The model, on branches and tags
+- Right-click a branch **ahead of its upstream**: **Explain Unpushed Changes** reads only what has not been pushed. **Recompose Commits** proposes a new cut of the checked-out branch's commits and rewrites them once you apply the plan — any other branch shows it greyed out, asking to be checked out first. Right-click a **tag**: **Generate Changelog Since This Tag**, for the branch you are on.
+
 ### ⚖️ Search and filter, answered as judgements
 - **TypeSafe (Jev)** joins the AI providers. It does not write prose: it answers with **typed verdicts**, so it serves the two features that *select* — **search in words** and **describe a filter** — and the page offers it there, and only there, under **Built for this feature**, with the pair one click away. A search reads **a thousand commits** instead of two hundred, cannot come back with an invented hash, and keeps the fifty most probable, in about three seconds. A described filter is **composed by the app** from the qualifiers the field knows, so what lands in the field is always a valid query.
 

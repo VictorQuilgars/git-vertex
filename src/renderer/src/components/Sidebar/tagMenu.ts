@@ -85,6 +85,12 @@ export interface TagMenuActions {
   onCompareHead?: (hash: string) => void
   /** The tip actions a branch row takes, from the same host (#281). */
   tipActions?: BranchTipActions
+  /**
+   * *Generate changelog since this tag* (#293): the branch it is written for —
+   * the one checked out — and the call. Absent on a detached HEAD, where there
+   * is no branch for the changelog to be about.
+   */
+  changelog?: { branch: string; run: () => void }
   /** Copies text; injected so the menu stays pure. */
   copy: (text: string) => void
 }
@@ -159,6 +165,12 @@ export function tagMenuItems(
       action: actions.onToggleHide,
       checked: !!state.hidden,
     }] : []),
+    // What a model writes is not what git does: its own group, in its own
+    // ink, as the branch menu keeps its readings.
+    ...(actions.changelog ? [
+      { separator: true as const },
+      { label: t('sb.tag.changelogSince', actions.changelog.branch), action: actions.changelog.run, icon: 'ai' as const, tone: 'ai' as const },
+    ] : []),
     { separator: true },
     { label: t('sb.tag.deleteLocal'), action: actions.onDelete, danger: true },
     { label: t('sb.tag.deleteRemote'), action: actions.onDeleteRemote, danger: true },

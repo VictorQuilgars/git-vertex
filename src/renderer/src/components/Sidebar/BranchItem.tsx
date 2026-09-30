@@ -61,6 +61,9 @@ export interface BranchItemProps {
   /** The two AI readings of this branch (#70 P1). */
   onExplain?: () => void
   onChangelog?: () => void
+  /** Only what is unpushed, and recomposing its commits (#293) — see refReadings.ts. */
+  onExplainUnpushed?: () => void
+  onRecompose?: () => void
   /** One click: take the graph to this branch's tip (#275). */
   onReveal?: () => void
   /** Open this branch's card — what the chip on its tip's graph row opens. */
@@ -92,7 +95,7 @@ export interface BranchItemProps {
   openPR?: BranchPR
 }
 
-export function branchItemMenu({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, hidden, favorite, issue, onPull, onToggleSolo, onToggleHide, onToggleFavorite, onOpenOnRemote, onAssociateIssue, onExplain, onChangelog, onPullBranch, onChangeUpstream, onRebaseOntoUpstream, onSquashFixups, onHideRemote, onCompareUpstream, tip, tipActions, checkedOutIn, onOpenItsWorktree, onCreateWorktreeFor, pr, onCreatePR, publishedAs, onCopyLink, onDeleteBoth, showRemotePrefix = false }: BranchItemProps, t: ReturnType<typeof useLang>['t']): MenuItemDef[] {
+export function branchItemMenu({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, hidden, favorite, issue, onPull, onToggleSolo, onToggleHide, onToggleFavorite, onOpenOnRemote, onAssociateIssue, onExplain, onChangelog, onExplainUnpushed, onRecompose, onPullBranch, onChangeUpstream, onRebaseOntoUpstream, onSquashFixups, onHideRemote, onCompareUpstream, tip, tipActions, checkedOutIn, onOpenItsWorktree, onCreateWorktreeFor, pr, onCreatePR, publishedAs, onCopyLink, onDeleteBoth, showRemotePrefix = false }: BranchItemProps, t: ReturnType<typeof useLang>['t']): MenuItemDef[] {
   const fullDisplay = remote
     ? (showRemotePrefix ? name.replace(/^remotes\//, '') : name.replace(/^remotes\/[^/]+\//, ''))
     : name
@@ -111,7 +114,7 @@ export function branchItemMenu({ name, current, remote, currentBranch, onCheckou
       onCreatePR: pr && onCreatePR ? () => onCreatePR(pr) : undefined,
       onMerge, onRebaseOnto, onCompare,
       onOpenOnRemote, onAssociateIssue, onToggleFavorite,
-      onExplain, onChangelog,
+      onExplain, onChangelog, onExplainUnpushed, onRecompose,
       onToggleSolo, onToggleHide,
       onCopyName: () => navigator.clipboard.writeText(fullDisplay),
       onCopyLink,

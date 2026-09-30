@@ -91,6 +91,44 @@ export async function branchMaterial(raw: Raw, branch: string, base?: string): P
   }
 }
 
+export interface RecomposeMaterial {
+  /** What it was read against, as named — `origin/main`. */
+  base: string
+  /** The fork point, as a sha: where the branch goes back to before it is cut again. */
+  onto: string
+  /** The tip, as a sha — the plan describes THIS commit and no later one. */
+  tip: string
+  commits: number
+  files: string[]
+  diffstat: string
+  diff: string
+}
+
+/**
+ * What a branch carries, as ONE heap of work — the commit composer's
+ * material when it recomposes a branch rather than the working tree (#293).
+ *
+ * Read between two shas, fork point and tip, so the plan cannot describe a
+ * range that moved while the model was answering. `--no-renames` because the
+ * composer applies whole files by path: a rename read as one path would stage
+ * the new file and leave the old one standing.
+ */
+export async function recomposeMaterial(raw: Raw, branch: string, base?: string): Promise<RecomposeMaterial | null> {
+  const b = base ?? await resolveBase(raw, branch)
+  if (!b) return null
+  const onto = (await quiet(raw, ['merge-base', b, branch])).trim()
+  const tip = (await quiet(raw, ['rev-parse', branch])).trim()
+  if (!onto || !tip) return null
+  const commits = Number((await quiet(raw, ['rev-list', '--count', `${onto}..${tip}`])).trim()) || 0
+  const files = (await quiet(raw, ['diff', '--name-only', '--no-renames', onto, tip]))
+    .split('\n').map(f => f.trim()).filter(Boolean)
+  return {
+    base: b, onto, tip, commits, files,
+    diffstat: await quiet(raw, ['diff', '--stat', '--no-renames', onto, tip]),
+    diff: await quiet(raw, ['diff', '--no-renames', onto, tip]),
+  }
+}
+
 /**
  * Subject + body per commit, for a changelog that can say why.
  *

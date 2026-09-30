@@ -107,7 +107,7 @@ export function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, 
 }
 
 // ── Tag item ──────────────────────────────────────────────────────
-export function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDeleteRemote, onReveal, onOpenCard, hidden, onToggleHide, displayAs, resolveCommit, onCompareHead, tipActions, soloed, onToggleSolo }: {
+export function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDeleteRemote, onReveal, onOpenCard, hidden, onToggleHide, displayAs, resolveCommit, onCompareHead, tipActions, soloed, onToggleSolo, changelog }: {
   tag: TagEntry
   /** Last path segment, when the tree already spells the folders (#276). */
   displayAs?: string
@@ -134,6 +134,13 @@ export function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDel
   /** The graph shows only this tag's history. */
   soloed?: boolean
   onToggleSolo?: () => void
+
+  /**
+   * *Generate changelog since this tag* (#293): the branch it is written for
+   * — the one checked out — and the call. Absent on a detached HEAD, where
+   * there is no branch for the changelog to be about.
+   */
+  changelog?: { branch: string; run: () => void }
 }) {
   const [ctx, setCtx] = useState<{ x: number; y: number; commit: TagCommit | null } | null>(null)
   const { t } = useLang()
@@ -150,7 +157,7 @@ export function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDel
     { hidden, soloed },
     {
       onCheckoutCommit, onPush, onDelete, onDeleteRemote, onToggleHide, onToggleSolo,
-      onCompareHead, tipActions,
+      onCompareHead, tipActions, changelog,
       copy: text => { void navigator.clipboard.writeText(text) },
     }, t)
 

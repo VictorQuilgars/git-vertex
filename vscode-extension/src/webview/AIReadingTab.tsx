@@ -32,11 +32,13 @@ export default function AIReadingTab({ kind, aiKey, label }: {
   // The composer is not a reading — it is a plan you edit — but it fills the
   // tab the same way. Its BODY, not the drawer: PanelDrawer renders nothing
   // without an anchor to measure, so the drawer here would have been a blank
-  // tab rather than a visible failure.
+  // tab rather than a visible failure. A key is a branch being recomposed
+  // (#293) rather than the working tree being split.
   if (kind === 'split') {
     return (
       <div className="ai-tab ai-tab--full">
         <CommitComposerBody
+          subject={aiKey || undefined}
           onClose={() => api.closeSelf?.()}
           onCommitted={() => {}}
           showToast={showToast}

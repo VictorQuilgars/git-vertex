@@ -47,7 +47,7 @@ import AIAnswer from './components/AIAnswer/AIAnswer'
 import { timeAgo } from './components/GitHubPanel/GithubRow'
 import CommitComposer from './components/CommitComposer/CommitComposer'
 import { branchNeedsPush } from './components/ContextMenu/prIntent'
-import { shortName } from './components/ContextMenu/branchRefs'
+import { readingLabel } from './components/Sidebar/refReadings'
 import GitflowModal from './components/GitflowModal/GitflowModal'
 import CenterFileDiff from './components/CenterFileDiff/CenterFileDiff'
 import IssueDetail, { detailKey } from './components/IssueDetail/IssueDetail'
@@ -802,9 +802,11 @@ export default function App() {
               recentRepos={recentRepos}
               stashes={stashes}
               onExplainStash={(index, message) => setAiRead({ kind: 'stash', index, label: message })}
-              onExplainBranch={(name) => setAiRead({ kind: 'branch', ref: name, label: shortName(name, new Set(remoteNames)) })}
-              onBranchChangelog={(name) => setAiRead({ kind: 'changelog', ref: name, label: shortName(name, new Set(remoteNames)) })}
-              onOpenChangelog={(name) => setAiRead({ kind: 'changelog', ref: name, label: shortName(name, new Set(remoteNames)) })}
+              // A name may be a range subject (#293) — readingLabel keeps its base.
+              onExplainBranch={(name) => setAiRead({ kind: 'branch', ref: name, label: readingLabel(name, new Set(remoteNames)) })}
+              onBranchChangelog={(name) => setAiRead({ kind: 'changelog', ref: name, label: readingLabel(name, new Set(remoteNames)) })}
+              onRecomposeBranch={(name) => setComposerOpen(name)}
+              onOpenChangelog={(name) => setAiRead({ kind: 'changelog', ref: name, label: readingLabel(name, new Set(remoteNames)) })}
               tab={sidebarTab}
               onTab={setSidebarTab}
               memoryToken={memoryToken}
@@ -1477,12 +1479,15 @@ export default function App() {
         />
       )}
 
-      {/* Keyed on the proposal: a second agent split sent while one is open
-          remounts the drawer on the new plan, and the model's own split
-          (no proposal) is a different drawer from an agent's. */}
+      {/* Three different drawers share this one: an agent's proposal, a branch being
+          recomposed (#293, a string), and the model's own split of the working tree.
+          Keyed on which one, so a second agent split sent while one is open remounts
+          on the new plan and switching between the kinds proposes again rather than
+          keeping the plan. */}
       {(composerOpen || composerProposal) && (
         <CommitComposer
-          key={composerProposal ? `agent-${composerProposal.id}` : 'model'}
+          key={composerProposal ? `agent-${composerProposal.id}` : typeof composerOpen === 'string' ? `recompose:${composerOpen}` : 'model'}
+          subject={!composerProposal && typeof composerOpen === 'string' ? composerOpen : undefined}
           anchor={sidebarPanelRef}
           onClose={() => { setComposerOpen(false); setComposerProposal(null) }}
           onCommitted={loadRepoData}

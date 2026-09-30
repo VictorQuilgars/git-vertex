@@ -241,6 +241,7 @@ export const ARG_RULES: Record<string, ArgSpec[]> = {
   'git:set-upstream': ['rev', 'rev'],
   'git:pull-branch': ['rev'],
   'git:squash-fixups': ['rev'],
+  'git:recompose-reset': ['rev', 'rev', 'rev'],
   'git:list-fixups': ['rev'],
   'git:add-remote': ['remote', 'gitUrl'],
   'git:remove-remote': ['remote'],

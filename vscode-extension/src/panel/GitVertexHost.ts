@@ -37,10 +37,10 @@ import { readAIConfig, aiFilterQuery, aiPrDescription, aiGenerateIssue, aiGenera
 // a branch is read against, what is asked, and what a refusal says.
 import {
   explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit,
-  changelogState, changelogList, noteList, insertedIn, withInserted, changelogKey, scopeHasChanges,
+  changelogState, changelogList, noteList, insertedIn, withInserted, changelogKey, scopeHasChanges, insertRefusal,
   type Run, type ChangelogRecord, type ChangelogStore, type NoteRecord, type NoteStore,
 } from '../../../src/main/ai-features'
-import { findChangelogs, isMergedInto, mergeIntoChangelog } from '../../../src/main/changelog-file'
+import { findChangelogs, mergeIntoChangelog } from '../../../src/main/changelog-file'
 import { resolveBase } from '../../../src/main/ai-material'
 import { ThemeStore } from '../../../src/main/theme-store'
 import { BUILT_IN_THEME_IDS } from '../../../src/main/theme-validate'
@@ -1273,7 +1273,8 @@ export class GitVertexHost implements vscode.Disposable {
           case 'aiForgetChangelog': await store.forget(args[0]); return { success: true }
           case 'aiGenerateChangelog':
             return generateChangelog(raw, run, args[0], args[1], { previous: args[2], scope: args[3], store })
-          default: return proposeCommitSplit(raw, run, { detail: this._detail('compose') })
+          // A subject recomposes that branch's commits instead (#293).
+          default: return proposeCommitSplit(raw, run, { detail: this._detail('compose') }, args[0])
         }
       }
       // Writes into the working tree, so the diff is in the panel's own
@@ -1291,12 +1292,8 @@ export class GitVertexHost implements vscode.Disposable {
           return { error: `${opts.file} is not a changelog this repository tracks` }
         }
         if (!opts.force && opts.branch) {
-          const alive = await raw(['rev-parse', '--verify', '--quiet', opts.branch]).catch(() => '')
-          if (!alive.trim()) return { branchGone: true, branch: opts.branch, path: rel }
-          const base = await resolveBase(raw, opts.branch)
-          if (base && await isMergedInto(raw, opts.branch, base)) {
-            return { alreadyMerged: true, branch: opts.branch, base, path: rel }
-          }
+          const refused = await insertRefusal(raw, opts.branch)
+          if (refused) return { ...refused, branch: opts.branch, path: rel }
         }
         const abs = path.join(this._repoPath, rel)
         let existing: string | null = null
@@ -1741,9 +1738,11 @@ export function openGitVertexAITab(
   const existing = aiPanels.get(key)
   if (existing) { existing.reveal(existing.viewColumn); return }
 
+  // The composer on a branch's commits (#293) is a recomposition, not a split.
+  const title = boot.aiKind === 'split' && boot.aiKey ? 'Recompose' : (TAB_TITLES[boot.aiKind] ?? 'AI')
   const panel = vscode.window.createWebviewPanel(
     AI_VIEW_TYPE,
-    boot.aiLabel ? `${TAB_TITLES[boot.aiKind] ?? 'AI'} — ${boot.aiLabel}` : (TAB_TITLES[boot.aiKind] ?? 'AI'),
+    boot.aiLabel ? `${title} — ${boot.aiLabel}` : title,
     vscode.ViewColumn.Active,
     {
       enableScripts: true,

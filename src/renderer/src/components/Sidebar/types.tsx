@@ -144,6 +144,14 @@ export interface SidebarProps {
   /** The same, for a branch — and the changelog of what it carries (#70 P1). */
   onExplainBranch?: (name: string) => void
   onBranchChangelog?: (name: string) => void
+  // Both of those take a range subject as well as a branch (#293): *Explain
+  // unpushed changes* sends `<upstream>..<branch>` and *Generate changelog
+  // since this tag* `<tag>..<current branch>` — see refReadings.ts.
+  /**
+   * Recompose a local branch's commits with the composer (#293). Called only
+   * for the checked-out branch; any other local branch shows the row disabled.
+   */
+  onRecomposeBranch?: (name: string) => void
   /**
    * The AI tab's two ways back in: a stored changelog, and a commit whose
    * explanation is already written. Absent ⇒ the row is not clickable, the

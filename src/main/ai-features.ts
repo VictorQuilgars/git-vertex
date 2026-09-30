@@ -13,7 +13,9 @@
 // suite drives the real thing with a fake git and a fake model.
 
 import type { AIFeature } from './ai-resolve'
-import { branchMaterial, changelogMaterial, resolveBase, stashMaterial, touches, workingMaterial, type Raw } from './ai-material'
+import { branchMaterial, changelogMaterial, recomposeMaterial, resolveBase, stashMaterial, touches, workingMaterial, type Raw } from './ai-material'
+import { optionLike, readRange } from './ai-range'
+import { isMergedInto } from './changelog-file'
 import {
   explainBranchPrompt, explainStashPrompt, explainWorkingPrompt, changelogPrompt,
   splitPrompt, parseSplit, type SplitProposal, type DiffOpts,
@@ -101,15 +103,26 @@ export interface ExplainOpts {
   diff?: DiffOpts
 }
 
+/**
+ * Read a branch aloud — or a range of it (#293).
+ *
+ * `branch` may be a range subject, `origin/feat..feat`: *Explain unpushed
+ * changes* is this same reading against the upstream instead of the trunk.
+ * The note is kept under the subject as given, so the unpushed reading and
+ * the whole-branch one are two notes rather than one replacing the other,
+ * and reopening either asks the same question again.
+ */
 export async function explainBranch(raw: Raw, run: Run, branch: string, opts: ExplainOpts = {}):
 Promise<{ explanation?: string; base?: string; error?: string }> {
-  const m = await branchMaterial(raw, branch)
-  if (!m) return { error: `No base to read ${branch} against — it has no upstream and the repository has no trunk` }
-  if (!m.subjects.length && !m.diff.trim()) return { error: `${branch} carries nothing over ${m.base}` }
-  const r = await run(explainBranchPrompt(branch, m.base, m.subjects, m.diffstat, m.diff, opts.guidance, opts.diff), 'explain')
+  if (optionLike(branch)) return { error: `Invalid reference: "${branch}"` }
+  const { tip, base } = readRange(branch)
+  const m = await branchMaterial(raw, tip, base)
+  if (!m) return { error: `No base to read ${tip} against — it has no upstream and the repository has no trunk` }
+  if (!m.subjects.length && !m.diff.trim()) return { error: `${tip} carries nothing over ${m.base}` }
+  const r = await run(explainBranchPrompt(tip, m.base, m.subjects, m.diffstat, m.diff, opts.guidance, opts.diff), 'explain')
   if (r.error) return { error: r.error }
   await keep(raw, opts.store,
-    { kind: 'branch', key: branch, title: branch, text: r.text ?? '' }, branch, m.base)
+    { kind: 'branch', key: branch, title: branch, text: r.text ?? '' }, tip, m.base)
   return { explanation: r.text, base: m.base }
 }
 
@@ -165,9 +178,11 @@ const sha1 = async (raw: Raw, ref: string): Promise<string> => {
 export async function noteList(raw: Raw, store: NoteStore): Promise<{ entries: NoteEntry[] }> {
   const out: NoteEntry[] = []
   for (const note of await store.all()) {
-    const where = await locate(raw, note.kind, note.key, note.sha)
+    // A range subject is about its tip: that is the ref that moves or goes.
+    const ref = note.kind === 'branch' ? readRange(note.key).tip : note.key
+    const where = await locate(raw, note.kind, ref, note.sha)
     const newCommits = where.state === 'live' && note.kind === 'branch' && note.sha
-      ? await countCommits(raw, note.sha, note.key)
+      ? await countCommits(raw, note.sha, ref)
       : 0
     out.push({
       ...note,
@@ -355,16 +370,18 @@ export interface ChangelogState {
  */
 export async function changelogState(raw: Raw, store: ChangelogStore, branch: string, scope?: string):
 Promise<ChangelogState> {
-  const base = await resolveBase(raw, branch)
-  if (!base) return { error: `No base to read ${branch} against — it has no upstream and the repository has no trunk` }
+  // A range subject (`v1.2.0..main`, #293) names its own base.
+  const { tip, base: named } = readRange(branch)
+  const base = named ?? await resolveBase(raw, tip)
+  if (!base) return { error: `No base to read ${tip} against — it has no upstream and the repository has no trunk` }
   const cached = await store.get(changelogKey(branch, scope))
   if (!cached) return { base }
-  const headSha = await sha(raw, branch)
+  const headSha = await sha(raw, tip)
   const baseSha = await sha(raw, base)
   // Counted rather than inferred from the sha: "3 commits since" is what the
   // reader needs to decide, and a moved sha alone could be an amend.
   const since = cached.headSha && headSha !== cached.headSha
-    ? (await countCommits(raw, cached.headSha, branch))
+    ? (await countCommits(raw, cached.headSha, tip))
     : 0
   return { base, cached, newCommits: since, baseMoved: !!baseSha && baseSha !== cached.baseSha }
 }
@@ -383,17 +400,20 @@ export async function changelogList(raw: Raw, store: ChangelogStore): Promise<{ 
   const entries: ChangelogEntry[] = []
   for (const [key, record] of Object.entries(all)) {
     const { branch } = readChangelogKey(key)
-    const head = await sha(raw, branch)
+    // `branch` stays the subject — it is what reopening the row asks for —
+    // but a range (`v1.2.0..main`, #293) is measured by its tip.
+    const { tip } = readRange(branch)
+    const head = await sha(raw, tip)
     // A branch that no longer exists keeps its text — deleting someone's
     // changelog because they deleted the branch would be a surprise. And a
     // branch that is gone because it MERGED is not gone at all: its commits
     // are in the trunk, which is where this row now points.
     const newCommits = head && record.headSha && head !== record.headSha
-      ? await countCommits(raw, record.headSha, branch)
+      ? await countCommits(raw, record.headSha, tip)
       : 0
     const where = head
       ? { state: 'live' as SubjectState, in: undefined }
-      : await locate(raw, 'branch', branch, record.headSha)
+      : await locate(raw, 'branch', tip, record.headSha)
     entries.push({
       ...record, branch, newCommits,
       subject: where.state,
@@ -421,23 +441,30 @@ const countCommits = async (raw: Raw, from: string, to: string): Promise<number>
  * `previous` extends rather than rewrites: a branch that gained three commits
  * should gain three bullets, not a differently-worded document its reviewer
  * has to read again from the top.
+ *
+ * `branch` may be a range subject — `v1.2.0..main` is *Generate changelog
+ * since this tag* (#293) — and is then filed under the range, so a release's
+ * changelog and the branch's own are two records, not one overwriting the
+ * other. An explicit `base` still wins over the one a range names.
  */
 export async function generateChangelog(
   raw: Raw, run: Run, branch: string, base?: string,
   opts: { previous?: string; store?: ChangelogStore; scope?: string } = {},
 ): Promise<{ changelog?: string; base?: string; commits?: number; scope?: string; error?: string }> {
+  if (optionLike(branch) || base?.trimStart().startsWith('-')) return { error: `Invalid reference: "${branch}"` }
   const scope = opts.scope || ''
-  const m = await changelogMaterial(raw, branch, base, scope || undefined)
-  if (!m) return { error: `No base to read ${branch} against — it has no upstream and the repository has no trunk` }
+  const { tip, base: named } = readRange(branch)
+  const m = await changelogMaterial(raw, tip, base ?? named, scope || undefined)
+  if (!m) return { error: `No base to read ${tip} against — it has no upstream and the repository has no trunk` }
   if (!m.entries.length) {
     return {
       error: scope
-        ? `${branch} changes nothing under ${scope}`
-        : `${branch} carries no commit over ${m.base}`,
+        ? `${tip} changes nothing under ${scope}`
+        : `${tip} carries no commit over ${m.base}`,
     }
   }
   const r = await run(
-    changelogPrompt(branch, m.base, m.entries, m.diffstat, opts.previous), 'changelog')
+    changelogPrompt(tip, m.base, m.entries, m.diffstat, opts.previous), 'changelog')
   if (r.error) return { error: r.error }
   if (opts.store) {
     // The insert memory outlives the text it was written from: regenerating
@@ -447,7 +474,7 @@ export async function generateChangelog(
     const before = await opts.store.get(key)
     await opts.store.set(key, {
       text: r.text ?? '', base: m.base, commits: m.entries.length, at: Date.now(), scope,
-      headSha: await sha(raw, branch), baseSha: await sha(raw, m.base),
+      headSha: await sha(raw, tip), baseSha: await sha(raw, m.base),
       inserted: before?.inserted,
     })
   }
@@ -479,19 +506,61 @@ export function readChangelogKey(key: string): { branch: string; scope: string }
  */
 export async function scopeHasChanges(raw: Raw, branch: string, dir: string): Promise<boolean> {
   if (!dir) return true
-  const base = await resolveBase(raw, branch)
+  const { tip, base: named } = readRange(branch)
+  const base = named ?? await resolveBase(raw, tip)
   if (!base) return true          // nothing to measure against: do not block
-  return touches(raw, branch, base, dir)
+  return touches(raw, tip, base, dir)
+}
+
+/**
+ * Why inserting a kept changelog would do harm now, or null when it would not.
+ *
+ * Both hosts asked this in their own copy, and both asked it of the subject
+ * as a REF — which a range (`v1.2.0..main`, #293) is not: `rev-parse --verify`
+ * refuses one, so every changelog since a tag read as "the branch is gone".
+ * The tip is what has to still exist. And "already merged" is a question
+ * about a branch landing on its trunk; a changelog since a tag is usually
+ * written ON the trunk, where that is always true and says nothing.
+ */
+export async function insertRefusal(raw: Raw, subject: string):
+Promise<{ branchGone: true } | { alreadyMerged: true; base: string } | null> {
+  const { tip, base: named } = readRange(subject)
+  const alive = await raw(['rev-parse', '--verify', '--quiet', tip]).catch(() => '')
+  if (!alive.trim()) return { branchGone: true }
+  if (named) return null
+  const base = await resolveBase(raw, tip)
+  if (base && await isMergedInto(raw, tip, base)) return { alreadyMerged: true, base }
+  return null
+}
+
+/** What a branch recomposition was proposed from — what applying it needs (#293). */
+export interface RecomposePlan {
+  branch: string
+  /** The base as named, for the drawer to say what it is read against. */
+  base: string
+  /** Fork point and tip, as shas: where the branch is reset to, and what it must still be. */
+  onto: string
+  tip: string
+  commits: number
 }
 
 /**
  * The composer proposes; nothing here writes. The renderer stages and commits
  * one group at a time through the calls it already has, so the plan is
  * reviewed — and editable — before any of it becomes history.
+ *
+ * Given a `subject`, it proposes a new cut of the commits that BRANCH carries
+ * over its base instead of the working tree (#293) — `feat` against the base
+ * resolveBase works out, or `base..feat` against the one it names. Same
+ * prompt, same parsing; only the material differs. Applying it rewrites the
+ * branch, which the composer can only do where it commits — the working tree
+ * — so it is refused here, before anything is spent, for a branch that is not
+ * checked out, and for a tree with tracked changes the rewrite would absorb.
  */
-export async function proposeCommitSplit(raw: Raw, run: Run, diffOpts: DiffOpts = {}):
-Promise<SplitProposal & { error?: string }> {
+export async function proposeCommitSplit(raw: Raw, run: Run, diffOpts: DiffOpts = {}, subject?: string):
+Promise<SplitProposal & { error?: string; recompose?: RecomposePlan }> {
   const empty = { groups: [], unassigned: [], invented: [] }
+  if (subject) return proposeRecompose(raw, run, diffOpts, subject)
   const m = await workingMaterial(raw)
   if (!m.files.length) return { ...empty, error: 'Nothing uncommitted to split' }
   if (m.files.length === 1) return { ...empty, error: 'One file is already one commit' }
@@ -501,4 +570,37 @@ Promise<SplitProposal & { error?: string }> {
   const proposal = parseSplit(r.text ?? '', m.files)
   if (!proposal.groups.length) return { ...proposal, error: 'The model proposed no usable commit' }
   return proposal
+}
+
+async function proposeRecompose(raw: Raw, run: Run, diffOpts: DiffOpts, subject: string):
+Promise<SplitProposal & { error?: string; recompose?: RecomposePlan }> {
+  const empty = { groups: [], unassigned: [], invented: [] }
+  if (optionLike(subject)) return { ...empty, error: `Invalid reference: "${subject}"` }
+  const { tip: branch, base: named } = readRange(subject)
+  const head = (await raw(['symbolic-ref', '--quiet', '--short', 'HEAD']).catch(() => '')).trim()
+  if (head !== branch) {
+    return { ...empty, error: `${branch} is not checked out — only the checked-out branch can be recomposed` }
+  }
+  const dirty = (await raw(['status', '--porcelain', '--untracked-files=no']).catch(() => '')).trim()
+  if (dirty) {
+    return { ...empty, error: 'Commit or stash your uncommitted changes first — they would be mixed into the recomposed commits' }
+  }
+  const m = await recomposeMaterial(raw, branch, named)
+  if (!m) return { ...empty, error: `No base to read ${branch} against — it has no upstream and the repository has no trunk` }
+  if (!m.commits || !m.files.length) return { ...empty, error: `${branch} carries no commit over ${m.base}` }
+  if (m.files.length === 1) return { ...empty, error: 'One file is already one commit' }
+  // An untracked file sitting where the branch has a path would be staged by
+  // the apply in place of the branch's own version of it.
+  const untracked = new Set((await raw(['ls-files', '--others', '--exclude-standard']).catch(() => ''))
+    .split('\n').map(f => f.trim()).filter(Boolean))
+  const clash = m.files.filter(f => untracked.has(f))
+  if (clash.length) {
+    return { ...empty, error: `Untracked files stand where ${branch} has files (${clash.slice(0, 3).join(', ')}) — move them first` }
+  }
+  const r = await run(splitPrompt(m.files, m.diffstat, m.diff, diffOpts,
+    `the work the branch ${branch} carries over ${m.base}, ${m.commits} commit(s) taken as one diff`), 'compose')
+  if (r.error) return { ...empty, error: r.error }
+  const proposal = parseSplit(r.text ?? '', m.files)
+  if (!proposal.groups.length) return { ...proposal, error: 'The model proposed no usable commit' }
+  return { ...proposal, recompose: { branch, base: m.base, onto: m.onto, tip: m.tip, commits: m.commits } }
 }

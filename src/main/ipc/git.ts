@@ -438,6 +438,13 @@ export function registerGitHandlers(): void {
     return state.gitService.listRemoteBranches()
   })
 
+  // The composer's first step when it recomposes a branch (#293) — refused
+  // anywhere but on the checked-out branch, on a clean tree.
+  handle('git:recompose-reset', async (_event, branch: string, onto: string, tip: string) => {
+    if (!state.gitService) return { success: false, error: 'No repo open' }
+    return state.gitService.recomposeReset(branch, onto, tip)
+  })
+
   handle('git:squash-fixups', async (_event, base: string) => {
     if (!state.gitService) return { success: false, error: 'No repo open' }
     return state.gitService.squashFixups(base)

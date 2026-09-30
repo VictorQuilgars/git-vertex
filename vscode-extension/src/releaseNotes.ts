@@ -18,6 +18,9 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🏷 The model, on branches and tags
+- Right-click a branch in the side bar **ahead of its upstream**: **Explain Unpushed Changes** reads only what has not been pushed. **Recompose Commits** proposes a new cut of the checked-out branch's commits and rewrites them once you apply the plan — any other branch shows it greyed out, asking to be checked out first. Right-click a **tag**: **Generate Changelog Since This Tag**, for the branch you are on.
+
 ### 💬 The search field asks in words
 - Type a sentence in the panel's search field and press **Enter**: the model answers with the commits it means, as on the desktop. The panel that opens on focus offers it first, **Ask in plain language**, above the operators. One keystroke in the query goes back to the live filter.
 

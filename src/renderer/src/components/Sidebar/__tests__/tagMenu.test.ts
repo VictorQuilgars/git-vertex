@@ -155,3 +155,24 @@ test('only the entries the host wired are drawn — and none that create at the 
   const all = tagMenuItems(LIGHTWEIGHT, { hash: COMMIT }, {}, a, t)
   expect(JSON.stringify(labels(all))).not.toMatch(/Create/)
 })
+
+// The entry the model's changelog adds to a tag (#293). The menu is built HERE,
+// by one function, so an entry a host wires for a tag has to be one this
+// function draws — two branches once each gave the tag row a menu of its own.
+describe('the changelog since a tag', () => {
+  test('is offered on the branch it is written for, in its own group above the deletes', () => {
+    const run = jest.fn()
+    const items = tagMenuItems(LIGHTWEIGHT, { hash: COMMIT }, {}, { ...actions(), changelog: { branch: 'main', run } }, t)
+    const flat = labels(items)
+    expect(flat).toContain('Generate Changelog of main Since This Tag')
+    expect(flat.indexOf('Generate Changelog of main Since This Tag')).toBeLessThan(flat.indexOf('Delete (local)'))
+    const entry = items.find(i => 'label' in i && i.label === 'Generate Changelog of main Since This Tag') as MenuAction
+    entry.action()
+    expect(run).toHaveBeenCalledTimes(1)
+  })
+
+  test('is not offered without a branch to write it for, as on a detached HEAD', () => {
+    const items = tagMenuItems(LIGHTWEIGHT, { hash: COMMIT }, {}, actions(), t)
+    expect(JSON.stringify(labels(items))).not.toContain('Since This Tag')
+  })
+})
