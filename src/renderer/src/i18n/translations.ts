@@ -1577,6 +1577,15 @@ const fr = {
   'sb.branch.hint': 'Double-clic: checkout • Clic droit: options',
   'sb.branch.trackTitle': (a: number, b: number) => `${a} commit${a > 1 ? 's' : ''} en avance, ${b} en retard sur l'upstream`,
   'sb.branch.goneTitle': 'Upstream supprimé sur le remote',
+  // What a branch row's tooltip says, one line per fact (#278).
+  'sb.branch.tip.untracked': 'Ne suit aucune branche distante',
+  'sb.branch.tip.gone': (u: string) => `Suit ${u}, supprimée sur le remote`,
+  'sb.branch.tip.diverged': (u: string, a: number, b: number) => `Suit ${u} : ${a} en avance, ${b} en retard`,
+  'sb.branch.tip.level': (u: string) => `Suit ${u}, à jour`,
+  'sb.branch.tip.pr': (n: number, title: string) => `Pull request #${n} : ${title}`,
+  'sb.branch.tip.prDraft': (n: number, title: string) => `Pull request brouillon #${n} : ${title}`,
+  'sb.branch.tip.worktree': (w: string) => `Extraite dans le worktree ${w}`,
+  'sb.branch.tip.age': (ago: string) => `Dernier commit : ${ago}`,
   'sb.branch.soloFlag': 'Solo',
   'sb.branch.hiddenFlag': 'Masquée',
   'sb.stash.preview': 'Voir les modifications',
@@ -1608,11 +1617,15 @@ const fr = {
   'sb.stash.renamePrompt': 'Nouveau nom du stash (il remontera en haut de la pile) :',
   'sb.stash.renamed': 'Stash renommé',
   'sb.stash.title': (m: string) => `${m} — clic : aperçu`,
+  'sb.stash.madeOn': (b: string) => `Créé sur ${b}`,
+  'sb.stash.age': (ago: string) => `Créé : ${ago}`,
   'sb.stash.create': 'Créer un stash',
   'sb.noStash': 'Aucun stash',
   'sb.tag.checkout': 'Checkout (HEAD détaché)',
   'sb.tag.checkoutCommit': 'Checkout du commit (HEAD détaché)',
   'sb.tag.hint': (name: string, hash: string) => `${name} → ${hash} — double-clic : créer une branche ici`,
+  'sb.tag.age': (ago: string) => `Posé : ${ago}`,
+  'sb.tag.commitAge': (ago: string) => `Commit : ${ago}`,
   'sb.tag.push': 'Pousser le tag',
   'sb.tag.compareHead': 'Comparer avec HEAD',
   'sb.tag.resetTo': 'Réinitialiser la branche courante sur ce tag',
@@ -2361,6 +2374,7 @@ const fr = {
   'time.day': (n: number) => `${n} j`,
   'time.month': (n: number) => `${n} mois`,
   'time.year': (n: number) => `${n} an${n > 1 ? 's' : ''}`,
+  'time.ago': (s: string) => `il y a ${s}`,
 }
 
 const en: typeof fr = {
@@ -3938,6 +3952,15 @@ const en: typeof fr = {
   'sb.branch.hint': 'Double-click: checkout • Right-click: options',
   'sb.branch.trackTitle': (a: number, b: number) => `${a} commit${a > 1 ? 's' : ''} ahead, ${b} behind upstream`,
   'sb.branch.goneTitle': 'Upstream deleted on the remote',
+  // What a branch row's tooltip says, one line per fact (#278).
+  'sb.branch.tip.untracked': 'Tracks no remote branch',
+  'sb.branch.tip.gone': (u: string) => `Tracks ${u}, which is gone from the remote`,
+  'sb.branch.tip.diverged': (u: string, a: number, b: number) => `Tracks ${u}: ${a} ahead, ${b} behind`,
+  'sb.branch.tip.level': (u: string) => `Tracks ${u}, up to date`,
+  'sb.branch.tip.pr': (n: number, title: string) => `Pull request #${n}: ${title}`,
+  'sb.branch.tip.prDraft': (n: number, title: string) => `Draft pull request #${n}: ${title}`,
+  'sb.branch.tip.worktree': (w: string) => `Checked out in worktree ${w}`,
+  'sb.branch.tip.age': (ago: string) => `Last commit: ${ago}`,
   'sb.branch.soloFlag': 'Solo',
   'sb.branch.hiddenFlag': 'Hidden',
   'sb.stash.preview': 'Show Changes',
@@ -3969,12 +3992,16 @@ const en: typeof fr = {
   'sb.stash.renamePrompt': 'New stash name (it will move to the top of the stack):',
   'sb.stash.renamed': 'Stash renamed',
   'sb.stash.title': (m: string) => `${m} — click: preview`,
+  'sb.stash.madeOn': (b: string) => `Made on ${b}`,
+  'sb.stash.age': (ago: string) => `Made: ${ago}`,
   'sb.stash.create': 'Create a stash',
   'sb.noStash': 'No stash',
   'sb.tag.checkout': 'Checkout (detached HEAD)',
   // A tag is not a branch: what this checks out is the commit it points at.
   'sb.tag.checkoutCommit': 'Check out the commit (detached HEAD)',
   'sb.tag.hint': (name: string, hash: string) => `${name} → ${hash} — double-click: create a branch here`,
+  'sb.tag.age': (ago: string) => `Tagged: ${ago}`,
+  'sb.tag.commitAge': (ago: string) => `Committed: ${ago}`,
   'sb.tag.push': 'Push tag',
   // A tag's commit entries (#288) act on the commit the tag resolves to.
   'sb.tag.compareHead': 'Compare with HEAD',
@@ -4727,6 +4754,7 @@ const en: typeof fr = {
   'time.day': (n: number) => `${n}d`,
   'time.month': (n: number) => `${n}mo`,
   'time.year': (n: number) => `${n}y`,
+  'time.ago': (s: string) => `${s} ago`,
 }
 
 export const translations = { fr, en }

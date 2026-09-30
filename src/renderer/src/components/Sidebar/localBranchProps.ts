@@ -3,9 +3,10 @@ import type { BranchInfo } from '../../types'
 import type { BranchItemProps } from './BranchItem'
 import type { SidebarState } from './useSidebar'
 import { publishedNameFor } from '../ContextMenu/branchRefs'
+import { prForBranch } from './rowFacts'
 
 export function localBranchProps(s: SidebarState, b: BranchInfo): BranchItemProps {
-  const { currentBranch, branches, onReveal, onOpenCard, onDeleteBranch, onMergeBranch, onRenameBranch, onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream, onExplainBranch, onBranchChangelog, onGoTo, onCompareBranch, soloBranch, onToggleSolo, onToggleHide, onPull, isFavorite, issueFor, onToggleFavorite, onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR, onCopyBranchLink, onDeleteBranchBoth, onRebaseOntoUpstream, onCompareUpstream, tipActions, mergeTarget, handlePullBranchRow, handleChangeUpstreamRow, handleSquashFixupsRow, worktreeOf, handleCreateWorktreeFor, onSetRepo, branchHidden } = s
+  const { currentBranch, branches, onReveal, onOpenCard, onDeleteBranch, onMergeBranch, onRenameBranch, onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream, onExplainBranch, onBranchChangelog, onGoTo, onCompareBranch, soloBranch, onToggleSolo, onToggleHide, onPull, isFavorite, issueFor, onToggleFavorite, onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR, onCopyBranchLink, onDeleteBranchBoth, onRebaseOntoUpstream, onCompareUpstream, tipActions, mergeTarget, handlePullBranchRow, handleChangeUpstreamRow, handleSquashFixupsRow, worktreeOf, handleCreateWorktreeFor, onSetRepo, branchHidden, githubPRs } = s
   return {
     name: b.name,
     current: b.current,
@@ -64,5 +65,8 @@ export function localBranchProps(s: SidebarState, b: BranchInfo): BranchItemProp
     ahead: b.ahead,
     behind: b.behind,
     gone: b.gone,
+    date: b.date,
+    upstream: b.upstream,
+    openPR: prForBranch(b.name, githubPRs),
   }
 }

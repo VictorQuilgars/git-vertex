@@ -30,6 +30,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 📅 Merged since, closed since
 - Filters of pull requests and issues take **\`merged:\`** and **\`closed:\`**, typed or described: *PRs merged since September 1st* now keeps its date.
 
+### 🧾 Side bar rows say more
+- A **branch** row shows the age of its last commit, a mark when **another worktree** holds it, and a tooltip with what it tracks, its **pull request** and that worktree. A **tag** row shows its **annotation**, and its hash is the commit it points at. A **stash** row names the **branch it was made on**, and when. All of it read with the lists themselves — nothing per row.
+
 ### 🛰 A remote, on its forge and opened onto its branches
 - Right-click a remote in the side bar: **Open Repository on Remote**, **Open Branches on Remote**, **Copy Branches URL** — that remote's own pages, on GitHub, GitLab or Bitbucket. **Unset as Default Remote** takes a chosen default back. And a remote **opens** onto its branches, with the same acts and menu as Branches › REMOTE. (#289)
 

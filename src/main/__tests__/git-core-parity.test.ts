@@ -77,6 +77,11 @@ const SHARED: Record<string, string> = {
   pullRequestConflicts: 'pullRequestConflicts',
   duplicateCommits: 'duplicateCommits',
   setUpstream: 'setBranchUpstream',
+  // The two lists the side bar's rows are built from (#278): they had drifted
+  // — the tag order and the stash label differed between the products — and
+  // each row now carries facts read in the same call.
+  getTags: 'tagList',
+  getStashes: 'stashList',
   // The default remote, moved with its inverse (#289).
   getDefaultRemote: 'defaultRemote',
   setDefaultRemote: 'setDefaultRemote',

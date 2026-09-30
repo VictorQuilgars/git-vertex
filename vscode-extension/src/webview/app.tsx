@@ -31,7 +31,7 @@ import { tracksOwnBranch } from '../../../src/renderer/src/components/RefCard/re
 import { useChangeUpstream } from '../../../src/renderer/src/hooks/useChangeUpstream'
 import { useSearchOperators } from '../../../src/renderer/src/app/useSearchOperators'
 import { authorOfQuery, authorQuery } from '../../../src/renderer/src/utils/searchQuery'
-import type { ConflictKind, StashScope } from '../../../src/renderer/src/types'
+import type { ConflictKind, StashScope, StashInfo, TagInfo } from '../../../src/renderer/src/types'
 import Sidebar, { SidebarView, type GithubListItem } from '../../../src/renderer/src/components/Sidebar/Sidebar'
 import IssueDetail from '../../../src/renderer/src/components/IssueDetail/IssueDetail'
 import PRDetail from '../../../src/renderer/src/components/IssueDetail/PRDetail'
@@ -166,8 +166,8 @@ function VertexApp() {
   const [rightW, setRightW] = useState(380)
   const [showAllBranches, setShowAllBranches] = useState(true)
   const [stashCount, setStashCount] = useState(0)
-  const [stashes, setStashes] = useState<{ index: number; message: string }[]>([])
-  const [tags, setTags] = useState<{ name: string; hash: string }[]>([])
+  const [stashes, setStashes] = useState<StashInfo[]>([])
+  const [tags, setTags] = useState<TagInfo[]>([])
   // A branch's or a tag's card, opened by a click on its chip in the graph.
   // It reads the refs, so it is declared below them: a card whose reference
   // has been deleted closes rather than going on offering acts on it.

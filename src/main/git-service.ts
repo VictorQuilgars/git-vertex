@@ -649,20 +649,9 @@ export class GitService {
     }
   }
 
-  async getStashes(): Promise<{ stashes: { index: number; message: string }[] }> {
-    try {
-      // %gs (reflog subject), not %s (commit subject): it is what `git stash
-      // list` shows natively, and the only one `stash store -m` can rewrite —
-      // renaming a stash leaves the underlying commit subject untouched.
-      const result = await this.git.raw(['stash', 'list', '--pretty=format:%gd: %gs'])
-      const stashes = result.trim().split('\n').filter(Boolean).map((line, i) => ({
-        index: i,
-        message: line
-      }))
-      return { stashes }
-    } catch (e) {
-      return { stashes: [] }
-    }
+  async getStashes(): Promise<{ stashes: core.StashRow[] }> {
+    // The list, the branch each was made on and when — one call (#278).
+    return core.stashList(this.run)
   }
 
   // ── Working tree / staging ─────────────────────────────────
@@ -1475,20 +1464,9 @@ export class GitService {
 
   // ── Tag operations ─────────────────────────────────────────
 
-  async getTags(): Promise<{ tags: { name: string; hash: string }[] }> {
-    try {
-      const result = await this.git.raw([
-        'tag', '-l', '--sort=-version:refname',
-        '--format=%(refname:short)|%(objectname:short)'
-      ])
-      const tags = result.trim().split('\n').filter(Boolean).map(line => {
-        const [name, hash] = line.split('|')
-        return { name: name.trim(), hash: hash?.trim() ?? '' }
-      })
-      return { tags }
-    } catch (e) {
-      return { tags: [] }
-    }
+  async getTags(): Promise<{ tags: core.TagRow[] }> {
+    // The list and each annotation's subject — one call (#278).
+    return core.tagList(this.run)
   }
 
   async createTag(name: string, hash?: string, message?: string): Promise<{ success: boolean; error?: string }> {

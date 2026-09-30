@@ -53,6 +53,7 @@ export function remoteBranchRow(s: SidebarState, b: BranchInfo, displayAs?: stri
         pr={prIntentFor?.(b.name)}
         onCreatePR={onCreatePR}
         publishedAs={b.name.replace(/^remotes\//, '')}
+        date={b.date}
         onCopyLink={onCopyBranchLink && (() => onCopyBranchLink(b.name))}
       />
   )
