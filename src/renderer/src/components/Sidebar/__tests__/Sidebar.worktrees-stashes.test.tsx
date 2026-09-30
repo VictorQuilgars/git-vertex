@@ -38,7 +38,7 @@ function draw(overrides: Record<string, any> = {}, api: Record<string, any> = {}
     'onDropStash', 'onRefreshStashes', 'onCreateTag', 'onDeleteTag', 'onCheckoutTag', 'onGoTo',
     'onPushTag', 'onDeleteRemoteTag', 'onSelectCommit', 'onCompareBranch',
     'onToggleSolo', 'onToggleHide', 'onReveal', 'onPreviewStash',
-    'onCompareStash', 'onSelectStashForCompare',
+    'onCompareRef', 'onSelectStashForCompare',
   ]) props[k] = jest.fn()
   Object.assign(props, overrides)
   renderWithProviders(<Sidebar {...(props as any)} />)
@@ -135,12 +135,12 @@ describe('a stash row (#287)', () => {
     await menuOn(await screen.findByText('On main: an older one'))
     await openSub('Compare')
     await userEvent.click(screen.getByText('Compare with HEAD'))
-    expect(p.onCompareStash).toHaveBeenCalledWith('stash@{2}', 'HEAD')
+    expect(p.onCompareRef).toHaveBeenCalledWith('stash@{2}', 'HEAD')
 
     await menuOn(screen.getByText('On main: an older one'))
     await openSub('Compare')
     await userEvent.click(screen.getByText('Compare with Working Tree'))
-    expect(p.onCompareStash).toHaveBeenCalledWith('stash@{2}', 'working')
+    expect(p.onCompareRef).toHaveBeenCalledWith('stash@{2}', 'working')
   })
 
   test('is held as one end of a comparison', async () => {
