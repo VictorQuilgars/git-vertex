@@ -2,12 +2,15 @@
 import { Section } from '../Section'
 import { NoteRow } from '../ai-rows'
 import type { SidebarState } from '../useSidebar'
+import { LoadError } from '../notices'
 
 export function AiExplanationsSection({ s }: { s: SidebarState }) {
-  const { onOpenExplanation, onOpenNote, onShowCommits, subjectFor, t, explanations, notes, loadMemory } = s
+  const { onOpenExplanation, onOpenNote, onShowCommits, subjectFor, t, explanations, notes, loadMemory, loadErrors, retryLoad } = s
+  // Two stores behind one section: either refusing is the section refusing.
+  const failed = loadErrors.notes ?? loadErrors.explanations
   return (
     <Section id="ai-explanations" title="EXPLANATIONS" icon="comment"
-                count={notes.length + Object.keys(explanations).length} defaultOpen
+                count={failed ? undefined : notes.length + Object.keys(explanations).length} defaultOpen
                 menuItems={notes.some(n => n.subject === 'lost') ? [{
                   label: t('sb.ai.forgetGone'),
                   action: async () => {
@@ -18,7 +21,8 @@ export function AiExplanationsSection({ s }: { s: SidebarState }) {
                   },
                   danger: true,
                 }] : undefined}>
-                {notes.length + Object.keys(explanations).length === 0
+                {failed ? <LoadError error={failed} onRetry={() => retryLoad(loadErrors.notes ? 'notes' : 'explanations')} t={t} />
+                  : notes.length + Object.keys(explanations).length === 0
                   ? <div className="sb-empty">{t('sb.ai.noExplanation')}</div>
                   : <>
                       {notes.map(n => (

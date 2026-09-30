@@ -1743,6 +1743,30 @@ describe('GitService', () => {
       expect(r).toEqual({ remote: null, explicit: false })
     })
 
+    // #289: the choice could be made and never taken back — only overwritten
+    // by another one.
+    test('unsetting takes the choice back, and origin is the default again', async () => {
+      addRemotes('origin', 'fork')
+      await git.setDefaultRemote('fork')
+      expect((await git.unsetDefaultRemote()).success).toBe(true)
+      expect(await git.getDefaultRemote()).toEqual({ remote: 'origin', explicit: false })
+      // Gone from the repository's config, not merely ignored.
+      expect(() => execSync(`cd ${tempDir} && git config --local --get gitvertex.defaultRemote`, { stdio: 'pipe' })).toThrow()
+    })
+
+    test('unsetting with nothing chosen is a success, not an error', async () => {
+      addRemotes('origin')
+      expect(await git.unsetDefaultRemote()).toEqual({ success: true })
+      expect(await git.getDefaultRemote()).toEqual({ remote: 'origin', explicit: false })
+    })
+
+    test('unsetting clears a key a hand-edited config holds twice', async () => {
+      addRemotes('origin', 'fork')
+      execSync(`cd ${tempDir} && git config --local --add gitvertex.defaultRemote fork && git config --local --add gitvertex.defaultRemote origin`)
+      expect((await git.unsetDefaultRemote()).success).toBe(true)
+      expect(await git.getDefaultRemote()).toEqual({ remote: 'origin', explicit: false })
+    })
+
     test('setUpstream targets the chosen remote', async () => {
       fs.writeFileSync(path.join(tempDir, 'a.txt'), 'a')
       execSync(`cd ${tempDir} && git add . && git commit -m "init"`)

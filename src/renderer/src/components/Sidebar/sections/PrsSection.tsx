@@ -31,7 +31,7 @@ export function askForPRGroup(group: PRGroupKey): void {
 }
 
 export function PrsSection({ s }: { s: SidebarState }) {
-  const { githubPRs, onOpenGithubItem, handlePullRequestCode, onShowGithubDetail, githubDetailOpen, githubLogin, githubRepo, onRefreshGithub, onStartPR, githubRefreshing, githubRefreshTick, githubPollTick, single, t, prsQuery, setPrsQuery, ghFilters, setFilterEditor, mutateFilters, currentBranch } = s
+  const { githubPRs, onOpenGithubItem, handlePullRequestCode, onShowGithubDetail, githubDetailOpen, githubLogin, githubRepo, onRefreshGithub, onStartPR, githubRefreshing, githubRefreshTick, githubPollTick, single, t, prsQuery, setPrsQuery, ghFilters, setFilterEditor, mutateFilters, currentBranch, counts } = s
   const repoKey = githubRepo ? `${githubRepo.owner}/${githubRepo.repo}` : null
   const [groupBy, setGroupBy] = useState<'account' | 'need'>(() => {
     try { return localStorage.getItem(GROUP_BY_KEY) === 'need' ? 'need' : 'account' } catch { return 'account' }
@@ -110,7 +110,7 @@ export function PrsSection({ s }: { s: SidebarState }) {
         { label: t('sb.gh.need.snoozeUpdate'), action: () => snooze(pr, { updatedAt: pr.updatedAt ?? '' }) },
       ]
   return (
-    <Section id="prs" title="PULL REQUESTS" icon="pullRequest" count={githubPRs.length} defaultOpen={single}
+    <Section id="prs" title="PULL REQUESTS" icon="pullRequest" count={counts.prs} defaultOpen={single}
               onAdd={onStartPR && (() => onStartPR())} addLabel={t('sb.gh.newPr')}
               onRefresh={onRefreshGithub && (() => onRefreshGithub('prs'))}
               refreshing={githubRefreshing === 'prs'}

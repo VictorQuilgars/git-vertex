@@ -1,12 +1,15 @@
 // One row of each of the other lists: a stash, a tag, a reflog entry, a remote, a submodule, a worktree.
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Icon } from '../Icon/Icon'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
+import type { BranchTipActions } from '../ContextMenu/branchTipMenu'
+import { tagMenuItems, type TagCommit } from './tagMenu'
 import { RowActionBar } from './RowActionBar'
 import { stashRowActions, tagRowActions, remoteRowActions, worktreeRowActions } from './rowActions'
 import { useRowClick } from './rowClick'
 import { useLang } from '../../i18n/LanguageContext'
 import { type StashEntry, type TagEntry, type ReflogEntry, type RemoteEntry, type SubmoduleEntry, type WorktreeEntry, type AgentEntry } from './types'
+import { stashLabel, stashFacts, stashTooltip, tagTooltip } from './rowFacts'
 
 // ── Stash item ────────────────────────────────────────────────────
 export function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, onExplain, onReveal, onCompareHead, onCompareWorking, onSelectForCompare, onCopySha, onCopyPatch, hidden }: {
@@ -43,7 +46,11 @@ export function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, 
 }) {
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const { t } = useLang()
-  const label = stash.message.replace(/^stash@\{\d+\}: /, '')
+  // What the menu copies is the message as git holds it; what the row reads
+  // as drops the branch it now names beside it (#278).
+  const message = stash.message.replace(/^stash@\{\d+\}: /, '')
+  const label = stashLabel(stash)
+  const facts = stashFacts(stash, t)
   // Without a reveal the row is what it was: one click, the preview.
   const click = useRowClick(onReveal, onReveal ? onPreview : undefined)
 
@@ -57,7 +64,7 @@ export function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, 
   ]
   const copies: MenuItemDef[] = [
     ...(onCopySha ? [{ label: t('graph.menu.copyFullHash'), action: onCopySha }] : []),
-    { label: t('graph.menu.copyMessage'), action: () => navigator.clipboard.writeText(label) },
+    { label: t('graph.menu.copyMessage'), action: () => navigator.clipboard.writeText(message) },
     ...(onCopyPatch ? [{ label: t('graph.menu.copyPatch'), action: onCopyPatch }] : []),
   ]
   const menuItems: MenuItemDef[] = [
@@ -79,10 +86,11 @@ export function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, 
         onMouseDown={onReveal ? click.onMouseDown : undefined}
         onClick={onReveal ? undefined : onPreview}
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
-        title={onPreview ? t('sb.stash.title', stash.message) : stash.message}
+        title={stashTooltip(stash, t, !!onPreview)}
       >
         <Icon name="stash" size={11} className="stash-icon" />
         <span className="sb-stash-label">{label}</span>
+        {facts && <span className="sb-row-facts">{facts}</span>}
         <RowActionBar actions={stashRowActions()} t={t} label={label}
           handlers={{
             apply: () => { click.cancel(); onApply() },
@@ -99,7 +107,7 @@ export function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, 
 }
 
 // ── Tag item ──────────────────────────────────────────────────────
-export function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDeleteRemote, onReveal, onOpenCard, hidden, onToggleHide, displayAs }: {
+export function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDeleteRemote, onReveal, onOpenCard, hidden, onToggleHide, displayAs, resolveCommit, onCompareHead, tipActions, soloed, onToggleSolo }: {
   tag: TagEntry
   /** Last path segment, when the tree already spells the folders (#276). */
   displayAs?: string
@@ -114,26 +122,37 @@ export function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDel
   onDelete: () => void; onPush: () => void; onDeleteRemote: () => void
   hidden?: boolean
   onToggleHide?: () => void
+  // ── A tag as the commit it stands for (#288) ──
+  /**
+   * The tag's commit, asked when the menu opens: an annotated tag's own sha
+   * is not a commit, and every entry below needs one. Absent ⇒ the menu is
+   * what it was before, with no commit entries.
+   */
+  resolveCommit?: () => Promise<TagCommit | null>
+  onCompareHead?: (hash: string) => void
+  tipActions?: BranchTipActions
+  /** The graph shows only this tag's history. */
+  soloed?: boolean
+  onToggleSolo?: () => void
 }) {
-  const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
+  const [ctx, setCtx] = useState<{ x: number; y: number; commit: TagCommit | null } | null>(null)
   const { t } = useLang()
-  const menuItems: MenuItemDef[] = [
-    // A tag is not a branch and cannot be checked out as one. What this does is
-    // check out the commit it points at, which detaches HEAD — so the label
-    // says commit, not tag, and it is the only entry in the sidebar that
-    // detaches anything.
-    ...(onCheckoutCommit ? [{ label: t('sb.tag.checkoutCommit'), action: onCheckoutCommit }] : []),
-    { label: t('sb.copyName'), action: () => navigator.clipboard.writeText(tag.name) },
-    { label: t('sb.tag.push'), action: onPush },
-    ...(onToggleHide ? [{
-      label: hidden ? t('sb.tag.show') : t('sb.tag.hide'),
-      action: onToggleHide,
-      checked: !!hidden,
-    }] : []),
-    { separator: true },
-    { label: t('sb.tag.deleteLocal'), action: onDelete, danger: true },
-    { label: t('sb.tag.deleteRemote'), action: onDeleteRemote, danger: true },
-  ]
+  // A second right-click while the first is still resolving wins: the menu
+  // opens once, where the pointer last asked for it.
+  const asked = useRef(0)
+  const openMenu = async (x: number, y: number) => {
+    const turn = ++asked.current
+    let commit: TagCommit | null = null
+    try { commit = resolveCommit ? await resolveCommit() : null } catch { /* the menu opens without commit entries */ }
+    if (turn === asked.current) setCtx({ x, y, commit })
+  }
+  const menuItems = (commit: TagCommit | null): MenuItemDef[] => tagMenuItems(tag, commit,
+    { hidden, soloed },
+    {
+      onCheckoutCommit, onPush, onDelete, onDeleteRemote, onToggleHide, onToggleSolo,
+      onCompareHead, tipActions,
+      copy: text => { void navigator.clipboard.writeText(text) },
+    }, t)
 
   // The double-click used to check the tag out and detach HEAD (v1.23.0); it
   // now means the same thing here as everywhere else — land on a branch — so
@@ -144,13 +163,17 @@ export function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDel
   return (
     <>
       <div
-        className={`sb-tag-item${hidden ? ' is-hidden' : ''}`}
+        className={`sb-tag-item${hidden ? ' is-hidden' : ''}${soloed ? ' soloed' : ''}`}
         onMouseDown={click.onMouseDown}
-        onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
-        title={onGoTo ? t('sb.tag.hint', tag.name, tag.hash) : `${tag.name} → ${tag.hash}`}
+        onContextMenu={e => { e.preventDefault(); void openMenu(e.clientX, e.clientY) }}
+        title={tagTooltip(tag, t, !!onGoTo)}
       >
         <Icon name="tag" size={13} className="sb-tag-icon" />
-        <span className="sb-tag-name">{displayAs ?? tag.name}</span>
+        <span className={`sb-tag-name${tag.message ? ' sb-tag-name--fit' : ''}`}>{displayAs ?? tag.name}</span>
+        {soloed && <Icon name="eye" size={12} className="sb-branch-flag" title={t('sb.branch.soloFlag')} />}
+        {/* The annotation, where there is one (#278) — muted, and the first
+            thing to give way when the row is narrow. */}
+        {tag.message && <span className="sb-tag-msg">{tag.message}</span>}
         {hidden && <span className="sb-row-flag" title={t('sb.hidden.flag')}>⊘</span>}
         <RowActionBar actions={tagRowActions()} t={t} label={tag.name}
           handlers={{
@@ -160,7 +183,7 @@ export function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDel
         <code className="sb-tag-hash">{tag.hash}</code>
       </div>
       {ctx && (
-        <ContextMenu x={ctx.x} y={ctx.y} items={menuItems} onClose={() => setCtx(null)} />
+        <ContextMenu x={ctx.x} y={ctx.y} items={menuItems(ctx.commit)} onClose={() => setCtx(null)} />
       )}
     </>
   )
@@ -182,11 +205,18 @@ export function ReflogItem({ entry, onSelect }: { entry: ReflogEntry; onSelect: 
 
 // ── Remote item ───────────────────────────────────────────────────
 export function RemoteItem({
-  remote, isDefault, onSetDefault, onFetch, onPrune, onRename, onRemove, onCopyUrl, onOpen, hidden, onToggleHide
+  remote, isDefault, onSetDefault, onUnsetDefault, onFetch, onPrune, onRename, onRemove, onCopyUrl, onOpen,
+  onOpenBranches, onCopyBranchesUrl, expanded, onToggleExpand, hidden, onToggleHide
 }: {
   remote: RemoteEntry
   isDefault: boolean
   onSetDefault: () => void
+  /**
+   * Take the choice back (#289) — given only to the remote someone CHOSE.
+   * The one that is default because it is called `origin` has nothing to
+   * unset.
+   */
+  onUnsetDefault?: () => void
   onFetch: () => void
   onPrune: () => void
   onRename: () => void
@@ -194,6 +224,15 @@ export function RemoteItem({
   onCopyUrl: () => void
   /** Open the remote where it lives — absent for a URL that is not a page. */
   onOpen?: () => void
+  /** Its branches page on the forge, and that page's address (#289). */
+  onOpenBranches?: () => void
+  onCopyBranchesUrl?: () => void
+  /**
+   * Whether its branches are listed under it (#289). Without a toggle the row
+   * is what it was: nothing to open.
+   */
+  expanded?: boolean
+  onToggleExpand?: () => void
   /** Hidden here means all of this remote's branches are out of the graph. */
   hidden?: boolean
   onToggleHide?: () => void
@@ -205,8 +244,11 @@ export function RemoteItem({
     { label: t('sb.remote.prune'), action: onPrune },
     // checked (not just disabled) so the current default is visible at a glance
     { label: t('sb.remote.setDefault'), action: onSetDefault, checked: isDefault },
-    { label: t('sb.remote.copyUrl'), action: onCopyUrl },
+    ...(onUnsetDefault ? [{ label: t('sb.remote.unsetDefault'), action: onUnsetDefault }] : []),
     ...(onOpen ? [{ label: t('sb.remote.open'), action: onOpen }] : []),
+    ...(onOpenBranches ? [{ label: t('sb.remote.openBranches'), action: onOpenBranches }] : []),
+    { label: t('sb.remote.copyUrl'), action: onCopyUrl },
+    ...(onCopyBranchesUrl ? [{ label: t('sb.remote.copyBranchesUrl'), action: onCopyBranchesUrl }] : []),
     { label: t('sb.rename'), action: onRename },
     ...(onToggleHide ? [{
       label: hidden ? t('sb.remote.show') : t('sb.remote.hide'),
@@ -221,9 +263,21 @@ export function RemoteItem({
     <>
       <div
         className={`sb-remote-item${hidden ? ' is-hidden' : ''}`}
+        onClick={onToggleExpand}
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
         title={remote.fetchUrl}
       >
+        {onToggleExpand && (
+          // A real button, so the keyboard can open a remote as well as the
+          // pointer; the row's own click does the same thing for the pointer.
+          <button type="button" className="sb-remote-toggle"
+            aria-expanded={!!expanded}
+            aria-label={t(expanded ? 'sb.remote.collapse' : 'sb.remote.expand', remote.name)}
+            title={t(expanded ? 'sb.remote.collapse' : 'sb.remote.expand', remote.name)}
+            onClick={e => { e.stopPropagation(); onToggleExpand() }}>
+            <Icon name="chevronRight" size={10} className={`chevron${expanded ? ' open' : ''}`} />
+          </button>
+        )}
         <Icon name="mail" size={11} className="remote-icon" />
         <div className="sb-remote-info">
           <span className="sb-remote-name">

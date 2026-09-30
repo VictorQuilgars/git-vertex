@@ -38,6 +38,22 @@ export const SECTIONS: Section[] = ['git', 'appearance', 'graph', 'github', 'ai'
  */
 export const SECTION_KEY = 'gv-settings-section'
 
+/** The settings page listens for this, to move to a section while it is open. */
+export const SETTINGS_SECTION_EVENT = 'gv:settings-section'
+
+/**
+ * Open the settings AT a section — the empty GitHub view's button (#292).
+ *
+ * Each product opens its settings its own way (a tab on the desktop, a layer
+ * over the panel), and the page may already be open or not yet mounted, so the
+ * section goes where the page reads it on mounting AND is announced to a page
+ * already there. The caller then opens the settings as it always does.
+ */
+export function askForSettingsSection(section: Section): void {
+  try { localStorage.setItem(SECTION_KEY, section) } catch { /* the event still says it */ }
+  window.dispatchEvent(new CustomEvent<Section>(SETTINGS_SECTION_EVENT, { detail: section }))
+}
+
 export function lastSection(): Section {
   const saved = localStorage.getItem(SECTION_KEY) as Section | null
   return saved && SECTIONS.includes(saved) ? saved : 'git'

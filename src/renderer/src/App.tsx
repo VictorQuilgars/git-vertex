@@ -8,6 +8,8 @@ import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary'
 import { PullMode } from './types'
 import Toolbar from './components/Toolbar/Toolbar'
 import Sidebar from './components/Sidebar/Sidebar'
+import { revealSection } from './components/Sidebar/Section'
+import { viewForKey, STACKED_SECTION } from './components/Sidebar/viewKeys'
 import StatusBar from './components/StatusBar/StatusBar'
 import CommitGraph from './components/CommitGraph/CommitGraph'
 import RightPanel from './components/RightPanel/RightPanel'
@@ -27,6 +29,7 @@ import ConflictResolver from './components/ConflictResolver/ConflictResolver'
 import WhatsNew from './components/WhatsNew/WhatsNew'
 import PushModal from './components/PushModal/PushModal'
 import SettingsModal from './components/SettingsModal/SettingsModal'
+import { askForSettingsSection } from './components/SettingsModal/shared'
 import CloneModal from './components/CloneModal/CloneModal'
 import Launchpad from './components/Launchpad/Launchpad'
 import ThemeGallery from './components/ThemeGallery/ThemeGallery'
@@ -82,7 +85,7 @@ export default function App() {
   const searchHook = useAppSearch({ ...chromeHook, ...sessionHook, ...githubHook, ...conflictsHook, ...aiHook, ...tabsHook, ...updatesHook, ...actionsHook })
   const app = { ...chromeHook, ...sessionHook, ...githubHook, ...conflictsHook, ...aiHook, ...tabsHook, ...updatesHook, ...actionsHook, ...searchHook }
   const {
-    dlg, showPrompt, showConfirm, closeDlg, t, showToast, repoPath, repoName, commits, logLimit, logLimitRef, branches, currentBranch, selectedCommit, setSelectedCommit, showAllBranches, setShowAllBranches, soloBranch, setSoloBranch, visibility, remoteNames, toggleHidden, setFamilyHidden, branchMeta, setNotedHashes, loading, recentRepos, setRecentRepos, workspaces, setWorkspaces, stashes, tags, lastFetchTime, setLastFetchTime, pullMode, setPullModeState, handleSetPullMode, tracking, githubRepoUrl, githubOwnerRepo, defaultBranch, conflictFiles, setConflictFiles, conflictKinds, setConflictKinds, conflictMode, wipCount, loadStashes, visibilityRef, soloRef, showAllRef, loadRepoData, loadRepoDataRef, hasSnapshot, filterFirstRun, resolverFileSeenRef, lastAutoFetchError, loadMoreHistory, issueModalBranch, setIssueModalBranch, githubUser, setGithubUser, setGithubConnected, githubPRs, githubPRsRef, githubIssues, githubIssuesRef, githubLogin, issueDetail, setIssueDetail, prModalOpen, setPrModalOpen, prIntent, setPrIntent, githubRefreshing, githubRefreshTick, githubPollTick, setGithubPollTick, loadGithubLists, refreshGithubSection, issueComposerOpen, setIssueComposerOpen, handleSharePatch, prIntentFor, handleStartPR, handleOpenCommitOnRemote, currentBranchPR, handleOpenFileOnRemote, handleCopyFileLink, handleCreateBranchFromIssue, handleOpenBranchOnRemote, rebaseHash, setRebaseHash, rebasePlanProposal, setRebasePlanProposal, conflictResolverFile, setConflictResolverFile, conflictResolverProposal, setConflictResolverProposal, handleRebaseOnto, handleRebaseCurrentOntoCommit, handleConflictFinish, handleConflictAbort, aiSearch, setAiSearchHashes, aiSearchLoading, commitProposal, setCommitProposal, aiRead, setAiRead, composerOpen, setComposerOpen, sidebarTab, setSidebarTab, memoryToken, rememberedAI, insertChangelogGuarded, tabs, setTabs, activeTabId, tabMenu, setTabMenu, repoMgmtOpen, setRepoMgmtOpen, whatsNew, setWhatsNew, whatsNewActive, setWhatsNewActive, applyRepo, handleOpenRepo, handleSetRepo, openReleaseNotes, handleRemoveRecent, deepLinkHash, setDeepLinkHash, applyDeepLink, openHomeTab, openLaunchpadTab, openThemesTab, openViewTab, openSettingsTab, switchTab, closeTab, closeOtherTabs, activeTab, launchpadActive, themesActive, viewTab, onTabKeyDown, updatePhase, setUpdatePhase, updateVersion, setUpdateVersion, updatePct, setUpdatePct, updateOverlayOpen, setUpdateOverlayOpen, notifications, setNotifications, unreadCount, addUpdateNotification, addKeysInClearNotification, startUpdateDownload, compareBaseHash, setCompareBaseHash, gitflowOpen, setGitflowOpen, pushModalOpen, setPushModalOpen, cloneOpen, setCloneOpen, initModalOpen, setInitModalOpen, handleCreateRepo, handleUndo, handleRedo, handleFetch, handlePush, handlePushModal, handleStash, handlePop, handleTerminal, handlePull, handleGoTo, handleCheckout, handleCheckoutTag, handleCreateBranch, handleDeleteBranch, handleDeleteBranchBoth, handleMergeBranch, handlePushBranch, handleDeleteRemoteBranch, handleSetUpstream, handleRenameBranch, handleCreateBranchAt, handleCherryPick, handleRevert, handleReset, applyReword, handleRewordCommit, handleDropCommit, handleCherryPickMany, handleDropCommits, handlePushToCommit, handleCreatePatch, handleCopyPatch, handleCreateWorktreeAt, handleCopyBranchLink, handleRestoreFile, handleCopyCommitLink, branchMenuItems, branchStripProps, workingEmptyState, handleBranchDrop, handleMoveCommit, handleCreateTagAtCommit, handleCreateAnnotatedTagAtCommit, handleCreateTag, handleDeleteTag, handlePushTag, handleDeleteRemoteTag, handleCreateStash, handleApplyStash, handlePopStash, handleDropStash, searchQuery, setSearchQuery, searchMatches, setSearchMatches, extendedSearch, setExtendedSearch, extendedSearchLoading, repoSearch, setRepoSearch, paletteOpen, setPaletteOpen, runAiSearch, graphSearchHashes, buildPaletteCommands, revealRef, requiredSearchHashes, searchOpsLoading,
+    dlg, showPrompt, showConfirm, closeDlg, t, showToast, repoPath, repoName, commits, logLimit, logLimitRef, branches, currentBranch, selectedCommit, setSelectedCommit, showAllBranches, setShowAllBranches, soloBranch, setSoloBranch, visibility, remoteNames, toggleHidden, setFamilyHidden, branchMeta, setNotedHashes, loading, recentRepos, setRecentRepos, workspaces, setWorkspaces, stashes, tags, lastFetchTime, setLastFetchTime, pullMode, setPullModeState, handleSetPullMode, tracking, githubRepoUrl, githubOwnerRepo, defaultBranch, conflictFiles, setConflictFiles, conflictKinds, setConflictKinds, conflictMode, wipCount, loadStashes, visibilityRef, soloRef, showAllRef, loadRepoData, loadRepoDataRef, hasSnapshot, filterFirstRun, resolverFileSeenRef, lastAutoFetchError, loadMoreHistory, issueModalBranch, setIssueModalBranch, githubUser, setGithubUser, setGithubConnected, githubPRs, githubPRsRef, githubIssues, githubIssuesRef, githubErrors, githubLogin, issueDetail, setIssueDetail, prModalOpen, setPrModalOpen, prIntent, setPrIntent, githubRefreshing, githubRefreshTick, githubPollTick, setGithubPollTick, loadGithubLists, refreshGithubSection, issueComposerOpen, setIssueComposerOpen, handleSharePatch, prIntentFor, handleStartPR, handleOpenCommitOnRemote, currentBranchPR, handleOpenFileOnRemote, handleCopyFileLink, handleCreateBranchFromIssue, handleOpenBranchOnRemote, rebaseHash, setRebaseHash, rebasePlanProposal, setRebasePlanProposal, conflictResolverFile, setConflictResolverFile, conflictResolverProposal, setConflictResolverProposal, handleRebaseOnto, handleRebaseCurrentOntoCommit, handleConflictFinish, handleConflictAbort, aiSearch, setAiSearchHashes, aiSearchLoading, commitProposal, setCommitProposal, aiRead, setAiRead, composerOpen, setComposerOpen, sidebarTab, setSidebarTab, memoryToken, rememberedAI, insertChangelogGuarded, tabs, setTabs, activeTabId, tabMenu, setTabMenu, repoMgmtOpen, setRepoMgmtOpen, whatsNew, setWhatsNew, whatsNewActive, setWhatsNewActive, applyRepo, handleOpenRepo, handleSetRepo, openReleaseNotes, handleRemoveRecent, deepLinkHash, setDeepLinkHash, applyDeepLink, openHomeTab, openLaunchpadTab, openThemesTab, openViewTab, openSettingsTab, switchTab, closeTab, closeOtherTabs, activeTab, launchpadActive, themesActive, viewTab, onTabKeyDown, updatePhase, setUpdatePhase, updateVersion, setUpdateVersion, updatePct, setUpdatePct, updateOverlayOpen, setUpdateOverlayOpen, notifications, setNotifications, unreadCount, addUpdateNotification, addKeysInClearNotification, startUpdateDownload, compareBaseHash, setCompareBaseHash, gitflowOpen, setGitflowOpen, pushModalOpen, setPushModalOpen, cloneOpen, setCloneOpen, initModalOpen, setInitModalOpen, handleCreateRepo, handleUndo, handleRedo, handleFetch, handlePush, handlePushModal, handleStash, handlePop, handleTerminal, handlePull, handleGoTo, handleCheckout, handleCheckoutTag, handleCreateBranch, handleDeleteBranch, handleDeleteBranchBoth, handleMergeBranch, handlePushBranch, handleDeleteRemoteBranch, handleSetUpstream, handleRenameBranch, handleCreateBranchAt, handleCherryPick, handleRevert, handleReset, applyReword, handleRewordCommit, handleDropCommit, handleCherryPickMany, handleDropCommits, handlePushToCommit, handleCreatePatch, handleCopyPatch, handleCreateWorktreeAt, handleCopyBranchLink, handleRestoreFile, handleCopyCommitLink, branchMenuItems, branchStripProps, workingEmptyState, handleBranchDrop, handleMoveCommit, handleCreateTagAtCommit, handleCreateAnnotatedTagAtCommit, handleCreateTag, handleDeleteTag, handlePushTag, handleDeleteRemoteTag, handleCreateStash, handleApplyStash, handlePopStash, handleDropStash, searchQuery, setSearchQuery, searchMatches, setSearchMatches, extendedSearch, setExtendedSearch, extendedSearchLoading, repoSearch, setRepoSearch, paletteOpen, setPaletteOpen, runAiSearch, graphSearchHashes, buildPaletteCommands, revealRef, requiredSearchHashes, searchOpsLoading, composerProposal, setComposerProposal,
   } = app
 
  logLimitRef.current = logLimit
@@ -323,6 +326,10 @@ export default function App() {
   useEffect(() => {
     setPrModalOpen(false); setPrIntent(null); setIssueComposerOpen(false)
     setAiRead(null); setComposerOpen(false)
+    // An agent's split survives the switch its own deep link caused, and only
+    // that one: the updater sees the proposal whether it was set before this
+    // effect ran or not.
+    setComposerProposal(p => p && p.repo.normalize('NFC') === repoPath?.normalize('NFC') ? p : null)
   }, [repoPath])
   // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -369,6 +376,23 @@ export default function App() {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [loadRepoData, handleUndo, handleRedo, conflictResolverFile])
+  // A key per side bar view (#277): `1`–`9`, the panel rail's order. The
+  // desktop stacks the views in one column, so a key brings its section into
+  // view — the tab it is on first. Only where the column is on screen.
+  useEffect(() => {
+    if (!repoPath || viewTab) return
+    const onKey = (e: KeyboardEvent) => {
+      const view = viewForKey(e)
+      if (!view) return
+      e.preventDefault()
+      setSidebarTab(view === 'ai' ? 'ai' : 'list')
+      const section = STACKED_SECTION[view]
+      // After the render that brings the list tab back, when it was the AI one.
+      if (section) setTimeout(() => revealSection(section), 0)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [repoPath, viewTab, setSidebarTab])
   // The tab strip is a roving tab stop: only the active tab is reachable by
   // Tab, so the focus has to follow the selection, or the next arrow walks
   // from the tab we just left. Keyed on the selection rather than scheduled by
@@ -756,6 +780,8 @@ export default function App() {
             <Sidebar
               githubPRs={githubPRs}
               githubIssues={githubIssues}
+              githubErrors={githubErrors}
+              onOpenSettings={(section) => { askForSettingsSection(section); openSettingsTab() }}
               onStartBranchFromIssue={handleCreateBranchFromIssue}
               onShowGithubDetail={(item, kind) => setIssueDetail({ kind, item })}
               onComparePullRequest={(base, head, axis) => openViewTab({ view: 'compare', a: base, b: head, axis, label: `${base} … ${head}` })}
@@ -834,9 +860,15 @@ export default function App() {
               authorFilter={authorOfQuery(searchQuery)}
               onReveal={ref => { void revealRef(ref) }}
               onOpenCard={(ref, kind) => { void openRefCard(ref, kind) }}
-              onCompareStash={(ref, against) => openViewTab(against === 'working'
-                ? { view: 'compare', a: ref, b: null, axis: 'endpoints', label: `${ref} … working tree` }
-                : { view: 'compare', a: 'HEAD', b: ref, axis: 'endpoints', label: `HEAD … ${ref}` })}
+              onCompareRef={(ref, against) => {
+                // A tag arrives as its resolved commit (#288): a full sha in a
+                // tab's title is forty characters of noise, so it is cut the
+                // way every other commit in a title is.
+                const name = /^[0-9a-f]{40,64}$/.test(ref) ? ref.slice(0, 7) : ref
+                openViewTab(against === 'working'
+                  ? { view: 'compare', a: ref, b: null, axis: 'endpoints', label: `${name} … working tree` }
+                  : { view: 'compare', a: 'HEAD', b: ref, axis: 'endpoints', label: `HEAD … ${name}` })
+              }}
               onSelectStashForCompare={setCompareBaseHash}
               onRebaseOntoUpstream={upstream => { void handleRebaseOnto(upstream) }}
               onCompareUpstream={(name, upstream) => openViewTab({ view: 'compare', a: upstream, b: name, axis: 'diverged', label: `${upstream} … ${name}` })}
@@ -1234,7 +1266,7 @@ export default function App() {
                 commitProposal={commitProposal}
                 onCommitProposalConsumed={() => setCommitProposal(null)}
                 onExplainWorking={() => setAiRead({ kind: 'working' })}
-                onSplitCommits={() => setComposerOpen(true)}
+                onSplitCommits={() => { setComposerProposal(null); setComposerOpen(true) }}
                 branchStrip={branchStripProps}
                 emptyState={workingEmptyState}
               />
@@ -1445,12 +1477,17 @@ export default function App() {
         />
       )}
 
-      {composerOpen && (
+      {/* Keyed on the proposal: a second agent split sent while one is open
+          remounts the drawer on the new plan, and the model's own split
+          (no proposal) is a different drawer from an agent's. */}
+      {(composerOpen || composerProposal) && (
         <CommitComposer
+          key={composerProposal ? `agent-${composerProposal.id}` : 'model'}
           anchor={sidebarPanelRef}
-          onClose={() => setComposerOpen(false)}
+          onClose={() => { setComposerOpen(false); setComposerProposal(null) }}
           onCommitted={loadRepoData}
           showToast={showToast}
+          proposal={composerProposal?.groups}
         />
       )}
 

@@ -5,13 +5,16 @@
 import { Icon } from '../../Icon/Icon'
 import { Section } from '../Section'
 import type { SidebarState } from '../useSidebar'
+import { LoadError } from '../notices'
 
 export function ContributorsSection({ s }: { s: SidebarState }) {
-  const { contributors, onFilterAuthor, authorFilter, t } = s
+  const { contributors, onFilterAuthor, authorFilter, t, loadErrors, retryLoad } = s
+  const failed = loadErrors.contributors
   if (!onFilterAuthor) return null
   return (
-    <Section id="contributors" title="CONTRIBUTORS" icon="person" count={contributors.length} defaultOpen={false}>
-      {contributors.length === 0
+    <Section id="contributors" title="CONTRIBUTORS" icon="person" count={failed ? undefined : contributors.length} defaultOpen={false}>
+      {failed ? <LoadError error={failed} onRetry={() => retryLoad('contributors')} t={t} />
+        : contributors.length === 0
         ? <div className="sb-empty">{t('sb.contributorsEmpty')}</div>
         : contributors.map(c => {
             const active = authorFilter === c.name

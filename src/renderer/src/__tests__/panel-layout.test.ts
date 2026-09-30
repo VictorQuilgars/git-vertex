@@ -1,7 +1,7 @@
 import {
   resolvePanelLayout, clampDetailsHeight, overlayWidth, autoDetailsSide, compactWorkingHolds,
   NARROW_BELOW, SPLIT_ROWS_FROM, RAIL_WIDTH, RAIL_WIDTH_NARROW, DETAILS_MIN, BOTTOM_FROM,
-  COMPACT_WORKING_BELOW, GRAPH_HIDDEN_HOLD,
+  COMPACT_WORKING_BELOW, GRAPH_HIDDEN_HOLD, sideFloats, readSidePlacement,
 } from '../../../../vscode-extension/src/webview/panelLayout'
 
 // The panel's webview is the whole view, wherever VS Code shows it, and it
@@ -126,5 +126,28 @@ describe('the floating side view', () => {
 
   test('but never less than a readable list', () => {
     expect(overlayWidth(240, 120, RAIL_WIDTH_NARROW, 8)).toBe(160)
+  })
+})
+
+// #277: the side view floated over the graph when the panel was narrow, and
+// only then. `auto` is still that; the other two hold whatever the width.
+describe('the side view is docked or floating', () => {
+  test('auto floats it exactly when the panel is narrow', () => {
+    expect(sideFloats(true, 'auto')).toBe(true)
+    expect(sideFloats(false, 'auto')).toBe(false)
+  })
+
+  test('docked and floating ignore the width', () => {
+    for (const narrow of [true, false]) {
+      expect(sideFloats(narrow, 'docked')).toBe(false)
+      expect(sideFloats(narrow, 'floating')).toBe(true)
+    }
+  })
+
+  test('anything unknown reads as auto — what an install that never chose has', () => {
+    expect(readSidePlacement('')).toBe('auto')
+    expect(readSidePlacement('sideways')).toBe('auto')
+    expect(readSidePlacement('docked')).toBe('docked')
+    expect(readSidePlacement('floating')).toBe('floating')
   })
 })

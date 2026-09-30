@@ -101,10 +101,10 @@ const c1 = await connect()
 {
   const { tools } = await c1.listTools()
   const names = tools.map((t) => t.name).sort()
-  const expected = ['abort_operation', 'continue_operation', 'find_lost_work', 'generate_commit_message', 'git_bisect', 'git_blame', 'git_branches', 'git_conflicts', 'git_diff', 'git_log', 'git_pickaxe', 'git_show', 'git_status', 'open_in_git_vertex', 'predict_conflicts', 'propose_commit', 'propose_rebase_plan', 'resolve_conflict']
+  const expected = ['abort_operation', 'continue_operation', 'find_lost_work', 'generate_commit_message', 'git_bisect', 'git_blame', 'git_branches', 'git_conflicts', 'git_diff', 'git_log', 'git_pickaxe', 'git_show', 'git_status', 'open_in_git_vertex', 'predict_conflicts', 'propose_commit', 'propose_rebase_plan', 'propose_split', 'resolve_conflict']
   const missing = expected.filter((n) => !names.includes(n))
   const extra = names.filter((n) => !expected.includes(n))
-  record('tools/list exposes the 18 expected tools', 'tools/list', missing.length === 0 && extra.length === 0,
+  record('tools/list exposes the 19 expected tools', 'tools/list', missing.length === 0 && extra.length === 0,
     [...missing.map((m) => `missing ${m}`), ...extra.map((e) => `extra ${e}`)], names.join(', '))
 }
 
@@ -359,6 +359,29 @@ await t(c1, 'propose_rebase_plan: base=HEAD → empty range error', 'propose_reb
 await t(c1, 'propose_rebase_plan: step hash outside range → error', 'propose_rebase_plan', { repo: main, base: 'HEAD~2', steps: [{ hash: 'deadbeef', action: 'squash' }] }, {
   isError: true, expect: ['not in HEAD~2..HEAD'],
 })
+// propose_split refuses before it opens anything: a path it cannot place is
+// something the agent can still fix, and the review screen should not have to.
+await t(c1, 'propose_split: no commits rejected by schema', 'propose_split', { repo: main, commits: [] }, {
+  isError: true, expect: ['Input validation error'],
+})
+await t(c1, 'propose_split: blank message rejected by schema', 'propose_split', { repo: main, commits: [{ message: '   ', files: ['README.md'] }] }, {
+  isError: true, expect: ['Input validation error'],
+})
+await t(c1, 'propose_split: a commit with no file rejected by schema', 'propose_split', { repo: main, commits: [{ message: 'docs: x', files: [] }] }, {
+  isError: true, expect: ['Input validation error'],
+})
+await t(c1, 'propose_split: path traversal rejected', 'propose_split', { repo: main, commits: [{ message: 'feat: x', files: ['../merge-conflict/a.txt'] }] }, {
+  isError: true, expect: ['escapes the repository'],
+})
+await t(c1, 'propose_split: a file with no uncommitted change → error naming it and the changed files', 'propose_split', { repo: main, commits: [{ message: 'chore: x', files: ['shared.txt', 'README.md'] }] }, {
+  isError: true, expect: ['No uncommitted changes in: shared.txt', 'untracked.txt', 'staged-file.txt'],
+})
+await t(c1, 'propose_split: a file in two commits → error', 'propose_split', { repo: main, commits: [{ message: 'docs: a', files: ['README.md'] }, { message: 'docs: b', files: ['./README.md'] }] }, {
+  isError: true, expect: ['only one commit', 'README.md (commits 1 and 2)'],
+})
+await t(c1, 'propose_split: clean working tree → error', 'propose_split', { repo: bi, commits: [{ message: 'chore: x', files: ['log.txt'] }] }, {
+  isError: true, expect: ['Nothing uncommitted to split'],
+})
 
 // ── generate_commit_message ──
 await t(c1, 'generate_commit_message: no sampling → diff fallback', 'generate_commit_message', { repo: main }, {
@@ -422,6 +445,65 @@ await t(c5, 'locale fr: find_lost_work still finds dangling commits (fsck output
   expect: [/dangling commits \(\d/, 'WIP: lost work'], reject: ['No dangling commits'],
 })
 await c5.close()
+
+// ── propose_split: what actually reaches the app ──
+// The handoff is a gitgui:// URL given to the OS opener. A stand-in `open` /
+// `xdg-open` first on the server's PATH records the URL instead of launching
+// anything, so the test reads the very deep link and proposal file the app
+// would — and can check that nothing in the repository moved.
+{
+  const openerDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gv-opener-'))
+  const opened = path.join(openerDir, 'opened.log')
+  for (const name of ['open', 'xdg-open']) {
+    fs.writeFileSync(path.join(openerDir, name), `#!/bin/sh\nprintf '%s\\n' "$1" >> "${opened}"\n`, { mode: 0o755 })
+  }
+  const c6 = await connect({ env: { PATH: `${openerDir}${path.delimiter}${process.env.PATH}` } })
+  const { execFileSync } = await import('node:child_process')
+  const state = () => execFileSync('git', ['-C', main, 'status', '--porcelain'], { encoding: 'utf8' })
+  const before = state()
+
+  const out = await t(c6, 'propose_split: opens the composer and reports the files left out', 'propose_split', {
+    // A subdirectory as `repo`: paths are still the repository's, from its root.
+    repo: path.join(main, 'src'),
+    commits: [
+      { message: 'feat: add the staged file and its data', files: ['staged-file.txt', 'big.txt', 'big.txt'] },
+      { message: 'docs: extend the README', files: ['./README.md'] },
+    ],
+  }, {
+    expect: ['2-commit split preloaded (3 file(s))', '1 changed file(s) are in no commit', 'untracked.txt', 'Nothing was staged or committed'],
+  })
+
+  const urls = fs.existsSync(opened) ? fs.readFileSync(opened, 'utf8').trim().split('\n').filter(Boolean) : []
+  const url = urls.length === 1 ? new URL(urls[0]) : null
+  const q = url?.searchParams
+  record('propose_split: one gitgui://open deep link, view=propose-split, on the repository root', 'propose_split',
+    !!url && url.protocol === 'gitgui:' && q.get('view') === 'propose-split' && q.get('repo') === fs.realpathSync(main) && !!q.get('proposal'),
+    url ? [] : [`opener saw ${urls.length} URL(s)`], urls.join('\n') || out)
+
+  const proposalPath = q?.get('proposal') ?? ''
+  let payload = null
+  try { payload = JSON.parse(fs.readFileSync(proposalPath, 'utf8')) } catch { /* reported below */ }
+  const expectedPayload = {
+    kind: 'split',
+    commits: [
+      // Duplicates collapse, and "./README.md" is the README git reports.
+      { message: 'feat: add the staged file and its data', files: ['staged-file.txt', 'big.txt'] },
+      { message: 'docs: extend the README', files: ['README.md'] },
+    ],
+  }
+  record('propose_split: the proposal file is the app\'s payload, in the proposals directory', 'propose_split',
+    JSON.stringify(payload) === JSON.stringify(expectedPayload)
+      && path.dirname(proposalPath) === path.join(os.tmpdir(), 'git-vertex-mcp-proposals'),
+    [], JSON.stringify(payload) + ' @ ' + proposalPath)
+
+  const after = state()
+  record('propose_split: nothing staged, unstaged or committed by the call', 'propose_split',
+    before === after, before === after ? [] : ['git status changed'], after)
+
+  if (proposalPath) fs.rmSync(proposalPath, { force: true })
+  fs.rmSync(openerDir, { recursive: true, force: true })
+  await c6.close()
+}
 
 // ── resources ──
 // Read from the default repository ($GV_REPO), since a resource URI carries

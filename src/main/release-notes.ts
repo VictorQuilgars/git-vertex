@@ -16,6 +16,25 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 🔢 A pull request by its number
 - Type **\`#123\`** in the Pull requests search box: when the list does not hold it, the view offers to **fetch it whatever its state** — merged and closed ones included — and opens it. Rows from a **fork** say so, and the hover now shows the request's **checks**, **review decision** and **size**.
 
+### ⌨️ A key per side bar view
+- **\`1\` to \`9\`** bring a side bar view into sight — Overview, AI, Worktrees, Branches, Remotes, Stash, Tags, Pull requests, Issues. Never while typing; the \`?\` sheet lists them.
+
+### 🧭 Empty says why
+- A side bar list that **could not be loaded** says so, quoted, with **Try again** — it used to show an empty list, which reads as *there are none*.
+- The **pull request and issue sections** of a GitHub repository with no account connected say so and open **Settings › GitHub**, instead of not being there at all.
+
+### 🧾 Side bar rows say more
+- A **branch** row shows the age of its last commit, a mark when **another worktree** holds it, and a tooltip with what it tracks, its **pull request** and that worktree. A **tag** row shows its **annotation**, and its hash is the commit it points at. A **stash** row names the **branch it was made on**, and when. All of it read with the lists themselves — nothing per row.
+
+### 🛰 A remote, on its forge and opened onto its branches
+- Right-click a remote: **Open Repository on Remote**, **Open Branches on Remote**, **Copy Branches URL** — that remote's own pages, on GitHub, GitLab or Bitbucket. **Unset as Default Remote** takes a chosen default back. And a remote **opens** onto its branches, with the same acts and menu as Branches › REMOTE. (#289)
+
+### 🏷 A tag row does what its commit can
+- Right-click a tag: **Compare** it with HEAD or the working tree, select it for a comparison, **copy** its sha or its commit's message, **reset the current branch to it**, or **show only its history** — without finding its row in the graph first. An annotated tag is resolved to the **commit** it points at, so every entry acts on that commit and not on the tag object.
+
+### ✂️ Your agent proposes a split, you make the commits
+- An agent connected through the Git Vertex MCP server can now propose cutting your uncommitted work into several commits. Its plan opens in **Split into commits**, next to your working changes, checked against the files as they are now — edit the messages, move files, reorder, and **nothing is committed until you press Create**.
+
 ### 🔗 A remote that is not \`origin\` can be the GitHub one
 - A repository is on GitHub if **any** of its remotes is: an \`upstream\` on GitHub behind an \`origin\` on GitLab now gets its pull requests and issues instead of *no GitHub remote*. And the **Enterprise Server** you declared in Settings is recognised — the repository on it used to be reported as not on GitHub even with its token set. \`origin\` still wins when it is on GitHub, and a host you have not declared is still not GitHub.
 `,

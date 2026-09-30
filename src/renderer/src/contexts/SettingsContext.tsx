@@ -257,6 +257,9 @@ export const SETTING_DEFAULTS: SettingsMap = {
   // Panel only: where the details go — `auto` (the side the panel's shape
   // suggests), `right` or `bottom` (panelLayout.ts, the toolbar's placement menu).
   panelDetailsLocation: 'auto',
+  // Panel only: the side view docked beside the graph or floating over it —
+  // `auto` floats it while the panel is narrow (panelLayout.ts, the rail's menu).
+  panelSidePlacement: 'auto',
 }
 
 function applyAppearance(s: SettingsMap) {

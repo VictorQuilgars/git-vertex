@@ -6,7 +6,7 @@ import { AI_PROVIDER_CATALOG, parseCustomProviders, type AIProviderDef } from '.
 import { useLang } from '../../i18n/LanguageContext'
 import { useSettings, setInstalledThemes, followsEditor, type InstalledThemeInfo } from '../../contexts/SettingsContext'
 import { serializeAutolinks, type Autolink } from '../../utils/autolinks'
-import { parseAutolinksLoose, type Section, SECTION_KEY, lastSection, type AIProvider, DESKTOP_ONLY_SECTIONS, sectionText, NAV_GROUPS, AI_FEATURES, type AIPair, type AIDraft, serializeAI, type SettingsModalProps } from './shared'
+import { parseAutolinksLoose, type Section, SECTION_KEY, SECTIONS, SETTINGS_SECTION_EVENT, lastSection, type AIProvider, DESKTOP_ONLY_SECTIONS, sectionText, NAV_GROUPS, AI_FEATURES, type AIPair, type AIDraft, serializeAI, type SettingsModalProps } from './shared'
 
 export function useSettingsPage({ onClose, showToast, onUpdateFound, embedded = false, onBrowseThemes }: SettingsModalProps) {
   const { t, lang, setLang } = useLang()
@@ -15,6 +15,18 @@ export function useSettingsPage({ onClose, showToast, onUpdateFound, embedded = 
   const [navQuery, setNavQuery] = useState('')
   const [showAllThemes, setShowAllThemes] = useState(false)
   useEffect(() => { localStorage.setItem(SECTION_KEY, section) }, [section])
+  // Asked for from elsewhere while the page is open (#292). A search typed in
+  // the nav would hide the section asked for, so it is cleared.
+  useEffect(() => {
+    const on = (e: Event) => {
+      const asked = (e as CustomEvent<Section>).detail
+      if (!SECTIONS.includes(asked)) return
+      setNavQuery('')
+      setSection(asked)
+    }
+    window.addEventListener(SETTINGS_SECTION_EVENT, on)
+    return () => window.removeEventListener(SETTINGS_SECTION_EVENT, on)
+  }, [])
   // ── Themes ────────────────────────────────────────────────────────────────
   const [installed, setInstalled] = useState<InstalledThemeInfo[]>([])
   const [discarded, setDiscarded] = useState<Array<{ id: string; why: string }>>([])

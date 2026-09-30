@@ -233,6 +233,7 @@ const gitAPI = {
   getDefaultRemote: () => invoke('git:get-default-remote'),
   getDefaultBranch: () => invoke('git:get-default-branch'),
   setDefaultRemote: (name: string) => invoke('git:set-default-remote', name),
+  unsetDefaultRemote: () => invoke('git:unset-default-remote'),
   getGoneBranches: () => invoke('git:get-gone-branches'),
   pruneGoneBranches: (names: string[]) => invoke('git:prune-gone-branches', names),
   // Gitflow
