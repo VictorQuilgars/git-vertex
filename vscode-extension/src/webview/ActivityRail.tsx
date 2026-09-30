@@ -4,6 +4,9 @@ import type { SidebarView } from '../../../src/renderer/src/components/Sidebar/S
 import type { TranslationKey } from '../../../src/renderer/src/i18n/translations'
 import { useLang } from '../../../src/renderer/src/i18n/LanguageContext'
 import ContextMenu from '../../../src/renderer/src/components/ContextMenu/ContextMenu'
+import { shortCount, type SidebarCounts } from '../../../src/renderer/src/components/Sidebar/sidebarCounts'
+import { keyForView } from '../../../src/renderer/src/components/Sidebar/viewKeys'
+import type { SidePlacement } from './panelLayout'
 
 // Vertical activity rail. Always visible on the left of the
 // panel; each icon toggles the resizable side-panel for one Sidebar view.
@@ -68,16 +71,32 @@ const KANBAN_ICON = <Icon name="panel" />
 const STRIDE = 36
 const STRIDE_COMPACT = 32
 // Rail chrome that is never part of the scrollable icon column:
-// 12px vertical padding + the pinned kanban button + breathing room.
-const reserved = (stride: number) => 12 + stride + 6
+// 12px vertical padding + the two pinned buttons at the foot (the side view's
+// placement, the kanban) + breathing room.
+const reserved = (stride: number) => 12 + 2 * stride + 6
+
+const PLACEMENTS: { value: SidePlacement; labelKey: TranslationKey }[] = [
+  { value: 'auto', labelKey: 'rail.side.auto' },
+  { value: 'docked', labelKey: 'rail.side.docked' },
+  { value: 'floating', labelKey: 'rail.side.floating' },
+]
 
 export default function ActivityRail({
-  active, onSelect, compact,
+  active, onSelect, compact, counts, placement, onPlacement,
 }: {
   active: SidebarView | null
   onSelect: (v: SidebarView) => void
   /** The 36px rail of a narrow panel: smaller buttons, same icons. */
   compact?: boolean
+  /**
+   * How many rows each view holds, under its icon (#277) — sidebarCounts, the
+   * rule the section headers count with. A zero draws nothing: nine zeros down
+   * a rail are noise, and the view says "none" when it is opened.
+   */
+  counts?: SidebarCounts
+  /** Docked, floating, or `auto` — the menu at the rail's foot (#277). */
+  placement?: SidePlacement
+  onPlacement?: (p: SidePlacement) => void
 }) {
   const { t } = useLang()
   const label = (key: TranslationKey, fallback: string) => {
@@ -90,6 +109,7 @@ export default function ActivityRail({
   const railRef = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(ITEMS.length)
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
+  const [placementMenu, setPlacementMenu] = useState<{ x: number; y: number } | null>(null)
 
   useEffect(() => {
     const el = railRef.current
@@ -115,21 +135,33 @@ export default function ActivityRail({
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
     setMenu({ x: r.right + 4, y: r.top })
   }
+  // What the icon's tooltip and accessible name say: the view, its count,
+  // and the key that opens it — the only place the key is shown beside the view.
+  const describe = (item: RailItem) => {
+    const name = label(item.labelKey, item.fallback)
+    const n = counts?.[item.view]
+    return `${n === undefined ? name : `${name} (${n})`}\n${t('rail.shortcut', keyForView(item.view))}`
+  }
 
   return (
     <div className={`gv-rail${compact ? ' gv-rail--compact' : ''}`} ref={railRef}>
-      {shown.map(item => (
-        <button
-          key={item.view}
-          className={`gv-rail-btn ${active === item.view ? 'gv-rail-btn--active' : ''}`}
-          title={label(item.labelKey, item.fallback)}
-          aria-label={label(item.labelKey, item.fallback)}
-          aria-pressed={active === item.view}
-          onClick={() => onSelect(item.view)}
-        >
-          {item.icon}
-        </button>
-      ))}
+      {shown.map(item => {
+        const n = counts?.[item.view]
+        return (
+          <button
+            key={item.view}
+            className={`gv-rail-btn ${active === item.view ? 'gv-rail-btn--active' : ''}`}
+            title={describe(item)}
+            aria-label={label(item.labelKey, item.fallback)}
+            aria-keyshortcuts={keyForView(item.view)}
+            aria-pressed={active === item.view}
+            onClick={() => onSelect(item.view)}
+          >
+            {item.icon}
+            {!!n && <span className="gv-rail-count" aria-hidden="true">{shortCount(n)}</span>}
+          </button>
+        )
+      })}
       {hidden.length > 0 && (
         <button
           className={`gv-rail-btn ${activeHidden ? 'gv-rail-btn--active' : ''}`}
@@ -141,6 +173,20 @@ export default function ActivityRail({
         </button>
       )}
       <div className="gv-rail-spacer" />
+      {onPlacement && (
+        <button
+          className="gv-rail-btn"
+          title={label('rail.side.placement', 'Side View Placement')}
+          aria-label={label('rail.side.placement', 'Side View Placement')}
+          aria-haspopup="menu"
+          onClick={e => {
+            const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+            setPlacementMenu({ x: r.right + 4, y: r.top })
+          }}
+        >
+          <Icon name={placement === 'floating' ? 'layoutLeftFloat' : 'layoutLeft'} />
+        </button>
+      )}
       <button
         className="gv-rail-btn gv-rail-btn--soon"
         title={label('rail.board', 'Board (coming soon)')}
@@ -154,11 +200,23 @@ export default function ActivityRail({
           x={menu.x}
           y={menu.y}
           items={hidden.map(item => ({
-            label: label(item.labelKey, item.fallback),
+            label: counts?.[item.view] ? `${label(item.labelKey, item.fallback)} (${counts[item.view]})` : label(item.labelKey, item.fallback),
             checked: active === item.view,
             action: () => onSelect(item.view),
           }))}
           onClose={() => setMenu(null)}
+        />
+      )}
+      {placementMenu && onPlacement && (
+        <ContextMenu
+          x={placementMenu.x}
+          y={placementMenu.y}
+          items={PLACEMENTS.map(p => ({
+            label: t(p.labelKey),
+            checked: (placement ?? 'auto') === p.value,
+            action: () => onPlacement(p.value),
+          }))}
+          onClose={() => setPlacementMenu(null)}
         />
       )}
     </div>

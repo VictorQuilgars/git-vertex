@@ -8,6 +8,7 @@ import { remoteLinks } from '../../../utils/remoteUrl'
 import type { BranchInfo } from '../../../types'
 import type { RemoteEntry } from '../types'
 import type { SidebarState } from '../useSidebar'
+import { LoadError } from '../notices'
 
 /** `remotes/origin/x` belongs to `origin` — and not to `orig`. */
 const branchesOf = (branches: BranchInfo[], remote: string) =>
@@ -44,14 +45,16 @@ function RemoteBranches({ s, remote }: { s: SidebarState; remote: RemoteEntry })
 }
 
 export function RemotesSection({ s }: { s: SidebarState }) {
-  const { onToggleHideRemote, onOpenGithubItem, single, defaultRemote, defaultRemoteExplicit, t, showToast, handleAddRemote, handleRemoveRemote, handleRenameRemote, handlePruneRemote, handleSetDefaultRemote, handleUnsetDefaultRemote, handleFetchRemote, remoteHidden, familyMenu, showAll, filteredRemotes, expandedRemotes, toggleRemoteExpanded } = s
+  const { onToggleHideRemote, onOpenGithubItem, single, defaultRemote, defaultRemoteExplicit, t, showToast, handleAddRemote, handleRemoveRemote, handleRenameRemote, handlePruneRemote, handleSetDefaultRemote, handleUnsetDefaultRemote, handleFetchRemote, remoteHidden, familyMenu, showAll, filteredRemotes, expandedRemotes, toggleRemoteExpanded, counts, loadErrors, retryLoad } = s
+  const failed = loadErrors.remotes
   return (
-    <Section id="remotes" title="REMOTES" icon="repo" count={filteredRemotes.length} defaultOpen={single}
+    <Section id="remotes" title="REMOTES" icon="repo" count={failed ? undefined : counts.remotes} defaultOpen={single}
             onAdd={handleAddRemote} addLabel={t('sb.addRemote')}
             menuItems={familyMenu('remotes')}
             hiddenCount={filteredRemotes.filter(r => remoteHidden(r.name)).length}
             onShowAll={showAll('remotes')}>
-            {filteredRemotes.length === 0
+            {failed ? <LoadError error={failed} onRetry={() => retryLoad('remotes')} t={t} />
+              : filteredRemotes.length === 0
               ? <div className="sb-empty">{t('sb.noRemote')}</div>
               : filteredRemotes.map(r => {
                   // A remote whose URL is a local path has no page to open,

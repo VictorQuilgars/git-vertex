@@ -1,7 +1,9 @@
 // The graph's keys, on one sheet — `?` opens it (#253). A centred dialog in
 // groups, the keys right-aligned in a column of their own so the eye runs down
 // the labels. Everything listed here is handled in CommitGraph's key handler:
-// a row added there is added here, and graph-shortcuts.test.tsx reads both.
+// a row added there is added here, and graph-shortcuts.test.tsx reads both —
+// except the side bar's group, whose digits the host handles (Sidebar/viewKeys.ts):
+// this sheet is the one place the keys are written down, so they are here too.
 import React, { useId } from 'react'
 import { Icon } from '../Icon/Icon'
 import { useLang } from '../../i18n/LanguageContext'
@@ -36,6 +38,9 @@ export const GRAPH_SHORTCUTS: ShortcutGroup[] = [
   { title: 'graph.keys.find', rows: [
     { keys: ['/'], label: 'graph.keys.finder' },
     { keys: ['?'], label: 'graph.keys.help' },
+  ] },
+  { title: 'graph.keys.sideBar', rows: [
+    { keys: ['1–9'], label: 'graph.keys.views' },
   ] },
 ]
 

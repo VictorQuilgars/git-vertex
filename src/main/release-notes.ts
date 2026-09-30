@@ -13,6 +13,13 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 📅 Merged since, closed since
 - Filters of pull requests and issues take **\`merged:\`** and **\`closed:\`**, typed or described: *PRs merged since September 1st* now keeps its date.
 
+### ⌨️ A key per side bar view
+- **\`1\` to \`9\`** bring a side bar view into sight — Overview, AI, Worktrees, Branches, Remotes, Stash, Tags, Pull requests, Issues. Never while typing; the \`?\` sheet lists them.
+
+### 🧭 Empty says why
+- A side bar list that **could not be loaded** says so, quoted, with **Try again** — it used to show an empty list, which reads as *there are none*.
+- The **pull request and issue sections** of a GitHub repository with no account connected say so and open **Settings › GitHub**, instead of not being there at all.
+
 ### 🧾 Side bar rows say more
 - A **branch** row shows the age of its last commit, a mark when **another worktree** holds it, and a tooltip with what it tracks, its **pull request** and that worktree. A **tag** row shows its **annotation**, and its hash is the commit it points at. A **stash** row names the **branch it was made on**, and when. All of it read with the lists themselves — nothing per row.
 

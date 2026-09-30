@@ -30,6 +30,14 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 📅 Merged since, closed since
 - Filters of pull requests and issues take **\`merged:\`** and **\`closed:\`**, typed or described: *PRs merged since September 1st* now keeps its date.
 
+### 🔢 The rail counts, and a key opens each view
+- Each icon of the rail carries **how many rows its view holds** — the same count as the view's header. **\`1\` to \`9\`** open the views in the rail's order; the tooltip names each one's key.
+- The button at the **foot of the rail** keeps the side view **docked** beside the graph or **floating** over it, whatever the panel's width — or **Auto**, as before.
+
+### 🧭 Empty says why
+- A view whose list **could not be loaded** says so, quoted, with **Try again**.
+- **Pull requests** and **Issues** say why they are empty — no GitHub account, no remote, no remote on GitHub, or a read that failed — each with the button that fixes it.
+
 ### 🧾 Side bar rows say more
 - A **branch** row shows the age of its last commit, a mark when **another worktree** holds it, and a tooltip with what it tracks, its **pull request** and that worktree. A **tag** row shows its **annotation**, and its hash is the commit it points at. A **stash** row names the **branch it was made on**, and when. All of it read with the lists themselves — nothing per row.
 

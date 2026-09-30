@@ -9,6 +9,7 @@ import { prIntentFor as computePRIntent, type PRIntent } from '../components/Con
 import { repoFromRemotes, remoteUrl } from '../utils/remoteUrl'
 import type { AppChrome } from './useAppChrome'
 import type { RepoSession } from './useRepoSession'
+import { NO_FORGE_REMOTE, listError } from '../components/Sidebar/forgeGap'
 
 export function useAppGithub(app: AppChrome & RepoSession) {
   const { showPrompt, t, getSetting, showToast, branches, currentBranch, setRemoteNames, branchMeta, setGithubRepoUrl, githubOwnerRepo, setGithubOwnerRepo, remoteRepo, setRemoteRepo, defaultBranch, setDefaultBranch, loadRepoData } = app
@@ -24,6 +25,8 @@ export function useAppGithub(app: AppChrome & RepoSession) {
   const githubPRsRef = React.useRef(githubPRs);
   const [githubIssues, setGithubIssues] = useState<GithubListItem[] | undefined>()
   const githubIssuesRef = React.useRef(githubIssues);
+  // Why a list is undefined, per list — what the empty views say (#292).
+  const [githubErrors, setGithubErrors] = useState<{ prs?: string; issues?: string }>({})
   // The signed-in login — what the account groups of PULL REQUESTS filter on.
   const [githubLogin, setGithubLogin] = useState<string | null>(null)
   // The issue being read in the centre (§3 bis) — the third layout: toolbar
@@ -68,8 +71,10 @@ export function useAppGithub(app: AppChrome & RepoSession) {
       // two calls, and refreshing both because one looks stale spends two
       // requests to answer one question.
       const [prs, issues] = await Promise.all([
-        only === 'issues' ? null : (window.gitAPI as any).githubListPRs(base.owner, base.repo).catch(() => null),
-        only === 'prs' ? null : (window.gitAPI as any).githubListIssues(base.owner, base.repo).catch(() => null),
+        // A call that throws is a refusal like any other, and says why: read
+        // as null it used to become an empty list, which claims there are none.
+        only === 'issues' ? null : (window.gitAPI as any).githubListPRs(base.owner, base.repo).catch((e: any) => ({ error: e?.message ?? String(e) })),
+        only === 'prs' ? null : (window.gitAPI as any).githubListIssues(base.owner, base.repo).catch((e: any) => ({ error: e?.message ?? String(e) })),
       ])
       // A refused read costs that section's list, never the section itself —
       // the rule the saved filters already follow. Except on a poll, where it
@@ -82,17 +87,25 @@ export function useAppGithub(app: AppChrome & RepoSession) {
       // the sections undefined, which is how they disappear entirely rather
       // than showing as empty. It is only safe to skip when there is already
       // something to keep — and the answer carries the body either way.
-      const put = (r: any, current: any, apply: (v: any) => void, shape: () => any) => {
+      // The refusal is kept beside the list it cost, so the view can say
+      // which it was — no account, or something else (#292).
+      const put = (section: 'prs' | 'issues', r: any, current: any, apply: (v: any) => void, shape: () => any) => {
         if (r?.notModified && current !== undefined) return
-        if (r?.error) { if (!silent) apply(undefined); return }
+        const error = listError(r)
+        if (error) {
+          if (!silent) { apply(undefined); setGithubErrors(e => ({ ...e, [section]: error })) }
+          return
+        }
+        setGithubErrors(e => e[section] === undefined ? e : { ...e, [section]: undefined })
         apply(shape())
       }
-      if (only !== 'issues') put(prs, githubPRsRef.current, setGithubPRs, () => rows(prs?.prs, 'pr'))
-      if (only !== 'prs') put(issues, githubIssuesRef.current, setGithubIssues, () => rows(issues?.issues, 'issue'))
-    } catch {
+      if (only !== 'issues') put('prs', prs, githubPRsRef.current, setGithubPRs, () => rows(prs?.prs, 'pr'))
+      if (only !== 'prs') put('issues', issues, githubIssuesRef.current, setGithubIssues, () => rows(issues?.issues, 'issue'))
+    } catch (e: any) {
       if (silent) return
-      if (only !== 'issues') setGithubPRs(undefined)
-      if (only !== 'prs') setGithubIssues(undefined)
+      const error = e?.message ?? String(e)
+      if (only !== 'issues') { setGithubPRs(undefined); setGithubErrors(x => ({ ...x, prs: error })) }
+      if (only !== 'prs') { setGithubIssues(undefined); setGithubErrors(x => ({ ...x, issues: error })) }
     }
   }, [])
   /** The section headers' refresh button — one section, and never two at once. */
@@ -119,9 +132,11 @@ export function useAppGithub(app: AppChrome & RepoSession) {
     // The lists follow the repository, and a repository with no GitHub — or no
     // token — simply has no sections rather than two empty ones.
     if (detected?.owner && detected?.repo) {
+      setGithubErrors({})
       void loadGithubLists({ owner: detected.owner, repo: detected.repo })
     } else {
       setGithubPRs(undefined); setGithubIssues(undefined)
+      setGithubErrors({ prs: NO_FORGE_REMOTE, issues: NO_FORGE_REMOTE })
     }
     // Read the remote itself rather than assuming github.com: this is what
     // every link below is built from, and the only thing that knows the host.
@@ -224,7 +239,7 @@ export function useAppGithub(app: AppChrome & RepoSession) {
   }
 
   return {
-    issueModalBranch, setIssueModalBranch, githubUser, setGithubUser, githubConnected, setGithubConnected, githubPRs, setGithubPRs, githubPRsRef, githubIssues, setGithubIssues, githubIssuesRef, githubLogin, setGithubLogin, issueDetail, setIssueDetail, prModalOpen, setPrModalOpen, prIntent, setPrIntent, autolinks, githubRefreshing, setGithubRefreshing, githubRefreshTick, setGithubRefreshTick, githubPollTick, setGithubPollTick, loadGithubLists, refreshGithubSection, issueComposerOpen, setIssueComposerOpen, detectGithub, handleSharePatch, prIntentFor, handleStartPR, handleOpenCommitOnRemote, currentBranchPR, handleOpenFileOnRemote, handleCopyFileLink, handleCreateBranchFromIssue, handleOpenBranchesOnRemote, handleOpenBranchOnRemote,
+    issueModalBranch, setIssueModalBranch, githubUser, setGithubUser, githubConnected, setGithubConnected, githubPRs, setGithubPRs, githubPRsRef, githubIssues, setGithubIssues, githubIssuesRef, githubErrors, githubLogin, setGithubLogin, issueDetail, setIssueDetail, prModalOpen, setPrModalOpen, prIntent, setPrIntent, autolinks, githubRefreshing, setGithubRefreshing, githubRefreshTick, setGithubRefreshTick, githubPollTick, setGithubPollTick, loadGithubLists, refreshGithubSection, issueComposerOpen, setIssueComposerOpen, detectGithub, handleSharePatch, prIntentFor, handleStartPR, handleOpenCommitOnRemote, currentBranchPR, handleOpenFileOnRemote, handleCopyFileLink, handleCreateBranchFromIssue, handleOpenBranchesOnRemote, handleOpenBranchOnRemote,
   }
 }
 

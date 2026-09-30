@@ -1,6 +1,7 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import SettingsModal from '../SettingsModal'
+import { askForSettingsSection } from '../shared'
 import { installMockGitAPI, renderWithProviders } from '../../../__tests__/test-utils'
 
 // Settings is a tab now, so leaving it is a click on another tab rather than a
@@ -43,5 +44,20 @@ describe('the settings section', () => {
     const { container } = render()
 
     expect(container.querySelector('.stg-nav-item.active')!.textContent).toMatch(/git|identity/i)
+  })
+
+  // An empty GitHub view's button opens the settings at GitHub (#292) — on a
+  // page not open yet, and on one already open at another section.
+  test('asked for a section before it opens, it opens there', () => {
+    askForSettingsSection('github')
+    const { container } = render()
+    expect(container.querySelector('.stg-nav-item.active')!.getAttribute('data-section')).toBe('github')
+  })
+
+  test('asked for a section while it is open, it moves there', async () => {
+    const { container } = render()
+    await waitFor(() => expect(container.querySelector('.stg-nav-item.active')).toBeInTheDocument())
+    act(() => askForSettingsSection('github'))
+    expect(container.querySelector('.stg-nav-item.active')!.getAttribute('data-section')).toBe('github')
   })
 })
