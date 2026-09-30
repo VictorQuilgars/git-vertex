@@ -1054,6 +1054,11 @@ const fr = {
   'cc.clearFailed': "Impossible de vider l'index",
   'cc.stageFailed': "Impossible d'indexer les fichiers de ce commit",
   'cc.commitFailed': 'Commit impossible',
+  'cc.fromAgent': 'Proposé par votre agent. Rien n\'est commité tant que vous ne créez pas les commits.',
+  'cc.agentInvented': (n: number) => `${n} chemin${n > 1 ? 's' : ''} nommé${n > 1 ? 's' : ''} par l'agent sans modification en cours, écarté${n > 1 ? 's' : ''}.`,
+  'cc.agentNothing': "Plus rien n'est à commiter : la proposition de l'agent n'a rien à appliquer.",
+  'cc.agentStale': "Aucun des fichiers nommés par l'agent n'a encore de modification en cours.",
+  'cc.agentReadFailed': 'Impossible de lire les modifications en cours',
 
   // RightPanel — commit
   'panel.commitMsg.placeholder': 'Message de commit…',
@@ -1475,6 +1480,8 @@ const fr = {
   'deeplink.what.commitMsgCap': 'Le message de commit',
   'deeplink.what.rebasePlan': 'le plan de rebase',
   'deeplink.what.rebasePlanCap': 'Le plan de rebase',
+  'deeplink.what.splitPlan': 'le découpage proposé',
+  'deeplink.what.splitPlanCap': 'Le découpage en commits',
   'deeplink.incomplete': (view: string) => `Lien Git Vertex incomplet (vue "${view}") — rien à afficher`,
 
   // Toasts — App-level
@@ -3401,6 +3408,11 @@ const en: typeof fr = {
   'cc.clearFailed': 'Could not clear the index',
   'cc.stageFailed': 'Could not stage this commit\'s files',
   'cc.commitFailed': 'Could not commit',
+  'cc.fromAgent': 'Proposed by your agent. Nothing is committed until you create the commits.',
+  'cc.agentInvented': (n: number) => `${n} path${n > 1 ? 's' : ''} the agent named ${n > 1 ? 'have' : 'has'} no uncommitted change, dropped.`,
+  'cc.agentNothing': 'Nothing is uncommitted any more — the agent\'s proposal has nothing to apply.',
+  'cc.agentStale': 'None of the files the agent named still has uncommitted changes.',
+  'cc.agentReadFailed': 'Could not read the uncommitted changes',
 
   // RightPanel — commit
   'panel.commitMsg.placeholder': 'Commit message…',
@@ -3821,6 +3833,8 @@ const en: typeof fr = {
   'deeplink.what.commitMsgCap': 'The commit message',
   'deeplink.what.rebasePlan': 'the rebase plan',
   'deeplink.what.rebasePlanCap': 'The rebase plan',
+  'deeplink.what.splitPlan': 'the proposed split',
+  'deeplink.what.splitPlanCap': 'The split into commits',
   'deeplink.incomplete': (view: string) => `Incomplete Git Vertex link (view "${view}") — nothing to show`,
 
   // Toasts — App-level
