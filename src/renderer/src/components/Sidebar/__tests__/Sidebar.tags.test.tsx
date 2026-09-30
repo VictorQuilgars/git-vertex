@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { emptyVisibility } from '../../../utils/graphVisibility'
 import Sidebar from '../Sidebar'
@@ -13,13 +13,14 @@ const TAGS = [
   { name: 'v1.21.1', hash: 'a77e361' },
 ]
 
-function renderTags(overrides: Record<string, any> = {}) {
+function renderTags(overrides: Record<string, any> = {}, api: Record<string, any> = {}) {
   installMockGitAPI({
     getRemotes: jest.fn().mockResolvedValue({ remotes: [] }),
     getReflog: jest.fn().mockResolvedValue({ entries: [] }),
     getSubmodules: jest.fn().mockResolvedValue({ submodules: [] }),
     listWorktrees: jest.fn().mockResolvedValue({ worktrees: [] }),
     getWorkingChanges: jest.fn().mockResolvedValue({ staged: [], unstaged: [], untracked: [] }),
+    ...api,
   })
   const props: Record<string, any> = {
     repoPath: '/repo', repoName: 'repo', currentBranch: 'main',
@@ -91,5 +92,69 @@ describe('Sidebar — tags', () => {
     expect(props.onCheckoutTag).toHaveBeenCalledWith('v1.21.1')
     expect(props.onCheckoutTag).toHaveBeenCalledTimes(1)
     expect(props.onGoTo).not.toHaveBeenCalled()
+  })
+})
+
+// A tag as the commit it stands for (#288). The row's list carries what
+// `git tag` lists — an annotated tag's OWN object — so the menu asks for the
+// commit when it opens, and every entry acts on that.
+describe('Sidebar — a tag row reaches its commit (#288)', () => {
+  const COMMIT = 'c'.repeat(40)
+  const openSub = async (label: string) => {
+    await userEvent.hover(screen.getByText(label))
+    await act(async () => { await new Promise(r => setTimeout(r, 260)) })
+  }
+  const drawResolving = (overrides: Record<string, any> = {}) => {
+    const resolveCommit = jest.fn().mockResolvedValue({ hash: COMMIT })
+    const getLastCommitMessage = jest.fn().mockResolvedValue({ message: 'release: 1.21.1\n\nNotes.', hash: COMMIT })
+    const props = renderTags({ onCompareRef: jest.fn(), tipActions: { onReset: jest.fn(), onSelectForCompare: jest.fn() }, ...overrides }, { resolveCommit, getLastCommitMessage })
+    return { props, resolveCommit, getLastCommitMessage }
+  }
+
+  test('the menu resolves the tag by its refname, and compares the commit with HEAD', async () => {
+    const { props, resolveCommit, getLastCommitMessage } = drawResolving()
+    await openTagsSection()
+    fireEvent.contextMenu(screen.getByText('v1.21.1'))
+    await screen.findByText('Compare')
+    expect(resolveCommit).toHaveBeenCalledWith('refs/tags/v1.21.1')
+    expect(getLastCommitMessage).toHaveBeenCalledWith(COMMIT)
+    await openSub('Compare')
+    await userEvent.click(screen.getByText('Compare with HEAD'))
+    expect(props.onCompareRef).toHaveBeenCalledWith(COMMIT, 'HEAD')
+  })
+
+  test('resets the current branch to the commit, with the mode picked', async () => {
+    const { props } = drawResolving()
+    await openTagsSection()
+    fireEvent.contextMenu(screen.getByText('v1.22.0'))
+    await screen.findByText('Reset Current Branch to This Tag')
+    await openSub('Reset Current Branch to This Tag')
+    await userEvent.click(screen.getByText(/^Mixed/))
+    expect(props.tipActions.onReset).toHaveBeenCalledWith(COMMIT, 'mixed')
+  })
+
+  test("solo shows only the tag's history, by its full refname, and the row says so", async () => {
+    const { props } = drawResolving()
+    await openTagsSection()
+    fireEvent.contextMenu(screen.getByText('v1.21.1'))
+    await userEvent.click(await screen.findByText("Solo — Show Only This Tag's History"))
+    expect(props.onToggleSolo).toHaveBeenCalledWith('refs/tags/v1.21.1')
+  })
+
+  test('a soloed tag reads as soloed — and a branch named like it does not', async () => {
+    renderTags({ soloBranch: 'refs/tags/v1.22.0' })
+    await openTagsSection()
+    expect(screen.getByText('v1.22.0').closest('.sb-tag-item')).toHaveClass('soloed')
+    expect(screen.getByText('v1.21.1').closest('.sb-tag-item')).not.toHaveClass('soloed')
+  })
+
+  test('a tag that no longer resolves still opens its menu, without the commit entries', async () => {
+    const resolveCommit = jest.fn().mockResolvedValue({ hash: null })
+    renderTags({ onCompareRef: jest.fn(), tipActions: { onReset: jest.fn() } }, { resolveCommit })
+    await openTagsSection()
+    fireEvent.contextMenu(screen.getByText('v1.21.1'))
+    await screen.findByText('Push tag')
+    expect(screen.queryByText('Compare')).toBeNull()
+    expect(screen.queryByText('Reset Current Branch to This Tag')).toBeNull()
   })
 })

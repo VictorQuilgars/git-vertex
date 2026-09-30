@@ -411,7 +411,9 @@
 
 .sb-branch-item.is-hidden { opacity: 0.4; }
 .sb-branch-item.is-hidden .sb-branch-name { text-decoration: line-through; }
-.sb-branch-item.soloed { background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); }
+/* A tag can be soloed too (#288), and reads the same when it is. */
+.sb-branch-item.soloed,
+.sb-tag-item.soloed { background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); }
 
 .branch-icon { flex-shrink: 0; pointer-events: none; }
 .sb-branch-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-sm); pointer-events: none; user-select: none; -webkit-user-select: none; }

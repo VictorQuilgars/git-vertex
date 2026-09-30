@@ -22,6 +22,12 @@ export interface BranchTip {
   ref: string
   /** Its tip, short or full: what the host's handlers are given. */
   hash: string
+  /**
+   * What *Copy short hash* writes, when `hash` is the full one — a tag's
+   * commit is resolved in full, and handing a handler a full sha is right
+   * while copying 40 characters under "short" is not (#288).
+   */
+  shortHash?: string
   /** The tip's subject, for *Copy message*. */
   subject?: string
 }
@@ -67,7 +73,7 @@ export function branchTipExtras(
   }
 
   const copy: MenuItemDef[] = [
-    { label: t('graph.menu.copyShortHash'), action: () => navigator.clipboard.writeText(tip.hash) },
+    { label: t('graph.menu.copyShortHash'), action: () => navigator.clipboard.writeText(tip.shortHash ?? tip.hash) },
   ]
   if (actions.onCopyFullHash) copy.push({ label: t('graph.menu.copyFullHash'), action: () => actions.onCopyFullHash!(tip.ref) })
   if (tip.subject) copy.push({ label: t('graph.menu.copyMessage'), action: () => navigator.clipboard.writeText(tip.subject!) })

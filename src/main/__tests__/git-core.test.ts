@@ -300,6 +300,25 @@ describe('git-core — against a real repository, on both hosts', () => {
     expect(refused.error).toBeTruthy()
   })
 
+  // What a tag row's entries act on (#288): the side bar asks by the tag's
+  // full refname, and must get the COMMIT — for an annotated tag, whose own
+  // object is what the tag list carries, and when a branch has its name.
+  test('a tag by its full refname resolves to its commit, annotated or not', async () => {
+    run(`git tag light ${first}`)
+    run(`git tag -a v1 -m "annotated" ${first}`)
+    const object = run('git rev-parse refs/tags/v1').trim()
+    expect(object).not.toBe(first)
+    expect((await onBothHosts(repo, r => core.resolveCommit(r, 'refs/tags/v1'))).hash).toBe(first)
+    expect((await onBothHosts(repo, r => core.resolveCommit(r, 'refs/tags/light'))).hash).toBe(first)
+    // A branch called like the tag, somewhere else: the refname is the tag's.
+    run(`git branch v1 ${second}`)
+    expect((await onBothHosts(repo, r => core.resolveCommit(r, 'refs/tags/v1'))).hash).toBe(first)
+    expect((await onBothHosts(repo, r => core.resolveCommit(r, 'refs/tags/gone'))).hash).toBeNull()
+    // A tag of a tree names no commit, and nothing is offered on it.
+    run(`git tag tree ${first}^{tree}`)
+    expect((await onBothHosts(repo, r => core.resolveCommit(r, 'refs/tags/tree'))).hash).toBeNull()
+  })
+
   test('commitsTouching answers file: — a path, a folder, a bare word, a pattern', async () => {
     fs.mkdirSync(path.join(repo, 'src/Cache'), { recursive: true })
     write('src/Cache/keys.ts', 'k\n')

@@ -30,7 +30,7 @@ export type { SidebarView, GithubListItem } from './types'
 
 export default function Sidebar(props: SidebarProps) {
   const s = useSidebar(props)
-  const { repoPath, recentRepos, filteredStashes, onReveal, wipCount, wipSelected, onViewWip, onOpenRepo, onClone, onSetRepo, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onTab, githubPRs, githubIssues, githubRepo, view, single, showAI, show, submodules, t, stashMenu, setStashMenu, ghFilters, filterEditor, setFilterEditor, mutateFilters, stashScopeItems, handleRenameStash, branchFilter, setBranchFilter, stashesHidden, familyMenu, rootRef, filterDraft, setFilterDraft, showAll, remoteBranches, filterView, filterPlaceholder, onCompareStash, onSelectStashForCompare, handleCopyStashSha, handleCopyStashPatch } = s
+  const { repoPath, recentRepos, filteredStashes, onReveal, wipCount, wipSelected, onViewWip, onOpenRepo, onClone, onSetRepo, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onTab, githubPRs, githubIssues, githubRepo, view, single, showAI, show, submodules, t, stashMenu, setStashMenu, ghFilters, filterEditor, setFilterEditor, mutateFilters, stashScopeItems, handleRenameStash, branchFilter, setBranchFilter, stashesHidden, familyMenu, rootRef, filterDraft, setFilterDraft, showAll, remoteBranches, filterView, filterPlaceholder, onCompareRef, onSelectStashForCompare, handleCopyStashSha, handleCopyStashPatch } = s
   return (
     // `--single`: the VS Code panel, one view at a time — an open section's +
     // stays on screen there (Sidebar.css).
@@ -230,8 +230,8 @@ export default function Sidebar(props: SidebarProps) {
                     onExplain={onExplainStash ? () => onExplainStash(s.index, s.message) : undefined}
                     onRename={() => handleRenameStash(s.index, s.message)}
                     onReveal={onReveal && (() => onReveal(`stash@{${s.index}}`))}
-                    onCompareHead={onCompareStash && (() => onCompareStash(`stash@{${s.index}}`, 'HEAD'))}
-                    onCompareWorking={onCompareStash && (() => onCompareStash(`stash@{${s.index}}`, 'working'))}
+                    onCompareHead={onCompareRef && (() => onCompareRef(`stash@{${s.index}}`, 'HEAD'))}
+                    onCompareWorking={onCompareRef && (() => onCompareRef(`stash@{${s.index}}`, 'working'))}
                     onSelectForCompare={onSelectStashForCompare && (() => onSelectStashForCompare(`stash@{${s.index}}`))}
                     onCopySha={() => handleCopyStashSha(s.index)}
                     onCopyPatch={() => handleCopyStashPatch(s.index)}
