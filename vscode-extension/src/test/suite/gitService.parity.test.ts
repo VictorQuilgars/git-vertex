@@ -160,6 +160,16 @@ suite('extension GitService — default remote (v1.23.0)', () => {
     run('git remote remove upstream', dir)
     assert.deepStrictEqual(await git.getDefaultRemote(), { remote: 'origin', explicit: false })
   })
+
+  // #289 — the side bar's "Unset as Default Remote" is forwarded here.
+  test('unsetting takes the choice back, and is a success when nothing was chosen', async () => {
+    run('git remote add origin https://example.com/o.git', dir)
+    run('git remote add upstream https://example.com/up.git', dir)
+    await git.setDefaultRemote('upstream')
+    assert.deepStrictEqual(await git.unsetDefaultRemote(), { success: true })
+    assert.deepStrictEqual(await git.getDefaultRemote(), { remote: 'origin', explicit: false })
+    assert.deepStrictEqual(await git.unsetDefaultRemote(), { success: true })
+  })
 })
 
 suite('extension GitService — prune & pull strategy (v1.22/v1.23)', () => {

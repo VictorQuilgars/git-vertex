@@ -783,3 +783,27 @@ describe('refArgs — the families the app can name', () => {
     ])
   })
 })
+
+describe('the default remote — what reaches git (#289)', () => {
+  test('a name read as an option is refused before git runs', async () => {
+    const calls: string[][] = []
+    const spy: core.GitRunner = async args => { calls.push(args); return '' }
+    expect((await core.setDefaultRemote(spy, '--global')).success).toBe(false)
+    expect(calls).toEqual([])
+  })
+
+  // "Nothing to unset" is git's exit 5, which a throwing runner cannot tell
+  // from any other failure — so the core reads first, and never parses a
+  // message git would have translated.
+  test('unset reads first, and asks git to unset only what is there', async () => {
+    const calls: string[][] = []
+    const nothing: core.GitRunner = async args => { calls.push(args); throw new Error('exit 1') }
+    expect(await core.unsetDefaultRemote(nothing)).toEqual({ success: true })
+    expect(calls).toEqual([['config', '--local', '--get-all', core.DEFAULT_REMOTE_KEY]])
+
+    calls.length = 0
+    const chosen: core.GitRunner = async args => { calls.push(args); return 'fork\n' }
+    expect(await core.unsetDefaultRemote(chosen)).toEqual({ success: true })
+    expect(calls[1]).toEqual(['config', '--local', '--unset-all', core.DEFAULT_REMOTE_KEY])
+  })
+})

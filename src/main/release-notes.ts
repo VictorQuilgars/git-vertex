@@ -13,6 +13,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 📅 Merged since, closed since
 - Filters of pull requests and issues take **\`merged:\`** and **\`closed:\`**, typed or described: *PRs merged since September 1st* now keeps its date.
 
+### 🛰 A remote, on its forge and opened onto its branches
+- Right-click a remote: **Open Repository on Remote**, **Open Branches on Remote**, **Copy Branches URL** — that remote's own pages, on GitHub, GitLab or Bitbucket. **Unset as Default Remote** takes a chosen default back. And a remote **opens** onto its branches, with the same acts and menu as Branches › REMOTE. (#289)
+
 ### 🏷 A tag row does what its commit can
 - Right-click a tag: **Compare** it with HEAD or the working tree, select it for a comparison, **copy** its sha or its commit's message, **reset the current branch to it**, or **show only its history** — without finding its row in the graph first. An annotated tag is resolved to the **commit** it points at, so every entry acts on that commit and not on the tag object.
 

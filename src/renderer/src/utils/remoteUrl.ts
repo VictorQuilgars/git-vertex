@@ -163,6 +163,29 @@ export function repoFromRemotes(remotes: Remote[], preferred?: string | null): R
   return parseRemote(remote.fetchUrl || remote.pushUrl)
 }
 
+/** The two pages a remote row opens or copies (#289). */
+export interface RemoteLinks {
+  /** The repository's own page. */
+  repo: string
+  /** Its list of branches. */
+  branches: string
+}
+
+/**
+ * The pages of ONE remote, read from its own URL — not the repository's
+ * default, which is what every other link here is built from. A row in the
+ * remotes list is about that remote: `upstream`'s branches page is not
+ * `origin`'s.
+ *
+ * Null for a remote with no page — a path on disk, a form we cannot read — so
+ * the row offers nothing rather than a link to somewhere that does not exist.
+ */
+export function remoteLinks(remote: Pick<Remote, 'fetchUrl' | 'pushUrl'>): RemoteLinks | null {
+  const repo = parseRemote(remote.fetchUrl || remote.pushUrl)
+  if (!repo) return null
+  return { repo: remoteUrl.repo(repo), branches: remoteUrl.branches(repo) }
+}
+
 /** github.com, plus any Enterprise host the user has told us about. */
 export const GITHUB_COM = 'github.com'
 
