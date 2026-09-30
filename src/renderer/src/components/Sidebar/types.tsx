@@ -1,12 +1,12 @@
 // The shapes the sidebar is given: its entries, and every prop of the panel.
-import { BranchInfo, StashScope } from '../../types'
+import { BranchInfo, StashScope, type StashInfo, type TagInfo } from '../../types'
 import type { PRIntent } from '../ContextMenu/prIntent'
 import { type GraphVisibility, type RefFamily } from '../../utils/graphVisibility'
 import { type IssueRef as LinkedIssueRef } from '../../utils/issueRef'
 
-export interface StashEntry { index: number; message: string }
+export type StashEntry = StashInfo
 
-export interface TagEntry   { name: string; hash: string }
+export type TagEntry = TagInfo
 
 // Single-view mode (VS Code panel): the rail on the left selects which one of
 // these views the resizable side-panel shows. When `view` is undefined the
@@ -127,12 +127,14 @@ export interface SidebarProps {
   /** Reads the stash aloud (#70 P1). Absent ⇒ no row, the menu's rule. */
   onExplainStash?: (index: number, message: string) => void
   /**
-   * A stash as one end of a comparison (#287) — given its own ref, so an
-   * older stash is reached exactly like the newest. The host opens whatever
-   * it opens comparisons in, and names it: `stash@{2}` is what a title can
-   * say, where the stash's own message is a sentence.
+   * A row's revision as one end of a comparison, against HEAD or against the
+   * working tree. A stash gives its own ref (#287), so an older stash is
+   * reached exactly like the newest; a tag gives the commit it resolved to
+   * (#288), never an annotated tag's own object. The host opens whatever it
+   * opens comparisons in, and names it: `stash@{2}` is what a title can say,
+   * where the stash's own message is a sentence.
    */
-  onCompareStash?: (ref: string, against: 'HEAD' | 'working') => void
+  onCompareRef?: (ref: string, against: 'HEAD' | 'working') => void
   /** Hold a stash as the base of a later comparison, like a graph row. */
   onSelectStashForCompare?: (ref: string) => void
   /** The same, for a branch — and the changelog of what it carries (#70 P1). */

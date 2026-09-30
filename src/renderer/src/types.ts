@@ -57,6 +57,27 @@ export interface BranchInfo {
   upstream?: string
 }
 
+/** One entry of `git stash list` — git-core's StashRow. */
+export interface StashInfo {
+  index: number
+  message: string
+  /** The branch it was made on; absent on a detached HEAD or an older host (#278). */
+  branch?: string
+  /** When it was made, seconds since the epoch. */
+  date?: number
+}
+
+/** One tag — git-core's TagRow. `hash` is the commit it points at. */
+export interface TagInfo {
+  name: string
+  hash: string
+  annotated?: boolean
+  /** The annotation's subject, on one line; absent on a lightweight tag (#278). */
+  message?: string
+  /** When it was tagged, seconds since the epoch. */
+  date?: number
+}
+
 // The unmerged states git reports in the XY columns of `git status --porcelain`.
 // They are not interchangeable: `both-modified` is a content decision, while
 // the delete-bearing ones ask whether the file survives at all — so the UI must
@@ -150,8 +171,8 @@ declare global {
     getDiff: (h: string) => Promise<{ diff?: string; error?: string }>
     getCommitFiles: (h: string) => Promise<{ files?: FileChange[]; error?: string }>
     getStatus: () => Promise<{ staged: string[]; unstaged: string[]; untracked: string[] }>
-    getStashes: () => Promise<{ stashes: { index: number; message: string }[] }>
-    getTags: () => Promise<{ tags: { name: string; hash: string }[] }>
+    getStashes: () => Promise<{ stashes: StashInfo[] }>
+    getTags: () => Promise<{ tags: TagInfo[] }>
     // Branch write
     checkout: (ref: string) => Promise<R>
     createBranch: (name: string) => Promise<R>
@@ -186,6 +207,8 @@ declare global {
     getDefaultRemote: () => Promise<{ remote: string | null; explicit: boolean }>
     getDefaultBranch: () => Promise<{ branch: string | null }>
     setDefaultRemote: (name: string) => Promise<R>
+    /** Forget the explicit choice: origin, or the first remote, is the default again. */
+    unsetDefaultRemote: () => Promise<R>
     getGoneBranches: () => Promise<{ branches: string[] }>
     pruneGoneBranches: (names: string[]) => Promise<R & { deleted: string[] }>
     // Staging & commit
