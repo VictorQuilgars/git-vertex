@@ -1618,6 +1618,7 @@ const fr = {
   'sb.tag.checkoutCommit': 'Checkout du commit (HEAD détaché)',
   'sb.tag.hint': (name: string, hash: string) => `${name} → ${hash} — double-clic : créer une branche ici`,
   'sb.tag.age': (ago: string) => `Posé : ${ago}`,
+  'sb.tag.commitAge': (ago: string) => `Commit : ${ago}`,
   'sb.tag.push': 'Pousser le tag',
   'sb.tag.hide': 'Masquer du graphe',
   'sb.tag.show': 'Réafficher dans le graphe',
@@ -2355,6 +2356,7 @@ const fr = {
   'time.day': (n: number) => `${n} j`,
   'time.month': (n: number) => `${n} mois`,
   'time.year': (n: number) => `${n} an${n > 1 ? 's' : ''}`,
+  'time.ago': (s: string) => `il y a ${s}`,
 }
 
 const en: typeof fr = {
@@ -3974,6 +3976,7 @@ const en: typeof fr = {
   'sb.tag.checkoutCommit': 'Check out the commit (detached HEAD)',
   'sb.tag.hint': (name: string, hash: string) => `${name} → ${hash} — double-click: create a branch here`,
   'sb.tag.age': (ago: string) => `Tagged: ${ago}`,
+  'sb.tag.commitAge': (ago: string) => `Committed: ${ago}`,
   'sb.tag.push': 'Push tag',
   'sb.tag.hide': 'Hide from Graph',
   'sb.tag.show': 'Show in Graph',
@@ -4714,6 +4717,7 @@ const en: typeof fr = {
   'time.day': (n: number) => `${n}d`,
   'time.month': (n: number) => `${n}mo`,
   'time.year': (n: number) => `${n}y`,
+  'time.ago': (s: string) => `${s} ago`,
 }
 
 export const translations = { fr, en }

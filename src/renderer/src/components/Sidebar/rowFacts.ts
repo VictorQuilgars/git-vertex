@@ -20,6 +20,18 @@ export function ageOf(seconds: number | undefined, t: T): string | null {
   return timeAgo(new Date(seconds * 1000).toISOString(), t)
 }
 
+/**
+ * The same age, read aloud — `3d ago` — for a tooltip, where a bare `3d` after
+ * "Last commit:" reads as a duration rather than as when. `just now` stays as it
+ * is: it is already a moment, and `just now ago` is not English. The rows keep
+ * the short form, which is what fits beside a name.
+ */
+export function agoOf(seconds: number | undefined, t: T): string | null {
+  const short = ageOf(seconds, t)
+  if (!short) return null
+  return short === t('github.justNow') ? short : t('time.ago', short)
+}
+
 /** The open pull request a branch is the head of, as the panel loaded it. */
 export interface BranchPR { number: number; title: string; draft?: boolean }
 
@@ -66,7 +78,7 @@ export function branchTooltip(f: BranchFacts, t: T): string {
   }
   if (f.pr) lines.push(t(f.pr.draft ? 'sb.branch.tip.prDraft' : 'sb.branch.tip.pr', f.pr.number, f.pr.title))
   if (f.checkedOutIn) lines.push(t('sb.branch.tip.worktree', f.checkedOutIn.name))
-  const age = ageOf(f.date, t)
+  const age = agoOf(f.date, t)
   if (age) lines.push(t('sb.branch.tip.age', age))
   if (!f.current) lines.push(t('sb.branch.hint'))
   return lines.join('\n')
@@ -100,16 +112,25 @@ export function stashTooltip(s: { message: string; branch?: string; date?: numbe
   const label = s.message.replace(/^stash@\{\d+\}: /, '')
   const lines = [clickable ? t('sb.stash.title', label) : label]
   if (s.branch) lines.push(t('sb.stash.madeOn', s.branch))
-  const age = ageOf(s.date, t)
+  const age = agoOf(s.date, t)
   if (age) lines.push(t('sb.stash.age', age))
   return lines.join('\n')
 }
 
-/** The tag's tooltip: where it points, what its annotation says, then the click. */
-export function tagTooltip(tag: { name: string; hash: string; message?: string; date?: number }, t: T, canGoTo: boolean): string {
+/**
+ * The tag's tooltip: where it points, what its annotation says, then the click.
+ *
+ * The date is not always the tag's own. An annotated tag is an object with a
+ * tagger and a date, and that is the one the list carries; a lightweight tag is
+ * only a name for a commit, so the list's date is the COMMIT's — and "Tagged: 3
+ * months ago" would say something git does not know. It says what it is.
+ */
+export function tagTooltip(
+  tag: { name: string; hash: string; message?: string; date?: number; annotated?: boolean }, t: T, canGoTo: boolean,
+): string {
   const lines = [canGoTo ? t('sb.tag.hint', tag.name, tag.hash) : `${tag.name} → ${tag.hash}`]
   if (tag.message) lines.push(tag.message)
-  const age = ageOf(tag.date, t)
-  if (age) lines.push(t('sb.tag.age', age))
+  const age = agoOf(tag.date, t)
+  if (age) lines.push(t(tag.annotated ? 'sb.tag.age' : 'sb.tag.commitAge', age))
   return lines.join('\n')
 }

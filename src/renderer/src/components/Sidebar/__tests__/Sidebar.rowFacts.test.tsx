@@ -4,7 +4,7 @@ import { screen, waitFor } from '@testing-library/react'
 import { emptyVisibility } from '../../../utils/graphVisibility'
 import Sidebar from '../Sidebar'
 import { installMockGitAPI, renderWithProviders } from '../../../__tests__/test-utils'
-import { ageOf, branchTooltip, prForBranch, stashFacts, stashLabel, stashTooltip, tagTooltip } from '../rowFacts'
+import { ageOf, agoOf, branchTooltip, prForBranch, stashFacts, stashLabel, stashTooltip, tagTooltip } from '../rowFacts'
 import { translations } from '../../../i18n/translations'
 
 const NOW = Date.parse('2026-09-24T12:00:00Z')
@@ -39,7 +39,7 @@ describe('rowFacts — the wording, without a side bar', () => {
       'Tracks origin/feat/x: 2 ahead, 1 behind',
       'Pull request #42: Cards everywhere',
       'Checked out in worktree review',
-      'Last commit: 5d',
+      'Last commit: 5d ago',
       t('sb.branch.hint'),
     ])
   })
@@ -76,13 +76,32 @@ describe('rowFacts — the wording, without a side bar', () => {
     expect(stashFacts({ date: secondsAgo(DAY) }, t)).toBe('1d')
     expect(stashFacts({}, t)).toBeNull()
     expect(stashTooltip({ message: 'On main: tidy', branch: 'main', date: secondsAgo(DAY) }, t, false).split('\n'))
-      .toEqual(['On main: tidy', 'Made on main', 'Made: 1d'])
+      .toEqual(['On main: tidy', 'Made on main', 'Made: 1d ago'])
   })
 
   test('a tag tooltip carries its annotation', () => {
-    expect(tagTooltip({ name: 'v1', hash: 'abc1234', message: 'First release', date: secondsAgo(2 * DAY) }, t, false).split('\n'))
-      .toEqual(['v1 → abc1234', 'First release', 'Tagged: 2d'])
+    expect(tagTooltip({ name: 'v1', hash: 'abc1234', message: 'First release', annotated: true, date: secondsAgo(2 * DAY) }, t, false).split('\n'))
+      .toEqual(['v1 → abc1234', 'First release', 'Tagged: 2d ago'])
     expect(tagTooltip({ name: 'light', hash: 'abc1234' }, t, false)).toBe('light → abc1234')
+  })
+
+  // A lightweight tag has no date of its own: the list carries the commit's.
+  // "Tagged: 3mo ago" would claim a moment git never recorded.
+  test('a lightweight tag does not say it was tagged when it says only when its commit was made', () => {
+    expect(tagTooltip({ name: 'light', hash: 'abc1234', date: secondsAgo(90 * DAY) }, t, false).split('\n'))
+      .toEqual(['light → abc1234', 'Committed: 3mo ago'])
+  })
+
+  // The tooltip reads the short form aloud; the rows keep it short.
+  test('a tooltip says how long ago, and `just now` is left as it is', () => {
+    expect(agoOf(secondsAgo(3 * DAY), t)).toBe('3d ago')
+    expect(agoOf(secondsAgo(2 * 3600), t)).toBe('2h ago')
+    expect(agoOf(secondsAgo(10), t)).toBe('just now')
+    expect(agoOf(undefined, t)).toBeNull()
+    expect(stashTooltip({ message: 'x', date: secondsAgo(10) }, t, false)).toBe('x\nMade: just now')
+    expect(branchTooltip({ name: 'b', current: true, date: secondsAgo(30) }, t)).toContain('Last commit: just now')
+    // the row itself is unchanged
+    expect(ageOf(secondsAgo(3 * DAY), t)).toBe('3d')
   })
 })
 
