@@ -68,6 +68,7 @@ import externalLink from './icons/externalLink.svg'
 import eye from './icons/eye.svg'
 import eyeOff from './icons/eyeOff.svg'
 import folder from './icons/folder.svg'
+import fork from './icons/fork.svg'
 import gear from './icons/gear.svg'
 import gitflow from './icons/gitflow.svg'
 import history from './icons/history.svg'
@@ -122,7 +123,7 @@ const SOURCE: Record<string, string> = {
   activity, agent, ai, arrowRight, bell, blame, book, bookmark, branch,
   card, caretDown, check, chevronDown, chevronLeft, chevronRight, clock, cloud,
   commandPalette, comment, commit, compare, conflict, copy, device, diff,
-  download, editor, externalLink, eye, eyeOff, folder, gear, gitflow,
+  download, editor, externalLink, eye, eyeOff, folder, fork, gear, gitflow,
   history, home, hunk, info, ink, issue, kebab, layoutBottom, layoutBottomOff,
   layoutLeft, layoutLeftFloat, layoutRight, layoutRightOff, link, list, listTree, mail,
   merge, newBranch, node, panel, pencil, person, play, plus, pop,
@@ -185,7 +186,7 @@ const DENSE = new Set<string>(['hunk', 'commandPalette'])
  * carets that are deliberately 8 to 10.
  */
 const NODED = new Set<string>([
-  'branch', 'newBranch', 'merge', 'rebase', 'pullRequest',
+  'branch', 'newBranch', 'merge', 'rebase', 'pullRequest', 'fork',
   'worktree', 'gitflow', 'reflog', 'blame',
   // A ring around a filled node — the forge's open-issue mark.
   'issue',

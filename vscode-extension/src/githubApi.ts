@@ -11,6 +11,7 @@
 // resolves them on the desktop side for the same reason.
 
 import { branchPRsPath, toBranchPRs } from '../../src/main/github-branch-prs'
+import { graphqlUrl, prFactsNumbers, prFactsQuery, prFactsFailure, prFork, toPRFacts } from '../../src/main/github-pr-facts'
 
 /** Where a GitHub answers, and what may be sent there. */
 export interface GithubApi {
@@ -91,9 +92,35 @@ export async function githubListPRs(api: GithubApi, owner: string, repo: string)
         url: pr.html_url,
         headRef: pr.head?.ref ?? '',
         baseRef: pr.base?.ref ?? '',
+        // The fork is on the row already — no request of its own (#291).
+        ...prFork(pr),
       })),
       }),
     )
+  } catch (e: any) { return { error: e.message } }
+}
+
+/**
+ * What a row's hover adds (#291) — the desktop's github:pr-facts. The REST
+ * list above carries no checks, review decision or size, so they are ONE
+ * GraphQL query for every number asked rather than one request per row (see
+ * src/main/github-pr-facts.ts). GraphQL has no ETag to make a re-ask free,
+ * which is why the renderer asks only when a card opens and keeps the answer
+ * for a minute.
+ */
+export async function githubPRFacts(api: GithubApi, owner: string, repo: string, numbers: number[]): Promise<any> {
+  if (!api.token) return { error: 'not_authenticated' }
+  const asked = prFactsNumbers(Array.isArray(numbers) ? numbers : [])
+  if (!asked.length) return { facts: {} }
+  try {
+    const res = await fetch(graphqlUrl(api.base), {
+      method: 'POST',
+      headers: { ...HEADERS(api.token), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: prFactsQuery(asked), variables: { o: owner, r: repo } }),
+    })
+    const data = await res.json().catch(() => null)
+    const failed = prFactsFailure(res.status, data)
+    return failed ? { error: failed } : { facts: toPRFacts(data) }
   } catch (e: any) { return { error: e.message } }
 }
 

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { screen, fireEvent, act, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import Sidebar from '../Sidebar'
+import { prNumberQuery } from '../github-items'
 import { emptyVisibility } from '../../../utils/graphVisibility'
 import { installMockGitAPI, renderWithProviders } from '../../../__tests__/test-utils'
 
@@ -1120,5 +1121,65 @@ describe('the + on the github section headers', () => {
     draw({ githubPRs: [], githubIssues: [], ...gh })
     expect(screen.queryByTitle('Start a pull request from the current branch')).not.toBeInTheDocument()
     expect(screen.queryByTitle('New issue')).not.toBeInTheDocument()
+  })
+})
+
+// #291: the list holds open requests only. `#123` in the search box offers to
+// fetch that request whatever its state, and opens it in the PR sheet.
+describe('a pull request asked for by number', () => {
+  const gh = { githubRepo: { owner: 'o', repo: 'r' }, githubLogin: null }
+  const prs = [{ number: 12, title: 'Open one', url: 'u12' }]
+  const merged = {
+    number: 248, title: 'Release', state: 'closed', merged: true, draft: false, author: 'victor',
+    url: 'https://github.com/o/r/pull/248', headRef: 'release/1', baseRef: 'main', body: '', labels: [],
+  }
+
+  test('the parse: `#N` exactly, nothing else', () => {
+    expect(prNumberQuery('#248')).toBe(248)
+    expect(prNumberQuery('  #7 ')).toBe(7)
+    expect(prNumberQuery('248')).toBeNull()
+    expect(prNumberQuery('#')).toBeNull()
+    expect(prNumberQuery('#0')).toBeNull()
+    expect(prNumberQuery('#12a')).toBeNull()
+    expect(prNumberQuery('fix #12')).toBeNull()
+  })
+
+  test('`#12` is that one row, not every number with a 12 in it', () => {
+    draw({ ...gh, githubPRs: [...prs, { number: 120, title: 'Another', url: 'u120' }] })
+    unfold('PULL REQUESTS')
+    fireEvent.change(screen.getByPlaceholderText(/Search pull requests/), { target: { value: '#12' } })
+    expect(screen.getAllByText('Open one').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Another')).not.toBeInTheDocument()
+    // The list has it: nothing to fetch.
+    expect(screen.queryByText(/whatever its state/)).not.toBeInTheDocument()
+  })
+
+  test('a merged request not in the list is fetched on demand and opens in the sheet', async () => {
+    const githubGetPR = jest.fn().mockResolvedValue({ pr: merged })
+    Object.assign((window as any).gitAPI, { githubGetPR })
+    const onShowGithubDetail = jest.fn()
+    draw({ ...gh, githubPRs: prs, onShowGithubDetail })
+    unfold('PULL REQUESTS')
+    fireEvent.change(screen.getByPlaceholderText(/Search pull requests/), { target: { value: '#248' } })
+    // Offered, not fetched on the keystroke.
+    expect(githubGetPR).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByText('Open pull request #248, whatever its state'))
+    await waitFor(() => expect(onShowGithubDetail).toHaveBeenCalled())
+    expect(githubGetPR).toHaveBeenCalledWith('o', 'r', 248)
+    expect(onShowGithubDetail.mock.calls[0][0]).toMatchObject({ number: 248, title: 'Release', url: merged.url, headRef: 'release/1' })
+    expect(onShowGithubDetail.mock.calls[0][1]).toBe('pr')
+  })
+
+  test('Enter asks for it too, and a number that is no request says so', async () => {
+    const githubGetPR = jest.fn().mockResolvedValue({ error: 'HTTP 404' })
+    Object.assign((window as any).gitAPI, { githubGetPR })
+    const onShowGithubDetail = jest.fn()
+    draw({ ...gh, githubPRs: prs, onShowGithubDetail })
+    unfold('PULL REQUESTS')
+    const field = screen.getByPlaceholderText(/Search pull requests/)
+    fireEvent.change(field, { target: { value: '#9999' } })
+    fireEvent.keyDown(field, { key: 'Enter' })
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('No pull request #9999 in this repository'))
+    expect(onShowGithubDetail).not.toHaveBeenCalled()
   })
 })

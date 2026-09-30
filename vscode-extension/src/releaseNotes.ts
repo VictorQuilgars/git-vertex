@@ -30,6 +30,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 📅 Merged since, closed since
 - Filters of pull requests and issues take **\`merged:\`** and **\`closed:\`**, typed or described: *PRs merged since September 1st* now keeps its date.
 
+### 🔢 A pull request by its number
+- Type **\`#123\`** in the Pull requests search box: when the list does not hold it, the view offers to **fetch it whatever its state** — merged and closed ones included — and opens it. Rows from a **fork** say so, and the hover now shows the request's **checks**, **review decision** and **size**.
+
 ### 🔢 The rail counts, and a key opens each view
 - Each icon of the rail carries **how many rows its view holds** — the same count as the view's header. **\`1\` to \`9\`** open the views in the rail's order; the tooltip names each one's key.
 - The button at the **foot of the rail** keeps the side view **docked** beside the graph or **floating** over it, whatever the panel's width — or **Auto**, as before.

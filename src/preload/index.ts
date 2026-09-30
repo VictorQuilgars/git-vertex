@@ -291,6 +291,7 @@ const gitAPI = {
   githubCreateLabel: (owner: string, repo: string, name: string, color: string) =>
     invoke('github:create-label', owner, repo, name, color),
   githubGetPR: (owner: string, repo: string, number: number) => invoke('github:get-pr', owner, repo, number),
+  githubPRFacts: (owner: string, repo: string, numbers: number[]) => invoke('github:pr-facts', owner, repo, numbers),
   githubBranchPRs: (owner: string, repo: string, branch: string) => invoke('github:branch-prs', owner, repo, branch),
   githubGetChecks: (owner: string, repo: string, ref: string) => invoke('github:get-checks', owner, repo, ref),
   githubMergePR: (owner: string, repo: string, number: number, method?: string) => invoke('github:merge-pr', owner, repo, number, method),

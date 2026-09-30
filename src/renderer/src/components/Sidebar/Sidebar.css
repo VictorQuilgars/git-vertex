@@ -870,6 +870,7 @@
 .sb-gh-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
 .sb-gh-line1 { display: flex; align-items: center; gap: var(--space-sm); min-width: 0; }
 .sb-gh-num { color: var(--text-tertiary); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.sb-gh-fork { display: inline-flex; flex-shrink: 0; color: var(--text-tertiary); }
 .sb-gh-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .sb-gh-draft {
   flex-shrink: 0; font-size: 10px; text-transform: uppercase;
@@ -918,6 +919,19 @@
   flex: 1; min-width: 0; height: 24px;
   background: transparent; border: none; outline: none;
   color: var(--text-primary); font-size: var(--text-xs);
+}
+
+/* `#123` asked by number (#291): one row under the field, and why not when it fails. */
+.sb-gh-bynumber { display: flex; flex-direction: column; gap: var(--space-2xs); }
+.sb-gh-bynumber-btn {
+  display: flex; align-items: center; gap: var(--space-sm);
+  width: 100%; background: transparent; border: none; text-align: left;
+  color: var(--accent); font-size: var(--text-xs); cursor: pointer;
+}
+.sb-gh-bynumber-btn:disabled { color: var(--text-tertiary); cursor: default; }
+.sb-gh-bynumber-err {
+  padding: 0 var(--space-md) 0 var(--sb-indent);
+  color: var(--danger); font-size: var(--text-micro);
 }
 
 /* ── §4: the filter editor and the saved-filter groups ─────────────────── */

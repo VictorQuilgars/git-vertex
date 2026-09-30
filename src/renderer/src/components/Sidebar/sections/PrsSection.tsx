@@ -4,11 +4,21 @@ import { Icon } from '../../Icon/Icon'
 import ContextMenu, { type MenuItemDef } from '../../ContextMenu/ContextMenu'
 import GithubRow from '../../GitHubPanel/GithubRow'
 import { type GithubListItem } from '../types'
-import { ghMatch, GhFilterGroup, GhGroup } from '../github-items'
+import { ghMatch, GhFilterGroup, GhGroup, prNumberQuery } from '../github-items'
 import { Section } from '../Section'
 import type { SidebarState } from '../useSidebar'
 import { PR_GROUPS, groupPRs, pruneSnoozes, readMarks, writeMarks, type PRGroupKey, type Snooze } from '../pr-attention'
 import { usePRAttention } from '../usePRAttention'
+import type { PRFactsSource } from '../../GitHubPanel/prFacts'
+
+/** A request fetched by number (#291) — the fields the list rows carry, from `githubGetPR`'s answer. */
+export function prFromDetail(pr: any): GithubListItem {
+  return {
+    number: pr.number, title: pr.title ?? '', url: pr.url ?? '', author: pr.author,
+    draft: !!pr.draft, createdAt: pr.createdAt, labels: pr.labels, body: pr.body,
+    headRef: pr.headRef, baseRef: pr.baseRef, assignees: pr.assignees, reviewers: pr.reviewers,
+  }
+}
 
 /** How the view groups: by whose it is, or by what it needs (#257). Remembered. */
 const GROUP_BY_KEY = 'gv-prs-group-by'
@@ -58,7 +68,33 @@ export function PrsSection({ s }: { s: SidebarState }) {
   }) : [], [groupBy, githubPRs, githubLogin, currentBranch, facts, marks])
   const [snoozeMenu, setSnoozeMenu] = useState<{ x: number; y: number; pr: GithubListItem } | null>(null)
   const snoozeAnchor = useRef<Element | null>(null)
+  // A hovered row asks for its checks, review and size with every other row
+  // of the list, in one query (#291).
+  const factsSource = useMemo<PRFactsSource | undefined>(() => githubRepo && githubPRs
+    ? { repo: githubRepo, batch: githubPRs.map(p => p.number) } : undefined, [githubRepo, githubPRs])
+  // `#123`: the list holds open requests only, so a closed or merged one is
+  // fetched by number — asked for, never on each keystroke (#291).
+  const byNumberAsked = prNumberQuery(prsQuery)
+  const [byNumber, setByNumber] = useState<{ n: number; error?: string } | null>(null)
+  useEffect(() => { setByNumber(b => b && b.n === byNumberAsked ? b : null) }, [byNumberAsked])
   if (!githubPRs) return null
+  const held = byNumberAsked !== null ? githubPRs.find(p => p.number === byNumberAsked) : undefined
+  const canFetch = !!githubRepo && !!(onShowGithubDetail || onOpenGithubItem)
+  const openByNumber = async (n: number) => {
+    if (!githubRepo || byNumber?.n === n && !byNumber.error) return
+    setByNumber({ n })
+    const r = await window.gitAPI.githubGetPR(githubRepo.owner, githubRepo.repo, n)
+      .catch((e: unknown) => ({ error: String((e as Error)?.message ?? e) }))
+    if (!r?.pr) { setByNumber({ n, error: r?.error ?? 'no_data' }); return }
+    setByNumber(null)
+    const item = prFromDetail(r.pr)
+    if (onShowGithubDetail) onShowGithubDetail(item, 'pr')
+    else onOpenGithubItem?.(item.url)
+  }
+  const byNumberError = (e: string, n: number) =>
+    e === 'HTTP 404' ? t('sb.gh.byNumber.notFound', n)
+      : e === 'not_authenticated' ? t('sb.gh.byNumber.signIn')
+      : t('sb.gh.byNumber.failed', e)
   const togglePin = (n: number) => saveMarks({ ...marks, pinned: marks.pinned.includes(n) ? marks.pinned.filter(x => x !== n) : [...marks.pinned, n] })
   const snooze = (pr: GithubListItem, how: Snooze | null) => {
     const snoozed = { ...marks.snoozed }
@@ -83,7 +119,16 @@ export function PrsSection({ s }: { s: SidebarState }) {
                 <Icon name="search" size={11} />
                 <input type="text" placeholder={t('sb.gh.searchPrs')} value={prsQuery}
                   onChange={e => setPrsQuery(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setPrsQuery('') } }} />
+                  onKeyDown={e => {
+                    if (e.key === 'Escape') { e.stopPropagation(); setPrsQuery('') }
+                    // Enter on `#123` opens it: the held row if the list has
+                    // it, otherwise the request fetched by number.
+                    if (e.key === 'Enter' && byNumberAsked !== null) {
+                      e.preventDefault()
+                      if (held && onShowGithubDetail) onShowGithubDetail(held, 'pr')
+                      else if (!held && canFetch) void openByNumber(byNumberAsked)
+                    }
+                  }} />
                 {/* The filter editor opens from HERE, not the header: it is an
                     action on the list, and the list is what folds (#144). */}
                 {/* Opens it. Closing is the drawer's own control's job — a
@@ -98,6 +143,19 @@ export function PrsSection({ s }: { s: SidebarState }) {
                   </button>
                 )}
               </div>
+              {byNumberAsked !== null && !held && canFetch && (
+                <div className="sb-gh-bynumber">
+                  <button type="button" className="sb-item sb-gh-bynumber-btn"
+                    disabled={byNumber?.n === byNumberAsked && !byNumber.error}
+                    onClick={() => void openByNumber(byNumberAsked)}>
+                    <Icon name="pullRequest" size={13} />
+                    <span>{byNumber?.n === byNumberAsked && !byNumber.error ? t('sb.gh.byNumber.loading', byNumberAsked) : t('sb.gh.byNumber.open', byNumberAsked)}</span>
+                  </button>
+                  {byNumber?.n === byNumberAsked && byNumber.error && (
+                    <div className="sb-gh-bynumber-err" role="alert">{byNumberError(byNumber.error, byNumberAsked)}</div>
+                  )}
+                </div>
+              )}
               {/* Whose it is, or what it needs: two readings of the same list. */}
               <div className="sb-gh-groupby" role="group" aria-label={t('sb.gh.groupBy')}>
                 <button type="button" className={`sb-gh-groupby-btn${groupBy === 'account' ? ' sb-gh-groupby-btn--on' : ''}`}
@@ -116,7 +174,8 @@ export function PrsSection({ s }: { s: SidebarState }) {
                       onViewChanges: () => handlePullRequestCode(pr, 'changes'),
                       onCompare: () => handlePullRequestCode(pr, 'compare'),
                     }}
-                    onDetail={onShowGithubDetail ? () => onShowGithubDetail(pr, 'pr') : undefined} />
+                    onDetail={onShowGithubDetail ? () => onShowGithubDetail(pr, 'pr') : undefined}
+                    factsSource={factsSource} />
                 )
                 // The account groups exist only with an identity: with nobody
                 // signed in they have nothing to say, and three empty rows
@@ -187,7 +246,8 @@ export function PrsSection({ s }: { s: SidebarState }) {
                           <GithubRow key={`${k}-${item.number}`} item={{ ...item, kind: k }}
                             hoverCard={!githubDetailOpen}
                             onOpen={url => onOpenGithubItem?.(url)}
-                            onDetail={onShowGithubDetail ? () => onShowGithubDetail(item, k) : undefined} />
+                            onDetail={onShowGithubDetail ? () => onShowGithubDetail(item, k) : undefined}
+                            factsSource={k === 'pr' ? factsSource : undefined} />
                         )}
                         onEdit={() => setFilterEditor({ section: 'prs', index: fi })}
                         onDelete={() => mutateFilters('prs', a => a.filter((_, i) => i !== fi))} />
