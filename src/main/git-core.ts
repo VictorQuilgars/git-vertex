@@ -845,6 +845,129 @@ export async function tagOnRemote(
   }
 }
 
+// ── The tag list and the stash list ─────────────────────────────
+//
+// Both were written out twice, and had drifted the way the rest did: the
+// desktop sorted tags by version and the panel by name, the desktop named a
+// stash `stash@{0}: On main: x` and the panel `On main: x`. Each side bar row
+// now carries more than a name (#278), and every extra fact comes out of the
+// SAME call that builds the list — a row that asked git for its own facts as
+// it scrolled into view would be one process per row.
+
+/** One row of the tag list. */
+export interface TagRow {
+  name: string
+  /** The COMMIT it points at, short — for an annotated tag, not the tag object. */
+  hash: string
+  /** An annotated tag: it has a message of its own, a tagger and a date. */
+  annotated?: boolean
+  /** The annotation's subject, folded onto one line. Absent on a lightweight tag. */
+  message?: string
+  /** When it was tagged (annotated) or committed (lightweight), seconds since the epoch. */
+  date?: number
+}
+
+// Unit-separated, a record separator after each: an annotation's subject is
+// free text. `%(contents:subject)` is asked of every tag and kept only for an
+// annotated one — on a lightweight tag it is the COMMIT's subject, which is
+// not what the tag says.
+const TAG_LIST_FORMAT = ['%(refname)', '%(objecttype)', '%(objectname:short)', '%(*objectname:short)', '%(creatordate:unix)', '%(contents:subject)'].join('%1f') + '%1e'
+
+export function tagListArgs(): string[] {
+  // Newest version first — `v1.10.0` above `v1.9.0`, which a plain name sort gets wrong.
+  return ['for-each-ref', '--sort=-version:refname', `--format=${TAG_LIST_FORMAT}`, 'refs/tags']
+}
+
+export function parseTagList(raw: string): TagRow[] {
+  const rows: TagRow[] = []
+  for (const record of raw.split('\x1e')) {
+    const parts = record.replace(/^\n/, '').split('\x1f')
+    if (parts.length < 6) continue
+    const [refname, type, object, peeled, date] = parts
+    // `%(refname:short)` is the shortest UNAMBIGUOUS name: a tag that shares
+    // its name with a branch comes out as `tags/x`. Strip the prefix instead.
+    const name = refname.replace(/^refs\/tags\//, '')
+    if (!name) continue
+    const annotated = type === 'tag'
+    const row: TagRow = { name, hash: (annotated && peeled ? peeled : object).trim() }
+    if (annotated) {
+      row.annotated = true
+      const subject = parts.slice(5).join('\x1f').replace(/\s+/g, ' ').trim()
+      // A signed tag with no message of its own has only its signature to offer.
+      if (subject && !/^-----BEGIN [A-Z ]*SIGNATURE-----/.test(subject)) row.message = subject
+    }
+    const when = parseInt(date, 10)
+    if (Number.isFinite(when) && when > 0) row.date = when
+    rows.push(row)
+  }
+  return rows
+}
+
+export async function tagList(run: GitRunner): Promise<{ tags: TagRow[] }> {
+  try {
+    return { tags: parseTagList(await run(tagListArgs())) }
+  } catch {
+    return { tags: [] }
+  }
+}
+
+/** One row of the stash list. */
+export interface StashRow {
+  index: number
+  /** What `git stash list` says of it — the reflog subject, which a rename rewrites. */
+  message: string
+  /** The branch it was made on. Absent when it was made on a detached HEAD. */
+  branch?: string
+  /** When it was made, seconds since the epoch. */
+  date?: number
+}
+
+/**
+ * `%gs` (reflog subject), not `%s`, for the message: it is what `git stash
+ * list` shows, and the only one `stash store -m` can rewrite — renaming a
+ * stash leaves the commit untouched. The BRANCH is read from `%s` for exactly
+ * that reason: the commit subject git wrote when the stash was made
+ * (`WIP on main: 1a2b3c4 …` or `On main: …`) survives a rename. Those two
+ * phrasings are not translated by git, and the runner is C-locale anyway.
+ */
+const STASH_FORMAT = ['%gd', '%ct', '%s', '%gs'].join('%x1f')
+
+export function stashListArgs(): string[] {
+  return ['stash', 'list', `--pretty=format:${STASH_FORMAT}`]
+}
+
+/** `WIP on main: …` / `On main: …` → `main`. A ref name cannot hold `:`. */
+export function stashBranch(subject: string): string | undefined {
+  const branch = /^(?:WIP on|On) ([^:]+):/.exec(subject)?.[1]
+  return branch && branch !== '(no branch)' ? branch : undefined
+}
+
+export function parseStashList(raw: string): StashRow[] {
+  const rows: StashRow[] = []
+  raw.split('\n').filter(line => line.trim()).forEach((line, i) => {
+    const [selector = '', date = '', subject = '', ...rest] = line.split('\x1f')
+    const index = parseInt(/\{(\d+)\}/.exec(selector)?.[1] ?? '', 10)
+    const row: StashRow = {
+      index: Number.isFinite(index) ? index : i,
+      message: rest.join('\x1f') || `stash@{${i}}`,
+    }
+    const branch = stashBranch(subject)
+    if (branch) row.branch = branch
+    const when = parseInt(date, 10)
+    if (Number.isFinite(when) && when > 0) row.date = when
+    rows.push(row)
+  })
+  return rows
+}
+
+export async function stashList(run: GitRunner): Promise<{ stashes: StashRow[] }> {
+  try {
+    return { stashes: parseStashList(await run(stashListArgs())) }
+  } catch {
+    return { stashes: [] }
+  }
+}
+
 /** The pseudo-refs git keeps while an operation is stopped on its conflicts. */
 const OPERATION_HEADS = ['MERGE_HEAD', 'REBASE_HEAD', 'CHERRY_PICK_HEAD', 'REVERT_HEAD']
 
@@ -1745,6 +1868,78 @@ export async function setBranchUpstream(
   }
   try {
     await run(['branch', `--set-upstream-to=${upstream}`, branch])
+    return { success: true }
+  } catch (e) {
+    return { success: false, error: reason(e) }
+  }
+}
+
+// ── The default remote ──────────────────────────────────────────
+//
+// Moved here with its inverse (#289): the two services held the same reading
+// of it, character for character, and a third method written out twice is how
+// the next drift starts.
+
+/**
+ * Where the choice of a default remote is kept: the repository's own git
+ * config rather than either product's settings, so it is per-repository by
+ * nature, readable from the command line, and the very value the other
+ * product reads (v1.23.0).
+ */
+export const DEFAULT_REMOTE_KEY = 'gitvertex.defaultRemote'
+
+/**
+ * Which remote an action targets when nothing says otherwise.
+ *
+ * Order: the explicit choice → `origin` → the first remote. `explicit` says
+ * whether the first of those answered, which is what decides whether there is
+ * a choice to take back (#289) — `origin` winning by default is not one.
+ */
+export async function defaultRemote(run: GitRunner): Promise<{ remote: string | null; explicit: boolean }> {
+  let remotes: string[] = []
+  try {
+    remotes = (await run(['remote'])).trim().split('\n').map(r => r.trim()).filter(Boolean)
+  } catch {
+    return { remote: null, explicit: false }
+  }
+  if (remotes.length === 0) return { remote: null, explicit: false }
+  // Unset makes git exit 1, which the runner turns into a rejection: absent,
+  // not an error to report.
+  const chosen = (await run(['config', '--local', '--get', DEFAULT_REMOTE_KEY]).catch(() => '')).trim()
+  // A remote that has since been renamed or removed must not win.
+  if (chosen && remotes.includes(chosen)) return { remote: chosen, explicit: true }
+  return { remote: remotes.includes('origin') ? 'origin' : remotes[0], explicit: false }
+}
+
+export async function setDefaultRemote(
+  run: GitRunner, name: string,
+): Promise<{ success: boolean; error?: string }> {
+  const bad = assertRef(name, 'remote')
+  if (bad) return { success: false, error: bad }
+  try {
+    await run(['config', '--local', DEFAULT_REMOTE_KEY, name])
+    return { success: true }
+  } catch (e) {
+    return { success: false, error: reason(e) }
+  }
+}
+
+/**
+ * Take the choice back (#289): the default returns to what it is when nobody
+ * chose — `origin`, or the first remote.
+ *
+ * Asking with nothing set is a success, not an error: the state asked for is
+ * the state the repository is in. It is read first rather than told apart by
+ * `--unset`'s exit code — 5, for "nothing to unset", which this runner cannot
+ * see — and never by its message, which git translates.
+ */
+export async function unsetDefaultRemote(run: GitRunner): Promise<{ success: boolean; error?: string }> {
+  const chosen = (await run(['config', '--local', '--get-all', DEFAULT_REMOTE_KEY]).catch(() => '')).trim()
+  if (!chosen) return { success: true }
+  try {
+    // --unset-all: a hand-edited config can carry the key twice, and a plain
+    // --unset refuses to choose between them.
+    await run(['config', '--local', '--unset-all', DEFAULT_REMOTE_KEY])
     return { success: true }
   } catch (e) {
     return { success: false, error: reason(e) }

@@ -5,10 +5,26 @@ import ContextMenu from '../ContextMenu/ContextMenu'
 import { validateGhQuery, composeGhQuery, ghFilterSyntax, ghFilterSuggest, GH_SEARCH_DOCS_URL, type GhSavedFilter } from './ghFilters'
 import { type GithubListItem } from './types'
 
+/**
+ * `#123` in a section's search box: a request asked for BY NUMBER (#291),
+ * which the section can fetch whatever its state — the list only ever holds
+ * open ones. Only that exact shape: `123` alone stays a text search, which
+ * matches titles as well as numbers.
+ */
+export function prNumberQuery(q: string): number | null {
+  const m = /^#(\d{1,9})$/.exec(q.trim())
+  if (!m) return null
+  const n = Number(m[1])
+  return n > 0 ? n : null
+}
+
 /** §2's lens: does a row survive the section's search box? */
 export function ghMatch(item: GithubListItem, q: string): boolean {
   const needle = q.trim().toLowerCase()
   if (!needle) return true
+  // `#12` is one number, not every number with a 12 in it.
+  const asked = prNumberQuery(needle)
+  if (asked !== null) return item.number === asked
   return item.title.toLowerCase().includes(needle)
     || String(item.number).includes(needle)
     || (item.author ?? '').toLowerCase().includes(needle)

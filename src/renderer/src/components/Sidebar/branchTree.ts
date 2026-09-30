@@ -71,6 +71,27 @@ export function buildBranchTree<T>(items: T[], nameOf: (item: T) => string): Bra
   return foldersFirst(root.children)
 }
 
+/**
+ * What is inside the folder at `path` — `origin`, or `my/fork` for a remote
+ * whose name has a slash in it — or an empty list when there is no such
+ * folder.
+ *
+ * A remote opened in REMOTES draws its branches from the same tree Branches ›
+ * REMOTE builds, cut at its own folder (#289), so the folders under it keep
+ * their paths — `origin/feat` — and open and close together in both lists.
+ */
+export function subtreeAt<T>(nodes: BranchNode<T>[], path: string): BranchNode<T>[] {
+  const parts = path.split('/').filter(Boolean)
+  let level = nodes
+  for (let i = 0; i < parts.length; i++) {
+    const at = parts.slice(0, i + 1).join('/')
+    const next = level.find((n): n is BranchFolder<T> => n.kind === 'folder' && n.path === at)
+    if (!next) return []
+    level = next.children
+  }
+  return level
+}
+
 /** Every folder path in a tree — what "expand all" and a filter's reveal need. */
 export function folderPaths<T>(nodes: BranchNode<T>[]): string[] {
   const out: string[] = []

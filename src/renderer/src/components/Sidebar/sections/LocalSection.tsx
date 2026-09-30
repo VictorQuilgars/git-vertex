@@ -8,11 +8,11 @@ import { BranchItem } from '../BranchItem'
 import type { SidebarState } from '../useSidebar'
 
 export function LocalSection({ s }: { s: SidebarState }) {
-  const { onCreateBranch, t, localBranches, branchHidden, toggleFolder, openFolders, showAll, localMenu, layoutFor, layoutToggle } = s
+  const { onCreateBranch, t, localBranches, branchHidden, toggleFolder, openFolders, showAll, localMenu, layoutFor, layoutToggle, counts } = s
   const names = localBranches.map(b => b.name)
   const asTree = layoutFor('local', names) === 'tree'
   return (
-    <Section id="local" title="LOCAL" icon="device" count={localBranches.length} onAdd={onCreateBranch} addLabel={t('sb.newBranch')}
+    <Section id="local" title="LOCAL" icon="device" count={counts.branches} onAdd={onCreateBranch} addLabel={t('sb.newBranch')}
             menuItems={localMenu()}
             layout={layoutToggle('local', names)}
             hiddenCount={localBranches.filter(branchHidden).length}

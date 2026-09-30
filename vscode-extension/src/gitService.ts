@@ -902,32 +902,14 @@ export class GitService {
     }
   }
 
-  async getStashes(): Promise<{ stashes: { index: number; message: string }[] }> {
-    try {
-      // %gs (reflog subject), not %s (commit subject): `stash store -m` only
-      // rewrites the reflog, so a renamed stash would keep its old label.
-      const out = await this.git.raw(['stash', 'list', '--pretty=format:%gd|%gs'])
-      const stashes = out.trim().split('\n').filter(Boolean).map((line, i) => {
-        const [, message] = line.split('|')
-        return { index: i, message: message || `stash@{${i}}` }
-      })
-      return { stashes }
-    } catch {
-      return { stashes: [] }
-    }
+  async getStashes(): Promise<{ stashes: core.StashRow[] }> {
+    // The list, the branch each was made on and when — one call (#278).
+    return core.stashList(this.run)
   }
 
-  async getTags(): Promise<{ tags: { name: string; hash: string }[] }> {
-    try {
-      const out = await this.git.raw(['tag', '--format=%(refname:short)|%(objectname)'])
-      const tags = out.trim().split('\n').filter(Boolean).map(line => {
-        const [name, hash] = line.split('|')
-        return { name, hash: hash || '' }
-      })
-      return { tags }
-    } catch {
-      return { tags: [] }
-    }
+  async getTags(): Promise<{ tags: core.TagRow[] }> {
+    // The list and each annotation's subject — one call (#278).
+    return core.tagList(this.run)
   }
 
   // ── Conflict / tracking state ──────────────────────────────────
@@ -1872,25 +1854,12 @@ exit 0
     catch (e: any) { return { success: false, error: e.message } }
   }
 
-  // Which remote an action targets when nothing says otherwise. Stored in the
-  // repo's own git config rather than extension settings, so it is per-repo by
-  // nature, stays readable from the command line, and is the very value the
-  // desktop app reads (v1.23.0).
-  // Order: explicit choice → origin → the only/first remote.
+  // Which remote an action targets when nothing says otherwise — the explicit
+  // choice, then origin, then the first remote. Kept in the repository's own
+  // git config, the very value the desktop app reads; the family (read, set,
+  // unset) is git-core's (#289).
   async getDefaultRemote(): Promise<{ remote: string | null; explicit: boolean }> {
-    let remotes: string[] = []
-    try {
-      remotes = (await this.git.raw(['remote'])).trim().split('\n').map(r => r.trim()).filter(Boolean)
-    } catch {
-      return { remote: null, explicit: false }
-    }
-    if (remotes.length === 0) return { remote: null, explicit: false }
-    try {
-      const chosen = (await this.git.raw(['config', '--local', '--get', 'gitvertex.defaultRemote'])).trim()
-      // A remote that has since been renamed or removed must not win.
-      if (chosen && remotes.includes(chosen)) return { remote: chosen, explicit: true }
-    } catch { /* unset — git exits 1, which simple-git throws on */ }
-    return { remote: remotes.includes('origin') ? 'origin' : remotes[0], explicit: false }
+    return core.defaultRemote(this.run)
   }
 
   // The branch everything else merges into — what a pull request lands on by
@@ -1919,12 +1888,12 @@ exit 0
   }
 
   async setDefaultRemote(name: string): Promise<{ success: boolean; error?: string }> {
-    try {
-      await this.git.raw(['config', '--local', 'gitvertex.defaultRemote', name])
-      return { success: true }
-    } catch (e: any) {
-      return { success: false, error: e.message }
-    }
+    return core.setDefaultRemote(this.run, name)
+  }
+
+  /** Take the choice back: the default returns to origin, or the first remote (#289). */
+  async unsetDefaultRemote(): Promise<{ success: boolean; error?: string }> {
+    return core.unsetDefaultRemote(this.run)
   }
 
   // Drops remote-tracking refs whose branch no longer exists on the remote.

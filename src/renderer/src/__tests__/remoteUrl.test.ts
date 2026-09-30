@@ -1,4 +1,4 @@
-import { parseRemote, pickRemote, repoFromRemotes, remoteUrl, shortBranch, rangeFromSelection, githubRepo, githubApiBase, githubRemote, parseRemoteVerbose } from '../utils/remoteUrl'
+import { parseRemote, pickRemote, repoFromRemotes, remoteUrl, remoteLinks, shortBranch, rangeFromSelection, githubRepo, githubApiBase, githubRemote, parseRemoteVerbose } from '../utils/remoteUrl'
 
 // Before this existed, one URL shape was written out by hand in three places
 // with github.com hardcoded, and nothing else in either product could be linked
@@ -143,6 +143,58 @@ describe('remoteUrl — the shapes we declare for other hosts', () => {
     expect(remoteUrl.file(bb, 'abc', 'a.ts', { from: 12, to: 40 }))
       .toBe('https://bitbucket.org/team/proj/src/abc/a.ts#lines-12:40')
     expect(remoteUrl.pullRequest(bb, 7)).toBe('https://bitbucket.org/team/proj/pull-requests/7')
+  })
+})
+
+// What a row of the remotes list opens and copies (#289): the repository and
+// its branches page, read from THAT remote's URL, on every host family the
+// builder knows.
+describe('remoteLinks — the pages of one remote', () => {
+  const links = (fetchUrl: string, pushUrl = '') => remoteLinks({ fetchUrl, pushUrl })
+
+  test('GitHub, over SSH and over https', () => {
+    const want = {
+      repo: 'https://github.com/VictorQuilgars/git-vertex',
+      branches: 'https://github.com/VictorQuilgars/git-vertex/branches',
+    }
+    expect(links('git@github.com:VictorQuilgars/git-vertex.git')).toEqual(want)
+    expect(links('https://github.com/VictorQuilgars/git-vertex.git')).toEqual(want)
+  })
+
+  // An unknown host reads as GitHub Enterprise, whose shapes are GitHub's.
+  test('a self-hosted GitHub keeps its own host, and a port is not part of it', () => {
+    expect(links('ssh://git@git.acme.internal:2222/team/app.git')).toEqual({
+      repo: 'https://git.acme.internal/team/app',
+      branches: 'https://git.acme.internal/team/app/branches',
+    })
+  })
+
+  test('GitLab, nested groups and its /-/ prefix included', () => {
+    expect(links('git@gitlab.com:group/sub/proj.git')).toEqual({
+      repo: 'https://gitlab.com/group/sub/proj',
+      branches: 'https://gitlab.com/group/sub/proj/-/branches',
+    })
+    expect(links('https://gitlab.example.com/o/r.git')!.branches).toBe('https://gitlab.example.com/o/r/-/branches')
+  })
+
+  test('Bitbucket', () => {
+    expect(links('git@bitbucket.org:team/proj.git')).toEqual({
+      repo: 'https://bitbucket.org/team/proj',
+      branches: 'https://bitbucket.org/team/proj/branches',
+    })
+  })
+
+  test('credentials in an https remote never reach the link', () => {
+    expect(links('https://user:tok@github.com/o/r.git')!.repo).toBe('https://github.com/o/r')
+  })
+
+  test('the push URL answers when there is no fetch URL', () => {
+    expect(links('', 'git@github.com:o/r.git')!.branches).toBe('https://github.com/o/r/branches')
+  })
+
+  test('a remote with no page has no links, rather than wrong ones', () => {
+    expect(links('/Users/victor/some/local/repo.git')).toBeNull()
+    expect(links('')).toBeNull()
   })
 })
 

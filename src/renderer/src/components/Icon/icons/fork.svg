@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+     stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+  <!-- fork — Git Vertex icon set. Grid 24, stroke 1.7, round caps.
+       A repository's history taken elsewhere: two heads above, the one
+       they came from below. Nodes are FILLED discs, like branch and merge.
+       EDIT THIS FILE to change the icon — components/Icon reads the folder.
+       Do not put stroke-width on a shape: the component sets it, growing it
+       as the icon shrinks so a 1.7 stroke never falls under a pixel. -->
+  <path d="M7 6.5v1.5a3 3 0 0 0 3 3h4a3 3 0 0 0 3-3V6.5M12 11v6.5"/>
+  <circle cx="7" cy="4.5" r="2.4" fill="currentColor" stroke="none"/>
+  <circle cx="17" cy="4.5" r="2.4" fill="currentColor" stroke="none"/>
+  <circle cx="12" cy="19.5" r="2.4" fill="currentColor" stroke="none"/>
+</svg>

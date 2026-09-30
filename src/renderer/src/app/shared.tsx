@@ -1,14 +1,14 @@
 // What the root component is made of outside its own body: the tab model, the view
 // helpers, the stash preview, the constants. Split out of App.tsx.
 import React, { useState } from 'react'
-import { CommitNode, ConflictKind, type CompareAxis } from '../types'
+import { CommitNode, ConflictKind, type CompareAxis, type StashInfo, type TagInfo } from '../types'
 import { useLang } from '../i18n/LanguageContext'
 import DiffViewer from '../components/DiffViewer/DiffViewer'
 import { CenterDiffTarget } from '../components/CenterFileDiff/CenterFileDiff'
 
-export interface StashEntry { index: number; message: string }
+export type StashEntry = StashInfo
 
-export interface TagEntry   { name: string; hash: string }
+export type TagEntry = TagInfo
 
 // Absent `entries` means the host does not report unmerged states (an older
 // extension build). Return an empty map so the UI stays silent about the kind

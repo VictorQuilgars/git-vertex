@@ -10,6 +10,7 @@ import { branchTipExtras, type BranchTip, type BranchTipActions } from '../Conte
 import type { PRIntent } from '../ContextMenu/prIntent'
 import { issueRefLabel, type IssueRef as LinkedIssueRef } from '../../utils/issueRef'
 import { useLang } from '../../i18n/LanguageContext'
+import { ageOf, branchTooltip, type BranchPR } from './rowFacts'
 
 // ── Branch item with context menu ────────────────────────────────
 export interface BranchItemProps {
@@ -85,6 +86,13 @@ export interface BranchItemProps {
   checkedOutIn?: { path: string; name: string }
   onOpenItsWorktree?: () => void
   onCreateWorktreeFor?: () => void
+  // ── What the row says beyond its name (#278) ──
+  /** When its tip was committed, seconds since the epoch — from the list's own call. */
+  date?: number
+  /** The branch it tracks, for the tooltip. */
+  upstream?: string
+  /** The open pull request it is the head of, from the list the panel holds. */
+  openPR?: BranchPR
 }
 
 export function branchItemMenu({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, hidden, favorite, issue, onPull, onToggleSolo, onToggleHide, onToggleFavorite, onOpenOnRemote, onAssociateIssue, onExplain, onChangelog, onExplainUnpushed, onRecompose, onPullBranch, onChangeUpstream, onRebaseOntoUpstream, onSquashFixups, onHideRemote, onCompareUpstream, tip, tipActions, checkedOutIn, onOpenItsWorktree, onCreateWorktreeFor, pr, onCreatePR, publishedAs, onCopyLink, onDeleteBoth, showRemotePrefix = false }: BranchItemProps, t: ReturnType<typeof useLang>['t']): MenuItemDef[] {
@@ -121,7 +129,7 @@ export function branchItemMenu({ name, current, remote, currentBranch, onCheckou
 }
 
 export function BranchItem(props: BranchItemProps) {
-  const { name, current, remote, onCheckout, onPush, soloed, hidden, favorite, issue, onPull, onReveal, onOpenCard, onPublish, onFetch, onPullBranch, checkedOutIn, onOpenItsWorktree, publishedAs, ahead = 0, behind = 0, gone = false, showRemotePrefix = false, displayAs } = props
+  const { name, current, remote, onCheckout, onPush, soloed, hidden, favorite, issue, onPull, onReveal, onOpenCard, onPublish, onFetch, onPullBranch, checkedOutIn, onOpenItsWorktree, publishedAs, ahead = 0, behind = 0, gone = false, showRemotePrefix = false, displayAs, date, upstream, openPR } = props
   const [hover, setHover] = useState(false)
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const { t } = useLang()
@@ -140,6 +148,7 @@ export function BranchItem(props: BranchItemProps) {
 
   // What this branch's own state calls for, of what the host actually wired.
   const actions = branchRowActions({ current, remote, ahead, behind, gone, publishedAs })
+  const age = ageOf(date, t)
 
   return (
     <>
@@ -149,7 +158,7 @@ export function BranchItem(props: BranchItemProps) {
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
-        title={current ? t('sb.branch.currentTitle', name) : t('sb.branch.hint')}
+        title={branchTooltip({ name, current, remote, upstream, ahead, behind, gone, date, checkedOutIn, pr: openPR }, t)}
       >
         <Icon name="branch" size={11} className="branch-icon" />
         <span className="sb-branch-name">{display}</span>
@@ -166,6 +175,16 @@ export function BranchItem(props: BranchItemProps) {
         )}
         {soloed && <Icon name="eye" size={12} className="sb-branch-flag" title={t('sb.branch.soloFlag')} />}
         {hidden && <span className="sb-branch-flag" title={t('sb.branch.hiddenFlag')}>⊘</span>}
+        {/* Held by another worktree: git would refuse the switch here, and
+            the row's switch opens that worktree instead (#285, #278). The
+            title is on a span, not the Icon: Icon writes its title into
+            markup, and a folder name is not markup. */}
+        {checkedOutIn && (
+          <span className="sb-branch-flag sb-branch-wt" title={t('sb.branch.tip.worktree', checkedOutIn.name)}>
+            <Icon name="worktree" size={11} />
+          </span>
+        )}
+        {age && <span className="sb-branch-age">{age}</span>}
         {current && (
           <Icon name="check" size={11} className="current-check" />
         )}

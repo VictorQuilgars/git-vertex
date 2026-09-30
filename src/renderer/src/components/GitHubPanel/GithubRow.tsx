@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Icon } from '../Icon/Icon'
 import ContextMenu from '../ContextMenu/ContextMenu'
 import GithubHoverCard, { useHoverCard } from './GithubHoverCard'
+import type { PRFactsSource } from './prFacts'
 import { useLang } from '../../i18n/LanguageContext'
 import './GithubRow.css'
 
@@ -45,6 +46,10 @@ export interface GithubRowItem {
    */
   state?: 'open' | 'closed'
   merged?: boolean
+  /** A pull request from another repository — the row says so (#291). */
+  fork?: boolean
+  /** Which one, `owner/name`; absent when the fork is gone. */
+  headRepo?: string
 }
 
 export function timeAgo(dateStr: string, t: (key: any, ...args: any[]) => string): string {
@@ -69,8 +74,14 @@ export function LabelChip({ label }: { label: GithubLabel }) {
   )
 }
 
-export default function GithubRow({ item, onOpen, onDetail, onCreateBranch, prActions, hoverCard = true }: {
+export default function GithubRow({ item, onOpen, onDetail, onCreateBranch, prActions, hoverCard = true, factsSource }: {
   item: GithubRowItem
+  /**
+   * Where a pull request's hover asks for its checks, review decision and
+   * size (#291) — the repository, and the list's other numbers, asked in the
+   * same query. Absent: the card shows what the row already knows.
+   */
+  factsSource?: PRFactsSource
   onOpen?: (url: string) => void
   /** Open the in-app detail (§3 bis). Present ⇒ a click goes here, not to a
       browser; the browser stays one click away inside the detail. */
@@ -141,6 +152,15 @@ export default function GithubRow({ item, onOpen, onDetail, onCreateBranch, prAc
         <span className="sb-gh-body">
           <span className="sb-gh-line1">
             <span className="sb-gh-num">#{item.number}</span>
+            {/* From another repository: its head is not a branch of this one,
+                which is worth knowing before switching to it (#291). */}
+            {item.kind === 'pr' && item.fork && (
+              <span className="sb-gh-fork" data-testid="pr-fork"
+                title={item.headRepo ? t('gh.card.forkFrom', item.headRepo) : t('gh.card.forkGone')}
+                aria-label={item.headRepo ? t('gh.card.forkFrom', item.headRepo) : t('gh.card.forkGone')}>
+                <Icon name="fork" size={11} />
+              </span>
+            )}
             <span className="sb-gh-title">{item.title}</span>
             {item.draft && <span className="sb-gh-draft">{t('sb.github.draft')}</span>}
             {menuItems.length > 0 && (
@@ -170,7 +190,8 @@ export default function GithubRow({ item, onOpen, onDetail, onCreateBranch, prAc
       )}
       {carded && hover.pos && (
         <GithubHoverCard item={item} pos={hover.pos} inside={hover.inside}
-          onClose={hover.close} onOpen={onOpen} onActivate={activate} />
+          onClose={hover.close} onOpen={onOpen} onActivate={activate}
+          factsSource={item.kind === 'pr' ? factsSource : undefined} />
       )}
       </>
   )

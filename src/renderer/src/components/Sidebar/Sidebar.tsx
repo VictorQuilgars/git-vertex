@@ -23,6 +23,7 @@ import { ContributorsSection } from './sections/ContributorsSection'
 import { OverviewSection } from './sections/OverviewSection'
 import { PrsSection } from './sections/PrsSection'
 import { IssuesSection } from './sections/IssuesSection'
+import { ForgeGapSection } from './notices'
 import './Sidebar.css'
 
 // Kept on this module for the hosts that import them from here.
@@ -30,7 +31,7 @@ export type { SidebarView, GithubListItem } from './types'
 
 export default function Sidebar(props: SidebarProps) {
   const s = useSidebar(props)
-  const { repoPath, recentRepos, filteredStashes, onReveal, wipCount, wipSelected, onViewWip, onOpenRepo, onClone, onSetRepo, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onTab, githubPRs, githubIssues, githubRepo, view, single, showAI, show, submodules, t, stashMenu, setStashMenu, ghFilters, filterEditor, setFilterEditor, mutateFilters, stashScopeItems, handleRenameStash, branchFilter, setBranchFilter, stashesHidden, familyMenu, rootRef, filterDraft, setFilterDraft, showAll, remoteBranches, filterView, filterPlaceholder, onCompareStash, onSelectStashForCompare, handleCopyStashSha, handleCopyStashPatch } = s
+  const { repoPath, recentRepos, filteredStashes, onReveal, wipCount, wipSelected, onViewWip, onOpenRepo, onClone, onSetRepo, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onTab, githubPRs, githubIssues, githubRepo, view, single, showAI, show, submodules, t, stashMenu, setStashMenu, ghFilters, filterEditor, setFilterEditor, mutateFilters, stashScopeItems, handleRenameStash, branchFilter, setBranchFilter, stashesHidden, familyMenu, rootRef, filterDraft, setFilterDraft, showAll, remoteBranches, filterView, filterPlaceholder, onCompareRef, onSelectStashForCompare, handleCopyStashSha, handleCopyStashPatch, counts, loadErrors } = s
   return (
     // `--single`: the VS Code panel, one view at a time — an open section's +
     // stays on screen there (Sidebar.css).
@@ -166,7 +167,7 @@ export default function Sidebar(props: SidebarProps) {
           )}
 
           {/* SUBMODULES */}
-          {show('overview') && submodules.length > 0 && (
+          {show('overview') && (submodules.length > 0 || !!loadErrors.submodules) && (
             <SubmodulesSection s={s} />
           )}
 
@@ -190,15 +191,12 @@ export default function Sidebar(props: SidebarProps) {
 
           {/* PULL REQUESTS — a section, not a view of its own: it is read
               beside the branches, and a tab would replace what is being worked
-              on. Absent entirely when the host has no GitHub here. */}
-          {githubPRs && show('prs') && (
-            <PrsSection s={s} />
-          )}
+              on. With no list, the reason there is none (#292) — or nothing,
+              on the desktop, for a repository that is not on GitHub. */}
+          {show('prs') && (githubPRs ? <PrsSection s={s} /> : <ForgeGapSection s={s} kind="prs" />)}
 
           {/* GITHUB ISSUES */}
-          {githubIssues && show('issues') && (
-            <IssuesSection s={s} />
-          )}
+          {show('issues') && (githubIssues ? <IssuesSection s={s} /> : <ForgeGapSection s={s} kind="issues" />)}
 
           {/* STASH */}
           {show('stash') && (
@@ -206,7 +204,7 @@ export default function Sidebar(props: SidebarProps) {
             id="stash"
             title="STASH"
             icon="stash"
-            count={filteredStashes.length}
+            count={counts.stash}
             defaultOpen={single}
             onAdd={e => {
               const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
@@ -230,8 +228,8 @@ export default function Sidebar(props: SidebarProps) {
                     onExplain={onExplainStash ? () => onExplainStash(s.index, s.message) : undefined}
                     onRename={() => handleRenameStash(s.index, s.message)}
                     onReveal={onReveal && (() => onReveal(`stash@{${s.index}}`))}
-                    onCompareHead={onCompareStash && (() => onCompareStash(`stash@{${s.index}}`, 'HEAD'))}
-                    onCompareWorking={onCompareStash && (() => onCompareStash(`stash@{${s.index}}`, 'working'))}
+                    onCompareHead={onCompareRef && (() => onCompareRef(`stash@{${s.index}}`, 'HEAD'))}
+                    onCompareWorking={onCompareRef && (() => onCompareRef(`stash@{${s.index}}`, 'working'))}
                     onSelectForCompare={onSelectStashForCompare && (() => onSelectStashForCompare(`stash@{${s.index}}`))}
                     onCopySha={() => handleCopyStashSha(s.index)}
                     onCopyPatch={() => handleCopyStashPatch(s.index)}

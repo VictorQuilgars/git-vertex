@@ -121,6 +121,24 @@ export function clampDetailsHeight(wanted: number, bodyHeight: number): number {
   return Math.round(Math.max(DETAILS_MIN, Math.min(max, wanted)))
 }
 
+/**
+ * Where the side view goes (#277): `auto` floats it over the graph while the
+ * panel is narrow and docks it beside the graph otherwise — the only rule
+ * there was. The other two hold whatever the width: docked for someone who
+ * would rather give up graph width than have a layer over it, floating for
+ * someone who wants the graph whole in a wide panel. Chosen from the rail.
+ */
+export type SidePlacement = 'auto' | 'docked' | 'floating'
+
+export function readSidePlacement(v: string): SidePlacement {
+  return v === 'docked' || v === 'floating' ? v : 'auto'
+}
+
+/** The side view is a layer over the graph, not a column beside it. */
+export function sideFloats(narrow: boolean, placement: SidePlacement): boolean {
+  return placement === 'auto' ? narrow : placement === 'floating'
+}
+
 /** The floating side view's width: the user's column width, or what is left. */
 export function overlayWidth(sideWidth: number, bodyWidth: number, railWidth: number, gap: number): number {
   const room = bodyWidth - railWidth - 3 * gap

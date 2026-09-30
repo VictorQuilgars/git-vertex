@@ -649,20 +649,9 @@ export class GitService {
     }
   }
 
-  async getStashes(): Promise<{ stashes: { index: number; message: string }[] }> {
-    try {
-      // %gs (reflog subject), not %s (commit subject): it is what `git stash
-      // list` shows natively, and the only one `stash store -m` can rewrite —
-      // renaming a stash leaves the underlying commit subject untouched.
-      const result = await this.git.raw(['stash', 'list', '--pretty=format:%gd: %gs'])
-      const stashes = result.trim().split('\n').filter(Boolean).map((line, i) => ({
-        index: i,
-        message: line
-      }))
-      return { stashes }
-    } catch (e) {
-      return { stashes: [] }
-    }
+  async getStashes(): Promise<{ stashes: core.StashRow[] }> {
+    // The list, the branch each was made on and when — one call (#278).
+    return core.stashList(this.run)
   }
 
   // ── Working tree / staging ─────────────────────────────────
@@ -1397,24 +1386,11 @@ export class GitService {
     }
   }
 
-  // Which remote an action targets when nothing says otherwise. Stored in the
-  // repo's own git config rather than the app settings, so it is per-repo by
-  // nature and stays readable from the command line (v1.23.0).
-  // Order: explicit choice → origin → the only/first remote.
+  // Which remote an action targets when nothing says otherwise — the explicit
+  // choice, then origin, then the first remote. The family (read, set, unset)
+  // is git-core's, shared with the panel (#289).
   async getDefaultRemote(): Promise<{ remote: string | null; explicit: boolean }> {
-    let remotes: string[] = []
-    try {
-      remotes = (await this.git.raw(['remote'])).trim().split('\n').map(r => r.trim()).filter(Boolean)
-    } catch {
-      return { remote: null, explicit: false }
-    }
-    if (remotes.length === 0) return { remote: null, explicit: false }
-    try {
-      const chosen = (await this.git.raw(['config', '--local', '--get', 'gitvertex.defaultRemote'])).trim()
-      // A remote that has since been renamed or removed must not win.
-      if (chosen && remotes.includes(chosen)) return { remote: chosen, explicit: true }
-    } catch { /* unset — git exits 1, which simple-git throws on */ }
-    return { remote: remotes.includes('origin') ? 'origin' : remotes[0], explicit: false }
+    return core.defaultRemote(this.run)
   }
 
   // The branch everything else merges into — what a pull request lands on by
@@ -1441,12 +1417,12 @@ export class GitService {
   }
 
   async setDefaultRemote(name: string): Promise<{ success: boolean; error?: string }> {
-    try {
-      await this.git.raw(['config', '--local', 'gitvertex.defaultRemote', name])
-      return { success: true }
-    } catch (e: any) {
-      return { success: false, error: e.message }
-    }
+    return core.setDefaultRemote(this.run, name)
+  }
+
+  /** Take the choice back: the default returns to origin, or the first remote (#289). */
+  async unsetDefaultRemote(): Promise<{ success: boolean; error?: string }> {
+    return core.unsetDefaultRemote(this.run)
   }
 
   /**
@@ -1493,20 +1469,9 @@ export class GitService {
 
   // ── Tag operations ─────────────────────────────────────────
 
-  async getTags(): Promise<{ tags: { name: string; hash: string }[] }> {
-    try {
-      const result = await this.git.raw([
-        'tag', '-l', '--sort=-version:refname',
-        '--format=%(refname:short)|%(objectname:short)'
-      ])
-      const tags = result.trim().split('\n').filter(Boolean).map(line => {
-        const [name, hash] = line.split('|')
-        return { name: name.trim(), hash: hash?.trim() ?? '' }
-      })
-      return { tags }
-    } catch (e) {
-      return { tags: [] }
-    }
+  async getTags(): Promise<{ tags: core.TagRow[] }> {
+    // The list and each annotation's subject — one call (#278).
+    return core.tagList(this.run)
   }
 
   async createTag(name: string, hash?: string, message?: string): Promise<{ success: boolean; error?: string }> {

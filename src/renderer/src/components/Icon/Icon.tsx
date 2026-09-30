@@ -68,6 +68,7 @@ import externalLink from './icons/externalLink.svg'
 import eye from './icons/eye.svg'
 import eyeOff from './icons/eyeOff.svg'
 import folder from './icons/folder.svg'
+import fork from './icons/fork.svg'
 import gear from './icons/gear.svg'
 import gitflow from './icons/gitflow.svg'
 import history from './icons/history.svg'
@@ -79,6 +80,8 @@ import issue from './icons/issue.svg'
 import kebab from './icons/kebab.svg'
 import layoutBottom from './icons/layoutBottom.svg'
 import layoutBottomOff from './icons/layoutBottomOff.svg'
+import layoutLeft from './icons/layoutLeft.svg'
+import layoutLeftFloat from './icons/layoutLeftFloat.svg'
 import layoutRight from './icons/layoutRight.svg'
 import layoutRightOff from './icons/layoutRightOff.svg'
 import link from './icons/link.svg'
@@ -120,9 +123,9 @@ const SOURCE: Record<string, string> = {
   activity, agent, ai, arrowRight, bell, blame, book, bookmark, branch,
   card, caretDown, check, chevronDown, chevronLeft, chevronRight, clock, cloud,
   commandPalette, comment, commit, compare, conflict, copy, device, diff,
-  download, editor, externalLink, eye, eyeOff, folder, gear, gitflow,
+  download, editor, externalLink, eye, eyeOff, folder, fork, gear, gitflow,
   history, home, hunk, info, ink, issue, kebab, layoutBottom, layoutBottomOff,
-  layoutRight, layoutRightOff, link, list, listTree, mail,
+  layoutLeft, layoutLeftFloat, layoutRight, layoutRightOff, link, list, listTree, mail,
   merge, newBranch, node, panel, pencil, person, play, plus, pop,
   pullRequest, push, rebase, redo, reflog, refresh, repo, rocket, search,
   shield, sliders, sort, staging, stash, switchBranch, tag, terminal, trash, undo,
@@ -183,7 +186,7 @@ const DENSE = new Set<string>(['hunk', 'commandPalette'])
  * carets that are deliberately 8 to 10.
  */
 const NODED = new Set<string>([
-  'branch', 'newBranch', 'merge', 'rebase', 'pullRequest',
+  'branch', 'newBranch', 'merge', 'rebase', 'pullRequest', 'fork',
   'worktree', 'gitflow', 'reflog', 'blame',
   // A ring around a filled node — the forge's open-issue mark.
   'issue',

@@ -155,13 +155,18 @@ describe('the sidebar AI stack', () => {
     expect(screen.getByText(/No explanation kept/)).toBeInTheDocument()
   })
 
-  test('a host that answers neither leaves the stack empty, not broken', async () => {
+  // It used to leave the stack empty — "No changelog written" over a store it
+  // never managed to read. A refusal is not an empty list (#277).
+  test('a host that answers neither says so in place of each list, not "none"', async () => {
     renderAI({}, {
-      aiChangelogList: jest.fn().mockRejectedValue(new Error('not-implemented')),
-      aiGetExplanations: jest.fn().mockRejectedValue(new Error('not-implemented')),
+      aiChangelogList: jest.fn().mockRejectedValue(new Error('not-implemented: aiChangelogList')),
+      aiGetExplanations: jest.fn().mockResolvedValue({ success: false, error: 'not-implemented: aiGetExplanations' }),
     })
     await openAI()
-    expect(await screen.findByText(/No changelog written/)).toBeInTheDocument()
+    expect(await screen.findByText('not-implemented: aiChangelogList')).toBeInTheDocument()
+    expect(screen.getByText('not-implemented: aiGetExplanations')).toBeInTheDocument()
+    expect(screen.queryByText(/No changelog written/)).not.toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Try again' })).toHaveLength(2)
   })
 
   test('the host decides which stack shows — a generation can bring this one up', async () => {

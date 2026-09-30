@@ -101,6 +101,25 @@
   background: var(--accent);
 }
 .gv-rail-btn--soon { opacity: 0.4; cursor: default; }
+/* How many rows the view holds, under its icon (#277). Inside the button's
+   own square — the stride the overflow arithmetic counts stays what it was —
+   so the icon rises by what the number takes. */
+.gv-rail-btn:has(.gv-rail-count) { padding-bottom: 9px; }
+.gv-rail-count {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 1px;
+  font-size: var(--text-micro);
+  line-height: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+.gv-rail-btn--active .gv-rail-count,
+.gv-rail-btn:hover .gv-rail-count { color: var(--text-secondary); }
+.gv-rail--compact .gv-rail-btn:has(.gv-rail-count) { padding-bottom: 8px; }
+.gv-rail--compact .gv-rail-count { bottom: 0; }
 .gv-rail-spacer { flex: 1; }
 /* The rail of a narrow panel (a side-bar column): 36px, 30px buttons, the
    same icons — six pixels a 300px column feels. */

@@ -1,4 +1,4 @@
-import { buildBranchTree, folderPaths, type BranchNode } from '../branchTree'
+import { buildBranchTree, folderPaths, subtreeAt, type BranchNode } from '../branchTree'
 
 // A branch name is a path, and the sidebar draws it as one (#134).
 
@@ -47,5 +47,26 @@ describe('building the tree', () => {
 
   test('an empty list is an empty tree, not a root node', () => {
     expect(tree([])).toEqual([])
+  })
+})
+
+// A remote opened in REMOTES is Branches › REMOTE's tree cut at its folder (#289).
+describe('subtreeAt', () => {
+  const remote = tree(['origin/main', 'origin/feat/a', 'my/fork/x', 'orig/y'])
+
+  test('what is inside one folder, with the paths the whole tree gave it', () => {
+    const sub = subtreeAt(remote, 'origin')
+    expect(names(sub)).toEqual([{ feat: ['a'] }, 'main'])
+    // `origin/feat`, not `feat`: the folder opens and closes with its twin.
+    expect(folderPaths(sub)).toEqual(['origin/feat'])
+  })
+
+  test('a remote with a slash in its name is followed down', () => {
+    expect(names(subtreeAt(remote, 'my/fork'))).toEqual(['x'])
+  })
+
+  test('no such folder is nothing — and a prefix is not a folder', () => {
+    expect(subtreeAt(remote, 'nowhere')).toEqual([])
+    expect(names(subtreeAt(remote, 'orig'))).toEqual(['y'])
   })
 })

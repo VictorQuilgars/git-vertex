@@ -5,12 +5,19 @@ import { BranchInfo } from '../../types'
 import { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { loadGhFilters, saveGhFilters, type GhSavedFilter, type GhFilterStore } from './ghFilters'
 import { folderPaths, type BranchNode } from './branchTree'
+import { resolveTagCommit } from './tagMenu'
 import { readLayout, writeLayout, hasPaths, matchesFilter, type SbLayout, type SbLayoutView } from './sidebarLayout'
 import { usePullRequestCode } from '../../hooks/usePullRequestCode'
 import { useChangeUpstream } from '../../hooks/useChangeUpstream'
 import { isRefHidden, type RefFamily } from '../../utils/graphVisibility'
 import { useLang } from '../../i18n/LanguageContext'
+import { sidebarCounts } from './sidebarCounts'
+import { plainError } from '../../utils/errorText'
 import { type SidebarView, type ReflogEntry, type Contributor, type ChangelogEntry, type NoteEntry, type RemoteEntry, type SubmoduleEntry, type WorktreeEntry, type AgentEntry, type SidebarProps } from './types'
+
+/** The lists the side bar loads for itself — each one can fail on its own (#277). */
+export type SbList = 'reflog' | 'contributors' | 'remotes' | 'submodules' | 'worktrees' | 'agents'
+  | 'changelogs' | 'explanations' | 'notes'
 
 export function useSidebar(props: SidebarProps) {
   const {
@@ -20,7 +27,7 @@ export function useSidebar(props: SidebarProps) {
   onCheckout, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch,
   onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream,
   onCreateStash, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onRefreshStashes,
-  onCompareStash, onSelectStashForCompare,
+  onCompareRef, onSelectStashForCompare,
   onExplainBranch, onBranchChangelog, onRecomposeBranch, onOpenChangelog, onOpenExplanation, onOpenNote,
   onShowCommits,
   subjectFor, tab = 'list', onTab, memoryToken,
@@ -39,6 +46,7 @@ export function useSidebar(props: SidebarProps) {
   showToast, showPrompt, showConfirm, onRefresh, view,
   onFilterAuthor, authorFilter,
   home, mergeTarget, launchpad,
+  githubErrors, onOpenSettings,
 } = props
   // In single-view mode a section is shown when it matches the active view.
   // Without a view (desktop) every section renders (classic stacked layout).
@@ -58,6 +66,25 @@ export function useSidebar(props: SidebarProps) {
   // Which remote push/pull target by default — resolved by the service, so it
   // reflects the explicit choice or the origin/first-remote fallback.
   const [defaultRemote, setDefaultRemote] = useState<string | null>(null)
+  // Whether someone CHOSE it — the only case with a choice to take back
+  // (#289). `origin` winning by default is not one, and offering to unset it
+  // would do nothing.
+  const [defaultRemoteExplicit, setDefaultRemoteExplicit] = useState(false)
+  const loadDefaultRemote = useCallback(() => {
+    window.gitAPI.getDefaultRemote?.()
+      .then(r => { setDefaultRemote(r?.remote ?? null); setDefaultRemoteExplicit(!!r?.explicit) })
+      .catch(() => {})
+  }, [])
+  // The remotes whose branches are listed under them (#289). Closed by
+  // default: opening one is an act, and a list of remotes is read first.
+  const [expandedRemotes, setExpandedRemotes] = useState<Set<string>>(() => new Set())
+  const toggleRemoteExpanded = useCallback((name: string) => {
+    setExpandedRemotes(prev => {
+      const next = new Set(prev)
+      if (next.has(name)) next.delete(name); else next.add(name)
+      return next
+    })
+  }, [])
   const [submodules, setSubmodules] = useState<SubmoduleEntry[]>([])
   const [worktrees, setWorktrees] = useState<WorktreeEntry[]>([])
   // Running AI agents (Claude Code, aider…) keyed by their cwd — matched
@@ -66,15 +93,42 @@ export function useSidebar(props: SidebarProps) {
   // Working-tree summary for the overview "current work" card.
   const [work, setWork] = useState<{ staged: number; changed: number }>({ staged: 0, changed: 0 })
   const { t } = useLang()
-  // Swallowing this silently is what kept the empty Agents view alive in the VS
-  // Code panel for two releases: the host answered not-implemented, the catch
-  // ate it, and the list just rendered as "none running". Log instead — a
-  // console line is the difference between a bug you can see and one you can't.
-  const loadAgents = useCallback(() => {
-    ;(window.gitAPI as any).listAgents?.()
-      .then((r: { agents?: AgentEntry[] }) => setAgents(r?.agents ?? []))
-      .catch((e: unknown) => console.warn('[sidebar] listAgents failed:', e))
+  /**
+   * What each list the side bar reads for itself last failed on (#277).
+   *
+   * A refused read used to leave its list empty, and an empty list says "there
+   * are none": the Agents view read "none running" for two releases while the
+   * panel's host answered not-implemented. Now the error takes the list's
+   * place, quoted, with Try again. Both ways a host can refuse are caught — a
+   * rejected call, and an answer that carries `error` (not-implemented is one).
+   */
+  const [loadErrors, setLoadErrors] = useState<Partial<Record<SbList, string>>>({})
+  const settle = useCallback(<R,>(list: SbList, call: () => Promise<R> | undefined, apply: (r: R) => void) => {
+    const fail = (e: unknown) => {
+      console.warn(`[sidebar] ${list} failed:`, e)
+      // What the person reads: the desktop's IPC wraps a thrown error in the channel's
+      // name, which the panel's host never does — so the two say the same thing.
+      setLoadErrors(prev => ({ ...prev, [list]: plainError(e) }))
+    }
+    let p: Promise<R> | undefined
+    // A host that does not offer the call at all (`?.` below) has no list to
+    // fail on; one whose call throws before it returns a promise has.
+    try { p = call() } catch (e) { fail(e); return }
+    if (!p) return
+    p.then(r => {
+      const err = (r as { error?: unknown } | null | undefined)?.error
+      if (err) { fail(err); return }
+      setLoadErrors(prev => {
+        if (!(list in prev)) return prev
+        const next = { ...prev }; delete next[list]; return next
+      })
+      apply(r)
+    }, fail)
   }, [])
+  const loadAgents = useCallback(() => {
+    settle('agents', () => (window.gitAPI as any).listAgents?.(),
+      (r: { agents?: AgentEntry[] }) => setAgents(r?.agents ?? []))
+  }, [settle])
   /**
    * What the model has written for this repository (#70).
    *
@@ -87,31 +141,38 @@ export function useSidebar(props: SidebarProps) {
   const [explanations, setExplanations] = useState<Record<string, string>>({})
   const [notes, setNotes] = useState<NoteEntry[]>([])
   const loadMemory = useCallback(() => {
-    ;(window.gitAPI as any).aiChangelogList?.()
-      .then((r: { entries?: ChangelogEntry[] }) => setChangelogs(r?.entries ?? []))
-      .catch((e: unknown) => console.warn('[sidebar] aiChangelogList failed:', e))
-    ;(window.gitAPI as any).aiGetExplanations?.()
-      .then((r: { explanations?: Record<string, string> }) => setExplanations(r?.explanations ?? {}))
-      .catch((e: unknown) => console.warn('[sidebar] aiGetExplanations failed:', e))
-    ;(window.gitAPI as any).aiNoteList?.()
-      .then((r: { entries?: NoteEntry[] }) => setNotes(r?.entries ?? []))
-      .catch((e: unknown) => console.warn('[sidebar] aiNoteList failed:', e))
-  }, [])
+    settle('changelogs', () => (window.gitAPI as any).aiChangelogList?.(),
+      (r: { entries?: ChangelogEntry[] }) => setChangelogs(r?.entries ?? []))
+    settle('explanations', () => (window.gitAPI as any).aiGetExplanations?.(),
+      (r: { explanations?: Record<string, string> }) => setExplanations(r?.explanations ?? {}))
+    settle('notes', () => (window.gitAPI as any).aiNoteList?.(),
+      (r: { entries?: NoteEntry[] }) => setNotes(r?.entries ?? []))
+  }, [settle])
   const loadWorktrees = useCallback(() => {
     // `facts` is two more git calls per worktree — the dirty flag and the
     // tracking counts a row shows (#285). A repository has a handful of
     // worktrees, not a page of them, so it is asked for every time.
-    window.gitAPI.listWorktrees({ facts: true }).then(r => setWorktrees(r.worktrees ?? []))
+    settle('worktrees', () => window.gitAPI.listWorktrees({ facts: true }), r => setWorktrees(r.worktrees ?? []))
     loadAgents()
-  }, [loadAgents])
+  }, [loadAgents, settle])
+  const loadReflog = useCallback(() =>
+    settle('reflog', () => window.gitAPI.getReflog(), r => setReflog(r.entries ?? [])), [settle])
+  // Only when the host can filter by author: a list nothing acts on is a list.
+  const canFilterAuthor = !!onFilterAuthor
+  const loadContributors = useCallback(() => {
+    if (canFilterAuthor) settle('contributors', () => window.gitAPI.getContributors?.(20), r => setContributors(r?.contributors ?? []))
+  }, [settle, canFilterAuthor])
+  const loadRemotes = useCallback(() =>
+    settle('remotes', () => window.gitAPI.getRemotes(), r => setRemotes(r.remotes ?? [])), [settle])
+  const loadSubmodules = useCallback(() =>
+    settle('submodules', () => window.gitAPI.getSubmodules(), r => setSubmodules(r.submodules ?? [])), [settle])
   useEffect(() => {
     if (!repoPath) return
-    window.gitAPI.getReflog().then(r => setReflog(r.entries ?? []))
-    // Only when the host can filter by author: a list nothing acts on is a list.
-    if (onFilterAuthor) window.gitAPI.getContributors?.(20).then(r => setContributors(r?.contributors ?? [])).catch(() => {})
-    window.gitAPI.getRemotes().then(r => setRemotes(r.remotes ?? []))
-    window.gitAPI.getDefaultRemote?.().then(r => setDefaultRemote(r?.remote ?? null)).catch(() => {})
-    window.gitAPI.getSubmodules().then(r => setSubmodules(r.submodules ?? []))
+    loadReflog()
+    loadContributors()
+    loadRemotes()
+    loadDefaultRemote()
+    loadSubmodules()
     window.gitAPI.getWorkingChanges?.()
       .then(w => setWork({ staged: w.staged.length, changed: w.unstaged.length + w.untracked.length }))
       .catch(() => {})
@@ -120,7 +181,15 @@ export function useSidebar(props: SidebarProps) {
     // Light poll so agent badges stay current while the sidebar is open.
     const interval = setInterval(loadAgents, 10000)
     return () => clearInterval(interval)
-  }, [repoPath, loadWorktrees, loadAgents, loadMemory])
+  }, [repoPath, loadWorktrees, loadAgents, loadMemory, loadReflog, loadContributors, loadRemotes, loadSubmodules, loadDefaultRemote])
+  /** Try again, for one list — the button a failed load shows in its place. */
+  const retryLoad = useCallback((list: SbList) => {
+    ;({
+      reflog: loadReflog, contributors: loadContributors, remotes: loadRemotes,
+      submodules: loadSubmodules, worktrees: loadWorktrees, agents: loadAgents,
+      changelogs: loadMemory, explanations: loadMemory, notes: loadMemory,
+    } satisfies Record<SbList, () => void>)[list]()
+  }, [loadReflog, loadContributors, loadRemotes, loadSubmodules, loadWorktrees, loadAgents, loadMemory])
   // On opening the stack, and whenever something new has been written into it.
   useEffect(() => { if (repoPath && (showAI || memoryToken)) loadMemory() },
     [showAI, repoPath, loadMemory, memoryToken])
@@ -213,8 +282,7 @@ export function useSidebar(props: SidebarProps) {
     const r = await window.gitAPI.initSubmodule(path)
     if (r.success) {
       showToast(t('sb.sub.initialized', path))
-      const updated = await window.gitAPI.getSubmodules()
-      setSubmodules(updated.submodules ?? [])
+      loadSubmodules()
     } else {
       showToast(t('toast.err', r.error ?? ''), 'err')
     }
@@ -223,8 +291,7 @@ export function useSidebar(props: SidebarProps) {
     const r = await window.gitAPI.updateSubmodule(path)
     if (r.success) {
       showToast(t('sb.sub.updated', path))
-      const updated = await window.gitAPI.getSubmodules()
-      setSubmodules(updated.submodules ?? [])
+      loadSubmodules()
     } else {
       showToast(t('toast.err', r.error ?? ''), 'err')
     }
@@ -233,8 +300,7 @@ export function useSidebar(props: SidebarProps) {
     const r = await window.gitAPI.syncSubmodule(path)
     if (r.success) {
       showToast(t('sb.sub.synced', path))
-      const updated = await window.gitAPI.getSubmodules()
-      setSubmodules(updated.submodules ?? [])
+      loadSubmodules()
     } else {
       showToast(t('toast.err', r.error ?? ''), 'err')
     }
@@ -252,8 +318,7 @@ export function useSidebar(props: SidebarProps) {
     const r = await window.gitAPI.deinitSubmodule(path)
     if (r.success) {
       showToast(t('sb.sub.deinited', path))
-      const updated = await window.gitAPI.getSubmodules()
-      setSubmodules(updated.submodules ?? [])
+      loadSubmodules()
     } else {
       showToast(t('toast.err', r.error ?? ''), 'err')
     }
@@ -266,8 +331,10 @@ export function useSidebar(props: SidebarProps) {
     const r = await window.gitAPI.addRemote(name, url)
     if (r.success) {
       showToast(t('sb.remote.added', name))
-      const updated = await window.gitAPI.getRemotes()
-      setRemotes(updated.remotes ?? [])
+      loadRemotes()
+      // The host re-reads the remotes too: a first remote on GitHub is what
+      // turns an empty pull request view into a list (#292).
+      onRefresh?.()
     } else {
       showToast(t('toast.err', r.error ?? ''), 'err')
     }
@@ -278,8 +345,7 @@ export function useSidebar(props: SidebarProps) {
     const r = await window.gitAPI.removeRemote(name)
     if (r.success) {
       showToast(t('sb.remote.removed', name))
-      const updated = await window.gitAPI.getRemotes()
-      setRemotes(updated.remotes ?? [])
+      loadRemotes()
     } else {
       showToast(t('toast.err', r.error ?? ''), 'err')
     }
@@ -290,8 +356,7 @@ export function useSidebar(props: SidebarProps) {
     const r = await window.gitAPI.renameRemote(name, newName)
     if (r.success) {
       showToast(t('sb.remote.renamed', newName))
-      const updated = await window.gitAPI.getRemotes()
-      setRemotes(updated.remotes ?? [])
+      loadRemotes()
     } else {
       showToast(t('toast.err', r.error ?? ''), 'err')
     }
@@ -390,6 +455,12 @@ export function useSidebar(props: SidebarProps) {
    * all — and the ref is what makes the difference: `stash@{3}` resolves like
    * any other revision, and its diff is the one the preview already reads.
    */
+  /**
+   * The commit a tag stands for, asked when its row's menu opens (#288) —
+   * through the two calls both products already answer, so the panel needs
+   * nothing new from its host.
+   */
+  const resolveTag = (name: string) => resolveTagCommit(window.gitAPI, name)
   const handleCopyStashSha = async (index: number) => {
     const { hash } = await window.gitAPI.resolveCommit(`stash@{${index}}`)
     if (!hash) { showToast(t('sb.stash.noSuchStash', index), 'err'); return }
@@ -406,7 +477,19 @@ export function useSidebar(props: SidebarProps) {
     const r = await window.gitAPI.setDefaultRemote(name)
     if (!r.success) { showToast(t('toast.err', r.error ?? ''), 'err'); return }
     setDefaultRemote(name)
+    setDefaultRemoteExplicit(true)
     showToast(t('sb.remote.defaultSet', name))
+  }
+  /**
+   * Take the choice back (#289). The badge then moves to whatever the service
+   * falls back to — origin, or the first remote — so it is asked again rather
+   * than guessed here.
+   */
+  const handleUnsetDefaultRemote = async (name: string) => {
+    const r = await window.gitAPI.unsetDefaultRemote()
+    if (!r.success) { showToast(t('toast.err', r.error ?? ''), 'err'); return }
+    loadDefaultRemote()
+    showToast(t('sb.remote.defaultUnset', name))
   }
   const handleFetchRemote = async (name: string) => {
     const r = await window.gitAPI.fetchRemote(name)
@@ -437,6 +520,14 @@ export function useSidebar(props: SidebarProps) {
   const filteredRemotes = remotes.filter(r => keep(r.name) || keep(r.fetchUrl))
   // Either end of a worktree row: the folder it is in, or the branch it holds.
   const filteredWorktrees = worktrees.filter(wt => keep(wt.path) || keep(wt.branch ?? ''))
+  /**
+   * What each header counts — the rule the panel's rail counts with too
+   * (#277), over the lists as the field lets them through.
+   */
+  const counts = sidebarCounts({
+    branches: localBranches, stashes: filteredStashes, tags: filteredTags,
+    remotes: filteredRemotes, worktrees: filteredWorktrees, prs: githubPRs, issues: githubIssues,
+  })
   /**
    * List or tree, per view, kept on this machine. Held here rather than read
    * in each section so a re-render of one does not lose the other's choice.
@@ -556,7 +647,9 @@ export function useSidebar(props: SidebarProps) {
     .filter(b => keep(b.name))
 
   return {
-    repoPath, repoName, currentBranch, branches, recentRepos, stashes, tags, wipCount, wipSelected, onViewWip, onOpenRepo, onClone, onSetRepo, onCheckout, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch, onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream, onCreateStash, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onRefreshStashes, onExplainBranch, onBranchChangelog, onRecomposeBranch, onOpenChangelog, onOpenExplanation, onOpenNote, onShowCommits, subjectFor, tab, onTab, memoryToken, onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag, onSelectCommit, onCompareBranch, soloBranch, visibility, onToggleSolo, onToggleHide, onToggleHideTag, onToggleHideRemote, onSetFamilyHidden, onPull, githubPRs, githubIssues, onOpenGithubItem, onComparePullRequest, onStartBranchFromIssue, onShowGithubDetail, githubDetailOpen, githubLogin, githubRepo, isFavorite, issueFor, onToggleFavorite, onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR, showAllBranches, onToggleAllBranches, onRefreshGithub, onStartPR, onNewIssue, githubRefreshing, githubRefreshTick, githubPollTick, onCopyBranchLink, onDeleteBranchBoth, showToast, showPrompt, showConfirm, onRefresh, view, single, activeTab, showAI, show, reflog, setReflog, contributors, onFilterAuthor, authorFilter, home, mergeTarget, launchpad, remotes, setRemotes, defaultRemote, setDefaultRemote, submodules, setSubmodules, worktrees, setWorktrees, agents, setAgents, work, setWork, t, loadAgents, changelogs, setChangelogs, explanations, setExplanations, notes, setNotes, loadMemory, loadWorktrees, agentsFor, handleAddWorktree, handleRemoveWorktree, handleInitSubmodule, handleUpdateSubmodule, handleSyncSubmodule, handleDeinitSubmodule, handleAddRemote, handleRemoveRemote, handleRenameRemote, stashMenu, setStashMenu, prsQuery, setPrsQuery, issuesQuery, setIssuesQuery, ghFilters, setGhFilters, filterEditor, setFilterEditor, mutateFilters, stashScopeItems, handleRenameStash, handlePruneRemote, handleSetDefaultRemote, handleFetchRemote, branchFilter, setBranchFilter, localBranches, branchHidden, tagHidden, remoteHidden, stashesHidden, familyMenu, foldersKey, closedFolders, setClosedFolders, toggleFolder, openFolders, filtering, rootRef, filterDraft, setFilterDraft, showAll, localMenu, remoteBranches, onReveal, onOpenCard, onRebaseOntoUpstream, onCompareUpstream, tipActions, handlePullBranchRow, handleChangeUpstreamRow, handleSquashFixupsRow, handleWorktreeTerminal, handleWorktreeReveal, handleToggleWorktreeLock, handleCopyChangesTo, worktreeOf, handleCreateWorktreeFor, handlePullRequestCode, onCompareStash, onSelectStashForCompare, handleCopyStashSha, handleCopyStashPatch, filteredTags, filteredStashes, filteredRemotes, filteredWorktrees, layouts, toggleLayout, layoutFor, layoutToggle, filterView, filterPlaceholder,
+    repoPath, repoName, currentBranch, branches, recentRepos, stashes, tags, wipCount, wipSelected, onViewWip, onOpenRepo, onClone, onSetRepo, onCheckout, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch, onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream, onCreateStash, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onRefreshStashes, onExplainBranch, onBranchChangelog, onRecomposeBranch, onOpenChangelog, onOpenExplanation, onOpenNote, onShowCommits, subjectFor, tab, onTab, memoryToken, onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag, onSelectCommit, onCompareBranch, soloBranch, visibility, onToggleSolo, onToggleHide, onToggleHideTag, onToggleHideRemote, onSetFamilyHidden, onPull, githubPRs, githubIssues, onOpenGithubItem, onComparePullRequest, onStartBranchFromIssue, onShowGithubDetail, githubDetailOpen, githubLogin, githubRepo, isFavorite, issueFor, onToggleFavorite, onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR, showAllBranches, onToggleAllBranches, onRefreshGithub, onStartPR, onNewIssue, githubRefreshing, githubRefreshTick, githubPollTick, onCopyBranchLink, onDeleteBranchBoth, showToast, showPrompt, showConfirm, onRefresh, view, single, activeTab, showAI, show, reflog, setReflog, contributors, onFilterAuthor, authorFilter, home, mergeTarget, launchpad, remotes, setRemotes, defaultRemote, setDefaultRemote, submodules, setSubmodules, worktrees, setWorktrees, agents, setAgents, work, setWork, t, loadAgents, changelogs, setChangelogs, explanations, setExplanations, notes, setNotes, loadMemory, loadWorktrees, agentsFor, handleAddWorktree, handleRemoveWorktree, handleInitSubmodule, handleUpdateSubmodule, handleSyncSubmodule, handleDeinitSubmodule, handleAddRemote, handleRemoveRemote, handleRenameRemote, stashMenu, setStashMenu, prsQuery, setPrsQuery, issuesQuery, setIssuesQuery, ghFilters, setGhFilters, filterEditor, setFilterEditor, mutateFilters, stashScopeItems, handleRenameStash, handlePruneRemote, handleSetDefaultRemote, handleFetchRemote, branchFilter, setBranchFilter, localBranches, branchHidden, tagHidden, remoteHidden, stashesHidden, familyMenu, foldersKey, closedFolders, setClosedFolders, toggleFolder, openFolders, filtering, rootRef, filterDraft, setFilterDraft, showAll, localMenu, remoteBranches, onReveal, onOpenCard, onRebaseOntoUpstream, onCompareUpstream, tipActions, handlePullBranchRow, handleChangeUpstreamRow, handleSquashFixupsRow, handleWorktreeTerminal, handleWorktreeReveal, handleToggleWorktreeLock, handleCopyChangesTo, worktreeOf, handleCreateWorktreeFor, handlePullRequestCode, onCompareRef, resolveTag, onSelectStashForCompare, handleCopyStashSha, handleCopyStashPatch, filteredTags, filteredStashes, filteredRemotes, filteredWorktrees, layouts, toggleLayout, layoutFor, layoutToggle, filterView, filterPlaceholder,
+    counts, loadErrors, retryLoad, githubErrors, onOpenSettings,
+    defaultRemoteExplicit, handleUnsetDefaultRemote, expandedRemotes, toggleRemoteExpanded,
   }
 }
 

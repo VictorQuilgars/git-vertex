@@ -1,8 +1,10 @@
 import { useRef, useState, useCallback, useEffect, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
 import MdLite from './mdLite'
+import { Icon } from '../Icon/Icon'
 import { LabelChip, type GithubRowItem } from './GithubRow'
 import { useLang } from '../../i18n/LanguageContext'
+import { usePRFacts, type PRFactsSource, type PRFactsState } from './prFacts'
 import './GithubHoverCard.css'
 
 /**
@@ -67,8 +69,56 @@ export function useHoverCard(delayMs = 400) {
   return { pos, enter, leaveRow, close, inside }
 }
 
-export default function GithubHoverCard({ item, pos, inside, onClose, onOpen, onActivate }: {
+/**
+ * What a pull request's card adds to the row (#291): its checks, the review
+ * decision and its size. Nothing while there is no source to ask — a host or
+ * a list that cannot say draws the card it drew before.
+ */
+function PRFactsLines({ state }: { state: PRFactsState }) {
+  const { t } = useLang()
+  if (state.status === 'loading') {
+    return (<><div className="ghc-label">{t('gh.card.checks')}</div><div className="ghc-none">{t('gh.card.factsLoading')}</div></>)
+  }
+  if (state.status === 'error') {
+    return (<><div className="ghc-label">{t('gh.card.checks')}</div>
+      <div className="ghc-none">{state.error === 'rate_limited' ? t('gh.card.factsRateLimited') : t('gh.card.factsUnavailable')}</div></>)
+  }
+  const f = state.facts
+  if (!f) return null
+  const checks = f.checks === 'success' ? { label: t('gh.card.checksPassing'), mod: 'ok' }
+    : f.checks === 'failure' ? { label: t('gh.card.checksFailing'), mod: 'bad' }
+    : f.checks === 'pending' ? { label: t('gh.card.checksPending'), mod: 'wait' }
+    : { label: t('gh.card.checksNone'), mod: 'none' }
+  const review = f.reviewDecision === 'APPROVED' ? { label: t('gh.card.reviewApproved'), mod: 'ok' }
+    : f.reviewDecision === 'CHANGES_REQUESTED' ? { label: t('gh.card.reviewChanges'), mod: 'bad' }
+    : f.reviewDecision === 'REVIEW_REQUIRED' ? { label: t('gh.card.reviewRequired'), mod: 'wait' }
+    : { label: t('gh.card.reviewNone'), mod: 'none' }
+  return (
+    <>
+      <div className="ghc-label">{t('gh.card.checks')}</div>
+      <div className={`ghc-fact ghc-fact--${checks.mod}`} data-fact="checks">{checks.label}</div>
+      <div className="ghc-label">{t('gh.card.review')}</div>
+      <div className={`ghc-fact ghc-fact--${review.mod}`} data-fact="review">{review.label}</div>
+      <div className="ghc-label">{t('gh.card.size')}</div>
+      <div className="ghc-fact ghc-size" data-fact="size">
+        <span className="ghc-add">+{f.additions}</span>
+        <span className="ghc-del">−{f.deletions}</span>
+        <span>{t('gh.card.files', f.changedFiles)}</span>
+      </div>
+    </>
+  )
+}
+
+/** The card's pull request facts, asked only for a pull request with somewhere to ask. */
+function PRFactsBlock({ source, number }: { source: PRFactsSource; number: number }) {
+  const state = usePRFacts(source, number)
+  return state ? <PRFactsLines state={state} /> : null
+}
+
+export default function GithubHoverCard({ item, pos, inside, onClose, onOpen, onActivate, factsSource }: {
   item: GithubRowItem
+  /** Where a pull request's checks, review and size are asked (#291). Absent: the card says what the row knows. */
+  factsSource?: PRFactsSource
   pos: { left: number; top: number; maxHeight: number }
   inside: React.MutableRefObject<boolean>
   onClose: () => void
@@ -117,6 +167,13 @@ export default function GithubHoverCard({ item, pos, inside, onClose, onOpen, on
                   : { label: t('issue.open'), mod: 'open' }
             return <div className={`ghc-status ghc-status--${s.mod}`}>{s.label}</div>
           })()}
+          {item.kind === 'pr' && item.fork && (
+            <div className="ghc-fork" data-fact="fork">
+              <Icon name="fork" size={11} />
+              <span>{item.headRepo ? t('gh.card.forkFrom', item.headRepo) : t('gh.card.forkGone')}</span>
+            </div>
+          )}
+          {item.kind === 'pr' && factsSource && <PRFactsBlock source={factsSource} number={item.number} />}
           {(item.labels?.length ?? 0) > 0 && (
             <>
               <div className="ghc-label">{t('gh.card.labels')}</div>

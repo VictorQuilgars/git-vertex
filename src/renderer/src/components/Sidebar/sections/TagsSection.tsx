@@ -3,17 +3,18 @@ import { Section } from '../Section'
 import { TagItem } from '../rows'
 import { BranchTree } from '../tree'
 import { buildBranchTree } from '../branchTree'
+import { tagSolo } from '../../../utils/graphVisibility'
 import type { TagEntry } from '../types'
 import type { SidebarState } from '../useSidebar'
 import { tagChangelogSubject } from '../refReadings'
 import { readRange } from '../../../../../main/ai-range'
 
 export function TagsSection({ s }: { s: SidebarState }) {
-  const { onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag, onToggleHideTag, onReveal, onOpenCard, onBranchChangelog, branches, single, t, tagHidden, familyMenu, showAll, filteredTags, layoutFor, layoutToggle, toggleFolder, openFolders } = s
+  const { onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag, onToggleHideTag, onReveal, onOpenCard, single, t, tagHidden, familyMenu, showAll, filteredTags, layoutFor, layoutToggle, toggleFolder, openFolders, resolveTag, onCompareRef, tipActions, soloBranch, onToggleSolo, counts, onBranchChangelog, branches } = s
   const names = filteredTags.map(tg => tg.name)
   const asTree = layoutFor('tags', names) === 'tree'
   return (
-    <Section id="tags" title="TAGS" icon="tag" count={filteredTags.length} defaultOpen={single}
+    <Section id="tags" title="TAGS" icon="tag" count={counts.tags} defaultOpen={single}
             onAdd={onCreateTag} addLabel={t('sb.newTag')}
             menuItems={familyMenu('tags')}
             layout={layoutToggle('tags', names)}
@@ -30,6 +31,13 @@ export function TagsSection({ s }: { s: SidebarState }) {
                   onPush={() => onPushTag(tag.name)} onDeleteRemote={() => onDeleteRemoteTag(tag.name)}
                   hidden={tagHidden(tag.name)}
                   onToggleHide={onToggleHideTag && (() => onToggleHideTag(tag.name))}
+                  // A tag as the commit it stands for (#288): the branch row's
+                  // tip entries and its solo, on the resolved commit.
+                  resolveCommit={() => resolveTag(tag.name)}
+                  onCompareHead={onCompareRef && (hash => onCompareRef(hash, 'HEAD'))}
+                  tipActions={tipActions}
+                  soloed={soloBranch === tagSolo(tag.name)}
+                  onToggleSolo={() => onToggleSolo(tagSolo(tag.name))}
                   changelog={(() => {
                     // `<tag>..<current branch>` — see refReadings.ts (#293).
                     const subject = tagChangelogSubject(tag.name, branches)
