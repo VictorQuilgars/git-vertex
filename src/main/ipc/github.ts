@@ -4,13 +4,13 @@ import { ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { gitBinary, makeSimpleGit } from '../git-service'
 import { startOAuthFlow } from '../github-auth'
-import { githubRepo } from '../../renderer/src/utils/remoteUrl'
 import { join as pathJoin } from 'path'
 import { openRepoAt } from '../repo-session'
 import { state } from '../app-state'
 import { readSettings, writeSettings } from '../settings-store'
-import { ghApi, detectGithubRepo, avatarCache, githubIdenticonUrl, loadAuthedUserEmails, conditionalGet, prBlockedSupplement, searchCache } from '../github-client'
+import { ghApi, detectGithubRepo, githubRemoteOfOpenRepo, githubRemoteAt, avatarCache, githubIdenticonUrl, loadAuthedUserEmails, conditionalGet, prBlockedSupplement, searchCache } from '../github-client'
 import { branchPRsPath, toBranchPRs } from '../github-branch-prs'
+import { detectedRepo } from '../../renderer/src/utils/remoteUrl'
 
 
 
@@ -171,30 +171,16 @@ export function registerGithubHandlers(): void {
     return url
   })
 
-  handle('github:detect-repo', async () => {
-    if (!state.gitService) return { owner: null, repo: null }
-    try {
-      const remotes = await (state.gitService as any).git.getRemotes(true)
-      const origin = remotes.find((r: any) => r.name === 'origin') ?? remotes[0]
-      if (!origin) return { owner: null, repo: null }
-      // https://github.com/owner/repo.git  or  git@github.com:owner/repo.git,
-      // and the shapes the hand-written pattern used to get wrong: a dot in the
-      // repository name, an ssh port, credentials in the URL.
-      return githubRepo(origin.refs?.fetch ?? origin.refs?.push ?? '')
-    } catch { return { owner: null, repo: null } }
-  })
+  // The wire shape stays what `githubRepo` returns — { owner, repo, host }, all
+  // null when there is nothing — so the renderer and the extension's host answer
+  // the same thing. Which remote that is, and which hosts count as GitHub, is
+  // github-client's to say (githubRemote in remoteUrl.ts): the declared
+  // Enterprise host counts, and so does a GitHub remote that is not `origin`.
+  handle('github:detect-repo', async () => detectedRepo(await githubRemoteOfOpenRepo()))
 
   // Same GitHub-remote detection, but for an arbitrary local path (cross-repo
   // Launchpad: recent repos other than the currently-open one).
-  handle('github:detect-repo-at', async (_e, repoPath: string) => {
-    try {
-      const { execFile } = await import('child_process')
-      const { promisify } = await import('util')
-      const exec = promisify(execFile)
-      const r = await exec(gitBinary(), ['-C', repoPath, 'remote', 'get-url', 'origin'])
-      return githubRepo(r.stdout.trim())
-    } catch { return { owner: null, repo: null } }
-  })
+  handle('github:detect-repo-at', async (_e, repoPath: string) => detectedRepo(await githubRemoteAt(repoPath)))
 
   handle('github:list-prs', async (_e, owner: string, repo: string) => {
     const api = await ghApi()
