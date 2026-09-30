@@ -11,6 +11,7 @@ import { useChangeUpstream } from '../../hooks/useChangeUpstream'
 import { isRefHidden, type RefFamily } from '../../utils/graphVisibility'
 import { useLang } from '../../i18n/LanguageContext'
 import { sidebarCounts } from './sidebarCounts'
+import { plainError } from '../../utils/errorText'
 import { type SidebarView, type ReflogEntry, type Contributor, type ChangelogEntry, type NoteEntry, type RemoteEntry, type SubmoduleEntry, type WorktreeEntry, type AgentEntry, type SidebarProps } from './types'
 
 /** The lists the side bar loads for itself — each one can fail on its own (#277). */
@@ -85,7 +86,9 @@ export function useSidebar(props: SidebarProps) {
   const settle = useCallback(<R,>(list: SbList, call: () => Promise<R> | undefined, apply: (r: R) => void) => {
     const fail = (e: unknown) => {
       console.warn(`[sidebar] ${list} failed:`, e)
-      setLoadErrors(prev => ({ ...prev, [list]: e instanceof Error ? e.message : String(e) }))
+      // What the person reads: the desktop's IPC wraps a thrown error in the channel's
+      // name, which the panel's host never does — so the two say the same thing.
+      setLoadErrors(prev => ({ ...prev, [list]: plainError(e) }))
     }
     let p: Promise<R> | undefined
     // A host that does not offer the call at all (`?.` below) has no list to
