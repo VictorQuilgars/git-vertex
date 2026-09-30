@@ -4,6 +4,7 @@ import type { AppChrome } from './useAppChrome'
 import type { RepoSession } from './useRepoSession'
 import type { AppGithub } from './useAppGithub'
 import type { AppConflicts } from './useAppConflicts'
+import type { SplitGroup } from '../../../main/split-plan'
 
 export function useAppAi(app: AppChrome & RepoSession & AppGithub & AppConflicts) {
   const { showConfirm, showChoice, t, showToast, loadRepoData } = app
@@ -12,8 +13,9 @@ export function useAppAi(app: AppChrome & RepoSession & AppGithub & AppConflicts
   const [aiSearch, setAiSearch] = useState(false)
   const [aiSearchHashes, setAiSearchHashes] = useState<Set<string> | null>(null)
   const [aiSearchLoading, setAiSearchLoading] = useState(false)
-  // Agent proposals arriving via deep link (MCP propose_commit / propose_rebase_plan):
-  // preloaded into the staging form / rebase editor for the user to review —
+  // Agent proposals arriving via deep link (MCP propose_commit / propose_rebase_plan /
+  // propose_split): preloaded into the staging form / rebase editor / composer for
+  // the user to review —
   // nothing is staged, committed or rewritten until the user acts.
   const [commitProposal, setCommitProposal] = useState<{ message: string; files: string[] } | null>(null)
   /**
@@ -31,6 +33,19 @@ export function useAppAi(app: AppChrome & RepoSession & AppGithub & AppConflicts
    * recomposes that branch's commits (#293), `false` is closed.
    */
   const [composerOpen, setComposerOpen] = useState<boolean | string>(false)
+  /**
+   * A split an agent proposed (MCP propose_split, #88), under review in the
+   * composer instead of the model's own. Its presence OPENS the composer, on
+   * its own: the deep link that brings it also switches repository, and the
+   * switch closes whatever drawer was open — in an effect that may run before
+   * or after the proposal is set. `repo` is what lets that effect tell the
+   * proposal that came with the switch from one left over from before it.
+   *
+   * `id` changes with every proposal, so a second one sent while the first is
+   * still open replaces it rather than being ignored by a drawer that has
+   * already measured its plan.
+   */
+  const [composerProposal, setComposerProposal] = useState<{ id: number; repo: string; groups: SplitGroup[] } | null>(null)
   /**
    * Which stack the panel shows, and a token bumped whenever the model has
    * written something. Both live here rather than in the Sidebar because a
@@ -213,7 +228,7 @@ export function useAppAi(app: AppChrome & RepoSession & AppGithub & AppConflicts
   }, [showChoice, showConfirm, showToast, t])
 
   return {
-    aiSearch, setAiSearch, aiSearchHashes, setAiSearchHashes, aiSearchLoading, setAiSearchLoading, commitProposal, setCommitProposal, aiRead, setAiRead, composerOpen, setComposerOpen, sidebarTab, setSidebarTab, memoryToken, setMemoryToken, rememberedAI, insertChangelogGuarded,
+    aiSearch, setAiSearch, aiSearchHashes, setAiSearchHashes, aiSearchLoading, setAiSearchLoading, commitProposal, setCommitProposal, aiRead, setAiRead, composerOpen, setComposerOpen, composerProposal, setComposerProposal, sidebarTab, setSidebarTab, memoryToken, setMemoryToken, rememberedAI, insertChangelogGuarded,
   }
 }
 

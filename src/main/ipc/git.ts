@@ -7,7 +7,6 @@ import { type CompareAxis } from '../git-service'
 import { getRecentRepos } from '../recent-repos'
 import { gitBinary, makeSimpleGit } from '../git-service'
 import { resolveBase } from '../ai-material'
-import { githubRepo } from '../../renderer/src/utils/remoteUrl'
 import fs from 'fs'
 import path from 'path'
 import { readFileSync, writeFileSync, mkdirSync } from 'fs'
@@ -15,7 +14,7 @@ import { join as pathJoin } from 'path'
 import { maybeUpdateSubmodules, openRepoAt } from '../repo-session'
 import { notify, state } from '../app-state'
 import { readSettings } from '../settings-store'
-import { ghApi } from '../github-client'
+import { ghApi, githubRemoteAt } from '../github-client'
 import { rawGit } from '../ai-runtime'
 
 // ── Local repo scan (Launchpad WIPS + "View Repo" mapping) ──────────
@@ -948,11 +947,10 @@ export function registerGitHandlers(): void {
         branch = b.stdout.trim()
       } catch { /* detached — leave blank */ }
       if (!fullnameCache.has(p)) {
-        try {
-          const r = await exec(gitBinary(), ['-C', p, 'remote', 'get-url', 'origin'])
-          const { owner, repo } = githubRepo(r.stdout.trim())
-          fullnameCache.set(p, owner && repo ? `${owner}/${repo}` : null)
-        } catch { fullnameCache.set(p, null) }
+        // The same remote the panels ask GitHub about — not just `origin`, and an
+        // Enterprise host the user declared counts (githubRemote in remoteUrl.ts).
+        const found = await githubRemoteAt(p)
+        fullnameCache.set(p, found ? `${found.owner}/${found.repo}` : null)
       }
       return { path: p, name: p.split('/').pop() ?? p, changed, added, deleted, branch, fullname: fullnameCache.get(p) ?? null }
     }))

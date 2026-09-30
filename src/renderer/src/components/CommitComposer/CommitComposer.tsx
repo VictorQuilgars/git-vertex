@@ -2,9 +2,10 @@ import { useCallback, useEffect, useState, type RefObject } from 'react'
 import PanelDrawer from '../PanelDrawer/PanelDrawer'
 import { Icon } from '../Icon/Icon'
 import { useLang } from '../../i18n/LanguageContext'
+import { measureSplit, type SplitGroup } from '../../../../main/split-plan'
 import './CommitComposer.css'
 
-interface Group { message: string; files: string[] }
+type Group = SplitGroup
 
 /**
  * The commit composer (#70 P1) — a working tree cut into atomic commits.
@@ -13,12 +14,19 @@ interface Group { message: string; files: string[] }
  * This is the other half: work that is one heap on disk, proposed as a
  * sequence, reviewed, edited, and only then applied.
  *
+ * Two things propose here, and both land on this one screen: the configured
+ * model, asked when the drawer opens, and an agent over MCP (`propose_split`,
+ * #88), whose plan arrives by deep link as `proposal`. The agent's plan is
+ * measured against the working tree as it is NOW, exactly as the model's
+ * answer is — it was checked on the agent's side, but the tree may have moved
+ * since.
+ *
  * **File-level, and that is a decision.** A commit here takes whole files —
- * every hunk of them, staged or not. Hunk-level splitting needs a hunk-level
- * review screen, which is what #88 (`propose_split`) is for; promising it
- * here with a file-level apply behind it would be the worse kind of gap. The
- * drawer says so, because a user who expects hunks and gets files loses the
- * distinction between what they staged and what they did not.
+ * every hunk of them, staged or not. `propose_split` takes files for the same
+ * reason: promising hunks with a file-level apply behind them would be the
+ * worse kind of gap. The drawer says so, because a user who expects hunks and
+ * gets files loses the distinction between what they staged and what they did
+ * not.
  *
  * Nothing is applied until the button is pressed, and what is applied is what
  * is on screen — the plan is editable, so a proposal that is 80% right is
@@ -29,6 +37,11 @@ export interface CommitComposerProps {
   /** Committed something — the panel and the graph have to be reloaded. */
   onCommitted: () => void
   showToast: (msg: string, kind?: 'ok' | 'err') => void
+  /**
+   * A split an agent proposed (MCP `propose_split`). When given, the model is
+   * not asked: this is the plan under review.
+   */
+  proposal?: SplitGroup[]
   /**
    * A branch whose commits are recomposed instead of the working tree being
    * split (#293). Only ever the checked-out one: the plan is applied where
@@ -58,7 +71,7 @@ export default function CommitComposer({ anchor, ...props }: CommitComposerProps
   )
 }
 
-export function CommitComposerBody({ onClose, onCommitted, showToast, subject }: CommitComposerProps) {
+export function CommitComposerBody({ onClose, onCommitted, showToast, subject, proposal }: CommitComposerProps) {
   const { t } = useLang()
   const [busy, setBusy] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -71,13 +84,36 @@ export function CommitComposerBody({ onClose, onCommitted, showToast, subject }:
   /** Set when the plan recomposes a branch: applying it unwinds that branch first. */
   const [plan, setPlan] = useState<RecomposePlan | null>(null)
 
+  /**
+   * The agent's plan, measured against what is uncommitted now. Its paths
+   * were checked by the MCP server when it was sent; a file committed or
+   * reverted since then is dropped here and counted, and a file changed since
+   * then comes in loose — the same three outcomes as the model's answer.
+   */
+  const measureAgentPlan = useCallback(async (plan: SplitGroup[]) => {
+    const w = await window.gitAPI.getWorkingChanges()
+    const known = [...new Set([
+      ...(w?.staged ?? []).map(f => f.path),
+      ...(w?.unstaged ?? []).map(f => f.path),
+      ...(w?.untracked ?? []),
+    ])].sort()
+    if (!known.length) return { error: t('cc.agentNothing') }
+    const measured = measureSplit(plan, known)
+    if (!measured.groups.length) return { error: t('cc.agentStale') }
+    return measured
+  }, [t])
+
   const propose = useCallback(async () => {
     setBusy(true); setError(null)
     let r: any
     try {
-      r = await (window.gitAPI as any).aiProposeCommitSplit?.(subject) ?? { error: 'not-implemented' }
+      // An agent's plan is measured, not asked for; otherwise the model proposes — for the
+      // working tree, or for the branch being recomposed.
+      r = proposal
+        ? await measureAgentPlan(proposal)
+        : await (window.gitAPI as any).aiProposeCommitSplit?.(subject) ?? { error: 'not-implemented' }
     } catch (e: any) {
-      r = { error: e?.message ?? 'AI error' }
+      r = { error: e?.message ?? (proposal ? t('cc.agentReadFailed') : 'AI error') }
     }
     setBusy(false)
     if (r?.error) {
@@ -88,7 +124,7 @@ export function CommitComposerBody({ onClose, onCommitted, showToast, subject }:
     setLoose(r.unassigned ?? [])
     setInvented(r.invented ?? [])
     setPlan(r.recompose ?? null)
-  }, [t, subject])
+  }, [t, subject, proposal, measureAgentPlan])
 
   useEffect(() => { void propose() }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -215,6 +251,10 @@ export function CommitComposerBody({ onClose, onCommitted, showToast, subject }:
 
   return (
     <div className="cc-body">
+        {/* Whose plan this is. The drawer looks the same either way, and a
+            user who did not ask for a split has to see why one is open. */}
+        {proposal && <div className="cc-origin">{t('cc.fromAgent')}</div>}
+
         {busy && (
           <div className="cc-wait" role="status">
             <span className="cc-breath" aria-hidden="true" />
@@ -233,7 +273,9 @@ export function CommitComposerBody({ onClose, onCommitted, showToast, subject }:
             </div>
 
             {invented.length > 0 && (
-              <div className="cc-warn">{t('cc.invented', invented.length)}</div>
+              <div className="cc-warn" title={invented.join('\n')}>
+                {proposal ? t('cc.agentInvented', invented.length) : t('cc.invented', invented.length)}
+              </div>
             )}
 
             {groups.map((g, i) => (

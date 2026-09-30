@@ -1,7 +1,7 @@
 // Automated test harness for git-vertex-mcp (stdio JSON-RPC via the official SDK client).
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
-import { CreateMessageRequestSchema } from '@modelcontextprotocol/sdk/types.js'
+import { CreateMessageRequestSchema, ElicitRequestSchema, ResourceUpdatedNotificationSchema } from '@modelcontextprotocol/sdk/types.js'
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
@@ -49,10 +49,12 @@ async function t(client, name, tool, args, { expect = [], reject = [], isError =
   }
 }
 
-async function connect({ readOnly = false, env = {}, cwd = NOTAREPO, sampling = false } = {}) {
+// `elicit`, when given, is the simulated user: it receives each elicitation
+// request's params and returns the client's answer ({ action, content }).
+async function connect({ readOnly = false, env = {}, cwd = NOTAREPO, sampling = false, elicit = null, args = [] } = {}) {
   const transport = new StdioClientTransport({
     command: 'node',
-    args: readOnly ? [SERVER, '--read-only'] : [SERVER],
+    args: [SERVER, ...(readOnly ? ['--read-only'] : []), ...args],
     cwd,
     // LC_ALL=C by default: the server's message parsing assumes English git
     // output (see the dedicated locale tests at the end).
@@ -61,8 +63,9 @@ async function connect({ readOnly = false, env = {}, cwd = NOTAREPO, sampling = 
   })
   const client = new Client(
     { name: 'gv-mcp-test', version: '1.0.0' },
-    { capabilities: sampling ? { sampling: {} } : {} }
+    { capabilities: { ...(sampling ? { sampling: {} } : {}), ...(elicit ? { elicitation: {} } : {}) } }
   )
+  if (elicit) client.setRequestHandler(ElicitRequestSchema, async (req) => elicit(req.params))
   if (sampling) {
     client.setRequestHandler(CreateMessageRequestSchema, async (req) => {
       samplingRequestSeen = req.params.messages?.[0]?.content?.text ?? ''
@@ -98,10 +101,10 @@ const c1 = await connect()
 {
   const { tools } = await c1.listTools()
   const names = tools.map((t) => t.name).sort()
-  const expected = ['abort_operation', 'continue_operation', 'find_lost_work', 'generate_commit_message', 'git_bisect', 'git_blame', 'git_branches', 'git_conflicts', 'git_diff', 'git_log', 'git_pickaxe', 'git_show', 'git_status', 'open_in_git_vertex', 'predict_conflicts', 'propose_commit', 'propose_rebase_plan', 'resolve_conflict']
+  const expected = ['abort_operation', 'continue_operation', 'find_lost_work', 'generate_commit_message', 'git_bisect', 'git_blame', 'git_branches', 'git_conflicts', 'git_diff', 'git_log', 'git_pickaxe', 'git_show', 'git_status', 'open_in_git_vertex', 'predict_conflicts', 'propose_commit', 'propose_rebase_plan', 'propose_split', 'resolve_conflict']
   const missing = expected.filter((n) => !names.includes(n))
   const extra = names.filter((n) => !expected.includes(n))
-  record('tools/list exposes the 18 expected tools', 'tools/list', missing.length === 0 && extra.length === 0,
+  record('tools/list exposes the 19 expected tools', 'tools/list', missing.length === 0 && extra.length === 0,
     [...missing.map((m) => `missing ${m}`), ...extra.map((e) => `extra ${e}`)], names.join(', '))
 }
 
@@ -356,6 +359,29 @@ await t(c1, 'propose_rebase_plan: base=HEAD → empty range error', 'propose_reb
 await t(c1, 'propose_rebase_plan: step hash outside range → error', 'propose_rebase_plan', { repo: main, base: 'HEAD~2', steps: [{ hash: 'deadbeef', action: 'squash' }] }, {
   isError: true, expect: ['not in HEAD~2..HEAD'],
 })
+// propose_split refuses before it opens anything: a path it cannot place is
+// something the agent can still fix, and the review screen should not have to.
+await t(c1, 'propose_split: no commits rejected by schema', 'propose_split', { repo: main, commits: [] }, {
+  isError: true, expect: ['Input validation error'],
+})
+await t(c1, 'propose_split: blank message rejected by schema', 'propose_split', { repo: main, commits: [{ message: '   ', files: ['README.md'] }] }, {
+  isError: true, expect: ['Input validation error'],
+})
+await t(c1, 'propose_split: a commit with no file rejected by schema', 'propose_split', { repo: main, commits: [{ message: 'docs: x', files: [] }] }, {
+  isError: true, expect: ['Input validation error'],
+})
+await t(c1, 'propose_split: path traversal rejected', 'propose_split', { repo: main, commits: [{ message: 'feat: x', files: ['../merge-conflict/a.txt'] }] }, {
+  isError: true, expect: ['escapes the repository'],
+})
+await t(c1, 'propose_split: a file with no uncommitted change → error naming it and the changed files', 'propose_split', { repo: main, commits: [{ message: 'chore: x', files: ['shared.txt', 'README.md'] }] }, {
+  isError: true, expect: ['No uncommitted changes in: shared.txt', 'untracked.txt', 'staged-file.txt'],
+})
+await t(c1, 'propose_split: a file in two commits → error', 'propose_split', { repo: main, commits: [{ message: 'docs: a', files: ['README.md'] }, { message: 'docs: b', files: ['./README.md'] }] }, {
+  isError: true, expect: ['only one commit', 'README.md (commits 1 and 2)'],
+})
+await t(c1, 'propose_split: clean working tree → error', 'propose_split', { repo: bi, commits: [{ message: 'chore: x', files: ['log.txt'] }] }, {
+  isError: true, expect: ['Nothing uncommitted to split'],
+})
 
 // ── generate_commit_message ──
 await t(c1, 'generate_commit_message: no sampling → diff fallback', 'generate_commit_message', { repo: main }, {
@@ -419,6 +445,291 @@ await t(c5, 'locale fr: find_lost_work still finds dangling commits (fsck output
   expect: [/dangling commits \(\d/, 'WIP: lost work'], reject: ['No dangling commits'],
 })
 await c5.close()
+
+// ── propose_split: what actually reaches the app ──
+// The handoff is a gitgui:// URL given to the OS opener. A stand-in `open` /
+// `xdg-open` first on the server's PATH records the URL instead of launching
+// anything, so the test reads the very deep link and proposal file the app
+// would — and can check that nothing in the repository moved.
+{
+  const openerDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gv-opener-'))
+  const opened = path.join(openerDir, 'opened.log')
+  for (const name of ['open', 'xdg-open']) {
+    fs.writeFileSync(path.join(openerDir, name), `#!/bin/sh\nprintf '%s\\n' "$1" >> "${opened}"\n`, { mode: 0o755 })
+  }
+  const c6 = await connect({ env: { PATH: `${openerDir}${path.delimiter}${process.env.PATH}` } })
+  const { execFileSync } = await import('node:child_process')
+  const state = () => execFileSync('git', ['-C', main, 'status', '--porcelain'], { encoding: 'utf8' })
+  const before = state()
+
+  const out = await t(c6, 'propose_split: opens the composer and reports the files left out', 'propose_split', {
+    // A subdirectory as `repo`: paths are still the repository's, from its root.
+    repo: path.join(main, 'src'),
+    commits: [
+      { message: 'feat: add the staged file and its data', files: ['staged-file.txt', 'big.txt', 'big.txt'] },
+      { message: 'docs: extend the README', files: ['./README.md'] },
+    ],
+  }, {
+    expect: ['2-commit split preloaded (3 file(s))', '1 changed file(s) are in no commit', 'untracked.txt', 'Nothing was staged or committed'],
+  })
+
+  const urls = fs.existsSync(opened) ? fs.readFileSync(opened, 'utf8').trim().split('\n').filter(Boolean) : []
+  const url = urls.length === 1 ? new URL(urls[0]) : null
+  const q = url?.searchParams
+  record('propose_split: one gitgui://open deep link, view=propose-split, on the repository root', 'propose_split',
+    !!url && url.protocol === 'gitgui:' && q.get('view') === 'propose-split' && q.get('repo') === fs.realpathSync(main) && !!q.get('proposal'),
+    url ? [] : [`opener saw ${urls.length} URL(s)`], urls.join('\n') || out)
+
+  const proposalPath = q?.get('proposal') ?? ''
+  let payload = null
+  try { payload = JSON.parse(fs.readFileSync(proposalPath, 'utf8')) } catch { /* reported below */ }
+  const expectedPayload = {
+    kind: 'split',
+    commits: [
+      // Duplicates collapse, and "./README.md" is the README git reports.
+      { message: 'feat: add the staged file and its data', files: ['staged-file.txt', 'big.txt'] },
+      { message: 'docs: extend the README', files: ['README.md'] },
+    ],
+  }
+  record('propose_split: the proposal file is the app\'s payload, in the proposals directory', 'propose_split',
+    JSON.stringify(payload) === JSON.stringify(expectedPayload)
+      && path.dirname(proposalPath) === path.join(os.tmpdir(), 'git-vertex-mcp-proposals'),
+    [], JSON.stringify(payload) + ' @ ' + proposalPath)
+
+  const after = state()
+  record('propose_split: nothing staged, unstaged or committed by the call', 'propose_split',
+    before === after, before === after ? [] : ['git status changed'], after)
+
+  if (proposalPath) fs.rmSync(proposalPath, { force: true })
+  fs.rmSync(openerDir, { recursive: true, force: true })
+  await c6.close()
+}
+
+// ── resources ──
+// Read from the default repository ($GV_REPO), since a resource URI carries
+// no arguments. The same text as the matching tools.
+const RESOURCE_URIS = ['git://diff/staged', 'git://log', 'git://status']
+const c6 = await connect({ env: { GV_REPO: main } })
+{
+  const caps = c6.getServerCapabilities()
+  record('resources: server advertises resources with subscribe', 'initialize',
+    !!caps?.resources?.subscribe, caps?.resources?.subscribe ? [] : ['resources.subscribe missing'], JSON.stringify(caps?.resources))
+  const { resources } = await c6.listResources()
+  const uris = resources.map((r) => r.uri).sort()
+  record('resources/list exposes git://status, git://log, git://diff/staged', 'resources/list',
+    JSON.stringify(uris) === JSON.stringify(RESOURCE_URIS), [], uris.join(', '))
+  record('resources/list: each resource has a mime type and a description', 'resources/list',
+    resources.every((r) => r.mimeType && r.description), [], JSON.stringify(resources).slice(0, 300))
+}
+async function readRes(client, name, uri, { expect = [], reject = [], throws = false } = {}) {
+  try {
+    const res = await client.readResource({ uri })
+    if (throws) return record(name, 'resources/read', false, ['expected an error, got contents'], '')
+    const txt = res.contents.map((c) => c.text ?? '').join('\n')
+    const fails = []
+    if (res.contents[0]?.uri !== uri) fails.push(`contents uri ${res.contents[0]?.uri}`)
+    for (const e of expect) if (!(e instanceof RegExp ? e.test(txt) : txt.includes(e))) fails.push(`missing: ${e}`)
+    for (const r of reject) if (r instanceof RegExp ? r.test(txt) : txt.includes(r)) fails.push(`unexpected: ${r}`)
+    record(name, 'resources/read', fails.length === 0, fails, txt)
+  } catch (err) {
+    record(name, 'resources/read', throws, throws ? [] : [`threw: ${err.message}`], String(err.message ?? err))
+  }
+}
+await readRes(c6, 'resources/read git://status: same text as git_status', 'git://status', {
+  expect: ['branch: main', 'staged (2)', 'staged-file.txt', 'untracked (1): untracked.txt', 'fixtures/main'],
+})
+await readRes(c6, 'resources/read git://log: history with refs', 'git://log', {
+  expect: ['Initial commit', 'tag: v1.0', 'feature-conflict', 'Bob Reviewer'],
+})
+await readRes(c6, 'resources/read git://diff/staged: the staged patch, truncated', 'git://diff/staged', {
+  expect: ['diff --git a/big.txt', 'truncated at 24000 chars'], reject: ['unstaged edit'],
+})
+await readRes(c6, 'resources/read: unknown URI → error', 'git://nope', { throws: true })
+await c6.close()
+{
+  // No $GV_REPO and a working directory outside any repository: the read
+  // fails with the tools' clean message rather than an empty status.
+  const c7 = await connect()
+  await readRes(c7, 'resources/read: default repo not a repository → error', 'git://status', { throws: true })
+  await c7.close()
+}
+
+// ── resource subscriptions ──
+{
+  const watch = R('watch')
+  const updates = []
+  const c8 = await connect({ env: { GV_REPO: watch, GV_MCP_RESOURCE_POLL_MS: '100' } })
+  c8.setNotificationHandler(ResourceUpdatedNotificationSchema, (n) => { updates.push(n.params.uri) })
+  const waitFor = async (pred, ms) => {
+    const end = Date.now() + ms
+    while (Date.now() < end) { if (pred()) return true; await new Promise((r) => setTimeout(r, 50)) }
+    return pred()
+  }
+  await c8.subscribeResource({ uri: 'git://status' })
+  // The baseline is taken at subscribe time: nothing has changed yet, so
+  // nothing may be announced.
+  await new Promise((r) => setTimeout(r, 400))
+  record('subscribe: no notification while nothing changes', 'resources/subscribe', updates.length === 0, updates.length ? [`got ${updates.join(', ')}`] : [], '')
+  fs.writeFileSync(path.join(watch, 'new-file.txt'), 'appeared\n')
+  const got = await waitFor(() => updates.includes('git://status'), 5000)
+  record('subscribe: git://status notified when the working tree changes', 'resources/subscribe', got, got ? [] : ['no resources/updated within 5 s'], updates.join(', '))
+  const txt = (await c8.readResource({ uri: 'git://status' })).contents[0].text
+  record('subscribe: the re-read status shows the change', 'resources/read', txt.includes('new-file.txt'), [], txt)
+  record('subscribe: an unsubscribed resource is not notified', 'resources/subscribe', !updates.includes('git://log'), [], updates.join(', '))
+  await c8.unsubscribeResource({ uri: 'git://status' })
+  const before = updates.length
+  fs.writeFileSync(path.join(watch, 'another.txt'), 'again\n')
+  await new Promise((r) => setTimeout(r, 600))
+  record('unsubscribe: no more notifications', 'resources/unsubscribe', updates.length === before, updates.length === before ? [] : ['notified after unsubscribe'], '')
+  let threw = ''
+  try { await c8.subscribeResource({ uri: 'git://nope' }) } catch (err) { threw = String(err.message ?? err) }
+  record('subscribe: unknown URI → error', 'resources/subscribe', /Unknown resource/.test(threw), [], threw)
+  await c8.close()
+}
+
+// ── prompts ──
+const c9 = await connect()
+{
+  const { prompts } = await c9.listPrompts()
+  const names = prompts.map((p) => p.name).sort()
+  record('prompts/list exposes review-branch, release-notes, explain-commit', 'prompts/list',
+    JSON.stringify(names) === JSON.stringify(['explain-commit', 'release-notes', 'review-branch']), [], names.join(', '))
+  const explain = prompts.find((p) => p.name === 'explain-commit')
+  const refArg = explain?.arguments?.find((a) => a.name === 'ref')
+  record('prompts/list: explain-commit requires `ref`, repo optional', 'prompts/list',
+    refArg?.required === true && explain.arguments.some((a) => a.name === 'repo' && !a.required), [], JSON.stringify(explain?.arguments))
+}
+async function prompt(client, name, promptName, args, { expect = [], reject = [], throws = false } = {}) {
+  try {
+    const res = await client.getPrompt({ name: promptName, arguments: args })
+    if (throws) return record(name, 'prompts/get', false, ['expected an error, got a prompt'], '')
+    const txt = res.messages.map((m) => m.content?.text ?? '').join('\n')
+    const fails = []
+    if (res.messages[0]?.role !== 'user') fails.push(`role ${res.messages[0]?.role}`)
+    for (const e of expect) if (!(e instanceof RegExp ? e.test(txt) : txt.includes(e))) fails.push(`missing: ${e}`)
+    for (const r of reject) if (r instanceof RegExp ? r.test(txt) : txt.includes(r)) fails.push(`unexpected: ${r}`)
+    record(name, 'prompts/get', fails.length === 0, fails, txt)
+  } catch (err) {
+    record(name, 'prompts/get', throws, throws ? [] : [`threw: ${err.message}`], String(err.message ?? err))
+  }
+}
+await prompt(c9, 'prompts/get explain-commit: message, stats and patch of the commit', 'explain-commit', { repo: main, ref: 'v1.0' }, {
+  expect: ['Explain the commit `v1.0`', 'feat: add computeTotal', 'author: Alice Dev', 'src/app.js', 'diff --git', '+function computeTotal'],
+})
+await prompt(c9, 'prompts/get explain-commit: unknown ref → error', 'explain-commit', { repo: main, ref: 'ghost-ref' }, { throws: true })
+await prompt(c9, 'prompts/get explain-commit: ref starting with "-" rejected', 'explain-commit', { repo: main, ref: '--help' }, { throws: true })
+await prompt(c9, 'prompts/get explain-commit: missing ref → error', 'explain-commit', { repo: main }, { throws: true })
+// No origin in the fixture: the base falls back to main. Three dots: main's own
+// later commit ("chore: change shared (main)") is not part of the review.
+await prompt(c9, 'prompts/get review-branch: commits and diff of the branch against main', 'review-branch', { repo: main, branch: 'feature-conflict' }, {
+  expect: ['`feature-conflict` against `main`', 'feat: change shared (feature)', 'shared.txt', '+shared FEATURE'],
+  reject: ['chore: change shared (main)', '+shared MAIN'],
+})
+await prompt(c9, 'prompts/get review-branch: explicit base', 'review-branch', { repo: main, branch: 'feature-clean', base: 'v1.0' }, {
+  expect: ['against `v1.0`', 'feat: clean feature file', 'docs: update README'],
+})
+await prompt(c9, 'prompts/get review-branch: current branch vs itself → nothing to review', 'review-branch', { repo: main }, { throws: true })
+await prompt(c9, 'prompts/get release-notes: defaults to the range since the latest tag', 'release-notes', { repo: main }, {
+  expect: ['`v1.0..HEAD`', 'docs: update README', 'refactor: drop computeTotal', 'chore: change shared (main)'],
+  reject: ['Initial commit', 'feat: add computeTotal'],
+})
+await prompt(c9, 'prompts/get release-notes: at the tag itself, the notes lead up to it', 'release-notes', { repo: main, to: 'v1.0' }, {
+  expect: ['no earlier tag', 'feat: add computeTotal', 'Initial commit'],
+})
+await prompt(c9, 'prompts/get release-notes: explicit from/to', 'release-notes', { repo: main, from: 'v1.0', to: 'HEAD~1' }, {
+  expect: ['`v1.0..HEAD~1`', 'refactor: drop computeTotal'], reject: ['chore: change shared (main)'],
+})
+await c9.close()
+
+// ── elicitation: the user confirms writes through the client ──
+// The tests without elicitation above (c1 resolving, continuing and aborting
+// directly) are the fallback: a client that does not declare the capability is
+// never asked, and the tools behave as they always have.
+{
+  const em = R('elicit-merge')
+  const asked = []
+  let answer = { action: 'decline' }
+  const c10 = await connect({ elicit: (params) => { asked.push(params); return answer } })
+  const markers = () => fs.readFileSync(path.join(em, 'a.txt'), 'utf8').includes('<<<<<<<')
+
+  await t(c10, 'elicitation: resolve_conflict declined → nothing written', 'resolve_conflict', { repo: em, file: 'a.txt', content: 'alpha MERGED\n' }, {
+    expect: ['did not confirm', 'a.txt was not written or staged'], reject: ['Resolved and staged'],
+  })
+  record('elicitation: the question names the file and previews the content', 'elicitation/create',
+    asked.length === 1 && asked[0].message.includes('a.txt') && asked[0].message.includes('alpha MERGED') && !!asked[0].requestedSchema?.properties?.confirm,
+    [], JSON.stringify(asked[0] ?? null).slice(0, 300))
+  record('elicitation: declined leaves the conflict markers on disk', 'resolve_conflict', markers(), [], '')
+
+  answer = { action: 'accept', content: { confirm: false } }
+  await t(c10, 'elicitation: accepted without the tick → still not written', 'resolve_conflict', { repo: em, file: 'a.txt', content: 'alpha MERGED\n' }, {
+    expect: ['did not confirm'],
+  })
+  record('elicitation: unticked accept leaves the conflict markers on disk', 'resolve_conflict', markers(), [], '')
+
+  answer = { action: 'cancel' }
+  await t(c10, 'elicitation: dismissed → not written', 'resolve_conflict', { repo: em, file: 'a.txt', content: 'alpha MERGED\n' }, {
+    expect: ['did not confirm'],
+  })
+
+  answer = { action: 'accept', content: { confirm: true } }
+  await t(c10, 'elicitation: confirmed → a.txt resolved and staged', 'resolve_conflict', { repo: em, file: 'a.txt', content: 'alpha MERGED\n' }, {
+    expect: ['Resolved and staged a.txt'],
+  })
+  await t(c10, 'elicitation: confirmed → b.txt resolved and staged', 'resolve_conflict', { repo: em, file: 'b.txt', content: 'beta MERGED\n' }, {
+    expect: ['Resolved and staged b.txt', 'ready to continue'],
+  })
+  // The guard-rails run BEFORE the question: a refused call never asks.
+  const n = asked.length
+  await t(c10, 'elicitation: a call the guard-rails refuse asks nothing', 'resolve_conflict', { repo: em, file: 'a.txt', content: 'x\n' }, {
+    isError: true, expect: ['not currently conflicted'],
+  })
+  record('elicitation: no question for a refused call', 'elicitation/create', asked.length === n, [], '')
+
+  answer = { action: 'decline' }
+  await t(c10, 'elicitation: continue_operation declined → merge still in progress', 'continue_operation', { repo: em }, {
+    expect: ['did not confirm', 'still in progress'], reject: ['merge continued'],
+  })
+  await t(c10, 'elicitation: after a declined continue, the merge is still there', 'git_conflicts', { repo: em }, {
+    expect: ['operation: merge'],
+  })
+  answer = { action: 'accept', content: { confirm: true } }
+  await t(c10, 'elicitation: continue_operation confirmed → merge completes', 'continue_operation', { repo: em }, {
+    expect: ['merge continued'],
+  })
+
+  const ea = R('elicit-abort')
+  answer = { action: 'decline' }
+  await t(c10, 'elicitation: abort_operation declined → cherry-pick still in progress', 'abort_operation', { repo: ea }, {
+    expect: ['did not confirm'], reject: ['aborted —'],
+  })
+  await t(c10, 'elicitation: after a declined abort, the conflict is still there', 'git_conflicts', { repo: ea }, {
+    expect: ['operation: cherry-pick', 'f.txt'],
+  })
+  record('elicitation: the abort question says what is lost', 'elicitation/create',
+    /thrown away/.test(asked.at(-1)?.message ?? ''), [], asked.at(-1)?.message ?? '')
+  await c10.close()
+
+  // A client that declares the capability and then fails to answer: the write
+  // does not go ahead on a question nobody saw.
+  const c11 = await connect({ elicit: () => { throw new Error('dialog crashed') } })
+  await t(c11, 'elicitation: client fails to answer → error, nothing changed', 'abort_operation', { repo: ea }, {
+    isError: true, expect: ['Could not ask the user to confirm', 'nothing was changed'],
+  })
+  await t(c11, 'elicitation: after a failed question, the conflict is still there', 'git_conflicts', { repo: ea }, {
+    expect: ['operation: cherry-pick'],
+  })
+  await c11.close()
+
+  // --no-elicitation: the client supports it, the user opted out — no question,
+  // the tool acts as it does for a client without the capability.
+  let askedWhenOff = 0
+  const c12 = await connect({ args: ['--no-elicitation'], elicit: () => { askedWhenOff++; return { action: 'decline' } } })
+  await t(c12, '--no-elicitation: abort_operation acts without asking', 'abort_operation', { repo: ea }, {
+    expect: ['cherry-pick aborted'],
+  })
+  record('--no-elicitation: no question was sent', 'elicitation/create', askedWhenOff === 0, [], String(askedWhenOff))
+  await c12.close()
+}
 
 // ── summary ──
 const pass = results.filter((r) => r.ok).length

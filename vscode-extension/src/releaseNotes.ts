@@ -32,6 +32,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 📅 Merged since, closed since
 - Filters of pull requests and issues take **\`merged:\`** and **\`closed:\`**, typed or described: *PRs merged since September 1st* now keeps its date.
+
+### 🔗 A remote that is not \`origin\` can be the GitHub one
+- A repository is on GitHub if **any** of its remotes is: an \`upstream\` on GitHub behind an \`origin\` on GitLab now gets its pull requests and issues in the panel instead of *no GitHub remote*. And the **Enterprise Server** you declared in Settings is recognised — the repository on it used to be reported as not on GitHub even with its token set. \`origin\` still wins when it is on GitHub, and a host you have not declared is still not GitHub.
 `,
   '1.37.0': `## What's new in 1.37.0
 

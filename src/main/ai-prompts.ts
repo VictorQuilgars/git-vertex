@@ -11,6 +11,7 @@
 // text out, answers parsed. Material comes from ai-material.ts.
 
 import { renderDiff, type DiffDetail } from './ai-diff'
+import { measureSplit, type SplitGroup, type SplitProposal } from './split-plan'
 
 /**
  * The cut for text that is NOT a diff — a commit log, a search index, a
@@ -237,17 +238,10 @@ export function parsePullRequest(text: string): { title: string; body: string } 
   }
 }
 
-/** One commit a split proposes: a message and the files it takes. */
-export interface SplitGroup { message: string; files: string[] }
-
-/** What came back from a split, once measured against the real file list. */
-export interface SplitProposal {
-  groups: SplitGroup[]
-  /** Real files the model placed nowhere — the UI has to offer them. */
-  unassigned: string[]
-  /** Paths the model invented, kept so the UI can say the answer was edited. */
-  invented: string[]
-}
+// The shape of a split, and the check that makes one true, live apart: the
+// renderer measures an agent's split too, and has no business importing the
+// prompts to do it.
+export type { SplitGroup, SplitProposal } from './split-plan'
 
 /**
  * Cut the working tree into commits.
@@ -308,34 +302,19 @@ ${renderDiff(diff, { budget: 12000, ...diffOpts })}
  * Read a split back, and make it true.
  *
  * The model's answer is a proposal about files that exist, so it is checked
- * against them rather than believed: an invented path is dropped (and
- * reported), a file placed twice belongs to the first commit that claimed it,
- * and anything left over comes back as `unassigned` — the UI shows those,
- * because silently dropping a file from a split loses work.
+ * against them rather than believed — by `measureSplit` (split-plan.ts), the
+ * same check a split proposed by an MCP agent goes through (#88).
  */
 export function parseSplit(text: string, knownFiles: string[]): SplitProposal {
-  const known = new Set(knownFiles)
-  const taken = new Set<string>()
-  const invented: string[] = []
-  const groups: SplitGroup[] = []
-
+  const read: SplitGroup[] = []
   for (const block of text.split(/^\s*={3,}\s*COMMIT\s*={3,}\s*$/mi).slice(1)) {
     const i = block.search(/^\s*FILES:\s*$/mi)
     if (i === -1) continue
     const message = block.slice(0, i).replace(/^\s*MESSAGE:\s*/i, '').trim()
-    const files: string[] = []
-    for (const raw of block.slice(i).split('\n').slice(1)) {
-      const path = raw.trim().replace(/^[-*]\s+/, '').replace(/^`|`$/g, '')
-      if (!path) continue
-      if (!known.has(path)) { invented.push(path); continue }
-      if (taken.has(path)) continue
-      taken.add(path)
-      files.push(path)
-    }
-    // A commit that lost every file it was given has nothing to apply. Its
-    // message is not worth keeping either — it described those files.
-    if (message && files.length) groups.push({ message, files })
+    const files = block.slice(i).split('\n').slice(1)
+      .map(raw => raw.trim().replace(/^[-*]\s+/, '').replace(/^`|`$/g, ''))
+      .filter(Boolean)
+    read.push({ message, files })
   }
-
-  return { groups, unassigned: knownFiles.filter(f => !taken.has(f)), invented }
+  return measureSplit(read, knownFiles)
 }
