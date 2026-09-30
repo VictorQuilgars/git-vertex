@@ -115,4 +115,41 @@ for i in $(seq 1 15); do
 done
 cd ..
 
+# ── elicit-merge / elicit-abort: conflicts for the confirmation tests ──
+# Their own repositories, because the tests without elicitation resolve and
+# abort the ones above: a declined confirmation has to be seen to leave a
+# conflict exactly where it was.
+ginit elicit-merge
+printf 'alpha base\n' > a.txt
+printf 'beta base\n' > b.txt
+c "base" "2026-07-01T10:00:00"
+git checkout -qb feature
+printf 'alpha FEATURE\n' > a.txt
+printf 'beta FEATURE\n' > b.txt
+c "feature: edit a and b" "2026-07-02T10:00:00"
+git checkout -q main
+printf 'alpha MAIN\n' > a.txt
+printf 'beta MAIN\n' > b.txt
+c "main: edit a and b" "2026-07-03T10:00:00"
+git merge feature >/dev/null 2>&1 || true
+cd ..
+
+ginit elicit-abort
+printf 'base\n' > f.txt
+c "base" "2026-07-01T10:00:00"
+git checkout -qb side
+printf 'side version\n' > f.txt
+c "side: edit f" "2026-07-02T10:00:00"
+git checkout -q main
+printf 'main version\n' > f.txt
+c "main: edit f" "2026-07-03T10:00:00"
+git cherry-pick side >/dev/null 2>&1 || true
+cd ..
+
+# ── watch: a small repository the subscription tests modify ─────
+ginit watch
+printf 'watched\n' > w.txt
+c "watch: base" "2026-07-10T10:00:00"
+cd ..
+
 echo "fixtures ready: $ROOT/fixtures"

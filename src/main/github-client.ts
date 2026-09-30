@@ -1,9 +1,40 @@
 // The GitHub API as this app uses it: the token, the remote, and the caches that keep it polite.
 import { bypassVerdict, RULESET_PROBE_CAP } from './ruleset-bypass'
-import { apiForUser, type GithubApi } from './github-host'
-import { githubRepo } from '../renderer/src/utils/remoteUrl'
+import { apiForUser, knownGithubHosts, type GithubApi } from './github-host'
+import { githubRemote, pickRemote, type GithubRemote, type Remote } from '../renderer/src/utils/remoteUrl'
+import { makeSimpleGit } from './git-service'
 import { state } from './app-state'
 import { readSettings } from './settings-store'
+
+/** simple-git's remotes, in the shape the shared picker reads. */
+const asRemotes = (raw: any[]): Remote[] =>
+  raw.map(r => ({ name: r.name, fetchUrl: r.refs?.fetch ?? '', pushUrl: r.refs?.push ?? '' }))
+
+/**
+ * The remote GitHub is asked about — `githubRemote` in remoteUrl.ts says which
+ * — for the open repository, or null when none of its remotes is on a GitHub
+ * we know (github.com, or the Enterprise host the user declared).
+ *
+ * The API base, the token and the repository detection all start from this one
+ * answer. They used to each pick `origin` on their own, which is how they could
+ * disagree: an Enterprise host was configured for the API and unknown to the
+ * detection that decides whether there is anything to ask.
+ */
+export async function githubRemoteOfOpenRepo(): Promise<GithubRemote | null> {
+  if (!state.gitService) return null
+  try {
+    const remotes = asRemotes(await (state.gitService as any).git.getRemotes(true))
+    return githubRemote(remotes, knownGithubHosts(readSettings()))
+  } catch { return null }
+}
+
+/** The same question of a repository that is not the open one — the Launchpad's recent list. */
+export async function githubRemoteAt(repoPath: string): Promise<GithubRemote | null> {
+  try {
+    const remotes = asRemotes(await makeSimpleGit(repoPath).getRemotes(true))
+    return githubRemote(remotes, knownGithubHosts(readSettings()))
+  } catch { return null }
+}
 
 /**
  * The GitHub this repository belongs to, and the token that may be sent there.
@@ -20,9 +51,13 @@ import { readSettings } from './settings-store'
 export async function currentRemoteUrl(): Promise<string | null> {
   if (!state.gitService) return null
   try {
-    const remotes = await (state.gitService as any).git.getRemotes(true)
-    const origin = remotes.find((r: any) => r.name === 'origin') ?? remotes[0]
-    return origin?.refs?.fetch ?? origin?.refs?.push ?? null
+    const remotes = asRemotes(await (state.gitService as any).git.getRemotes(true))
+    const onGithub = githubRemote(remotes, knownGithubHosts(readSettings()))
+    if (onGithub) return onGithub.url
+    // Nothing on a GitHub we know: origin, or whatever comes first, as before —
+    // the caller falls back to github.com's API for a remote it does not know.
+    const fallback = pickRemote(remotes)
+    return fallback?.fetchUrl || fallback?.pushUrl || null
   } catch { return null }
 }
 
@@ -32,16 +67,8 @@ export async function ghApi(): Promise<GithubApi> {
 
 // Resolve the GitHub owner/repo of the currently open repository.
 export async function detectGithubRepo(): Promise<{ owner: string; repo: string } | null> {
-  if (!state.gitService) return null
-  try {
-    const remotes = await (state.gitService as any).git.getRemotes(true)
-    const origin = remotes.find((r: any) => r.name === 'origin') ?? remotes[0]
-    if (!origin) return null
-    const url: string = origin.refs?.fetch ?? origin.refs?.push ?? ''
-    const { owner, repo } = githubRepo(url)
-    if (!owner || !repo) return null
-    return { owner, repo }
-  } catch { return null }
+  const found = await githubRemoteOfOpenRepo()
+  return found ? { owner: found.owner, repo: found.repo } : null
 }
 
 // Cache email → avatar URL in the main process (persists for the app lifetime).

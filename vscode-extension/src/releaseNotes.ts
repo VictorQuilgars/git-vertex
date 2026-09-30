@@ -32,6 +32,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 🔢 A pull request by its number
 - Type **\`#123\`** in the Pull requests search box: when the list does not hold it, the view offers to **fetch it whatever its state** — merged and closed ones included — and opens it. Rows from a **fork** say so, and the hover now shows the request's **checks**, **review decision** and **size**.
+
+### 🔗 A remote that is not \`origin\` can be the GitHub one
+- A repository is on GitHub if **any** of its remotes is: an \`upstream\` on GitHub behind an \`origin\` on GitLab now gets its pull requests and issues in the panel instead of *no GitHub remote*. And the **Enterprise Server** you declared in Settings is recognised — the repository on it used to be reported as not on GitHub even with its token set. \`origin\` still wins when it is on GitHub, and a host you have not declared is still not GitHub.
 `,
   '1.37.0': `## What's new in 1.37.0
 
