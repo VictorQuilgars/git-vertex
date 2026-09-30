@@ -11,15 +11,18 @@ import { state } from './app-state'
 import { readSettings, writeSettings } from './settings-store'
 
 // ── Deep links ────────────────────────────────────────────────
-// gitgui://open?repo=<abs path>&view=graph|resolve|commit|propose-commit|propose-rebase
+// gitgui://open?repo=<abs path>&view=graph|resolve|commit|propose-commit|propose-rebase|propose-split
 //               &file=<rel>&hash=<sha>&proposal=<temp file>
 // Opens the repo, and optionally the 3-way conflict resolver on `file` or
 // the commit details of `hash`. If the app is cold-starting from the URL,
-// the payload is parked until the renderer asks for it.
+// the payload is parked until the renderer asks for it. What each view does
+// with its proposal is the renderer's business (useAppTabs.applyDeepLink):
+// this side only carries it.
 //
-// `proposal`, from git-vertex-mcp's open_in_git_vertex: a throwaway file
-// (always under the OS tmp dir's git-vertex-mcp-proposals/ folder — never
-// an arbitrary path) holding a proposed conflict resolution. Read here
+// `proposal`, from git-vertex-mcp's open_in_git_vertex and propose_* tools:
+// a throwaway file (always under the OS tmp dir's git-vertex-mcp-proposals/
+// folder — never an arbitrary path) holding a proposed conflict resolution,
+// or the JSON of a proposed commit, rebase plan or split. Read here
 // (never handed to the renderer as a raw path) and inlined as
 // `proposalContent`, then deleted — it's single-use and the MCP process
 // may not even outlive this call.
