@@ -15,6 +15,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 🧾 Side bar rows say more
 - A **branch** row shows the age of its last commit, a mark when **another worktree** holds it, and a tooltip with what it tracks, its **pull request** and that worktree. A **tag** row shows its **annotation**, and its hash is the commit it points at. A **stash** row names the **branch it was made on**, and when. All of it read with the lists themselves — nothing per row.
+
+### 🔗 A remote that is not \`origin\` can be the GitHub one
+- A repository is on GitHub if **any** of its remotes is: an \`upstream\` on GitHub behind an \`origin\` on GitLab now gets its pull requests and issues instead of *no GitHub remote*. And the **Enterprise Server** you declared in Settings is recognised — the repository on it used to be reported as not on GitHub even with its token set. \`origin\` still wins when it is on GitHub, and a host you have not declared is still not GitHub.
 `,
   '1.39.0': `## What's new in 1.39.0
 

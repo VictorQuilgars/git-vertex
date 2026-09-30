@@ -1,5 +1,15 @@
 # Changelog — Git Vertex MCP
 
+## Unreleased
+
+### Added
+- **The user confirms a write through the client itself — the review step for when the desktop app is not installed.** Until now that step was a request in the chat, which the agent could word loosely, skip, or ask after the fact. When the client supports MCP elicitation, `resolve_conflict` (with a preview of the resolution), `continue_operation` and `abort_operation` now put the question to the user from the server, before anything is written, and do nothing unless the user ticks "Go ahead". A client without elicitation is never asked and the tools behave as before — the same way `generate_commit_message` falls back without sampling. A client that declared elicitation and then fails to answer gets an error, never a write on a question nobody saw. `--no-elicitation` (or `GV_MCP_NO_ELICITATION=1`) turns it off for clients that already gate every tool call behind a permission prompt.
+- **Resources: `git://status`, `git://log` and `git://diff/staged`**, so clients that pin context — Cline, Continue, Zed — can attach them without a tool call. The text is the same as the matching tools', produced by the same code. They are **subscribable**: the server re-reads a subscribed resource every 2 seconds and notifies only when its text changed, and polls nothing while nothing is subscribed.
+- **Prompts: `/review-branch`, `/release-notes` and `/explain-commit`**, listed natively as slash commands by MCP clients. Each gathers its git material itself — the branch's commits and its diff since it left its base; the commits since the latest tag; one commit's message, stats and patch — so it works with any provider and in a client that never calls a tool.
+
+### Changed
+- **The server's git no longer takes optional locks** (`GIT_OPTIONAL_LOCKS=0`). `git status` refreshes the index when it can, which briefly holds `index.lock`; with a resource being re-read in the background, that moment could land on the user's own `git add` and fail it. The writes the server makes still take their locks.
+
 ## 0.5.3
 
 ### Fixed

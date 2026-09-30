@@ -1,4 +1,4 @@
-import { parseRemote, pickRemote, repoFromRemotes, remoteUrl, shortBranch, rangeFromSelection, githubRepo, githubApiBase } from '../utils/remoteUrl'
+import { parseRemote, pickRemote, repoFromRemotes, remoteUrl, shortBranch, rangeFromSelection, githubRepo, githubApiBase, githubRemote, parseRemoteVerbose } from '../utils/remoteUrl'
 
 // Before this existed, one URL shape was written out by hand in three places
 // with github.com hardcoded, and nothing else in either product could be linked
@@ -251,5 +251,75 @@ describe('githubRepo — a host is GitHub only once someone says so', () => {
       .toEqual({ owner: null, repo: null, host: null })
     expect(githubRepo('git@github.other.com:g/p.git', ['github.acme.com']))
       .toEqual({ owner: null, repo: null, host: null })
+  })
+})
+
+// Which remote GitHub is asked about. Seven places used to answer this with
+// `origin`, or the first remote when there is none, and then asked whether THAT
+// one is on GitHub — so an `upstream` on GitHub behind an origin on GitLab was
+// invisible, and a declared Enterprise host was never passed along at all.
+describe('githubRemote — the remote GitHub is asked about', () => {
+  const remote = (name: string, url: string) => ({ name, fetchUrl: url, pushUrl: url })
+
+  test('origin, when it is on GitHub — a second GitHub remote does not take over', () => {
+    const found = githubRemote([remote('upstream', 'https://github.com/org/app.git'), remote('origin', 'git@github.com:me/app.git')])
+    expect(found).toMatchObject({ name: 'origin', owner: 'me', repo: 'app', host: 'github.com' })
+  })
+
+  test('origin on GitLab, upstream on GitHub: the GitHub one, not "no GitHub remote"', () => {
+    const found = githubRemote([remote('origin', 'git@gitlab.com:me/app.git'), remote('upstream', 'https://github.com/org/app.git')])
+    expect(found).toMatchObject({ name: 'upstream', owner: 'org', repo: 'app', url: 'https://github.com/org/app.git' })
+  })
+
+  test('no origin at all: the first remote that is on GitHub, in git\'s order', () => {
+    const found = githubRemote([remote('gitlab', 'git@gitlab.com:a/b.git'), remote('fork', 'https://github.com/me/app.git'), remote('other', 'https://github.com/x/y.git')])
+    expect(found).toMatchObject({ name: 'fork', owner: 'me' })
+  })
+
+  test('none of them on GitHub: null, however many there are', () => {
+    expect(githubRemote([remote('origin', 'git@gitlab.com:me/app.git'), remote('mirror', 'https://git.example.com/me/app.git')])).toBeNull()
+    expect(githubRemote([remote('origin', '/srv/git/app.git')])).toBeNull()
+    expect(githubRemote([])).toBeNull()
+  })
+
+  // The part that was missing from every copy of the rule.
+  test('a declared Enterprise host counts — and only once it is declared', () => {
+    const remotes = [remote('origin', 'git@github.acme.com:team/app.git')]
+    expect(githubRemote(remotes)).toBeNull()
+    expect(githubRemote(remotes, ['github.acme.com'])).toMatchObject({ name: 'origin', owner: 'team', repo: 'app', host: 'github.acme.com' })
+  })
+
+  test('an Enterprise upstream behind a GitLab origin is found too', () => {
+    const remotes = [remote('origin', 'git@gitlab.com:me/app.git'), remote('upstream', 'https://github.acme.com/team/app.git')]
+    expect(githubRemote(remotes, ['github.acme.com'])).toMatchObject({ name: 'upstream', host: 'github.acme.com' })
+    expect(githubRemote(remotes)).toBeNull()
+  })
+
+  test('the push url stands in for a missing fetch url', () => {
+    expect(githubRemote([{ name: 'origin', pushUrl: 'https://github.com/o/r.git' }])).toMatchObject({ owner: 'o', repo: 'r' })
+  })
+})
+
+describe('parseRemoteVerbose — `git remote -v`, for a path that is not the open repository', () => {
+  test('one row per remote, fetch and push side by side', () => {
+    const out = 'origin\tgit@github.com:me/app.git (fetch)\norigin\tgit@github.com:me/app.git (push)\nupstream\thttps://github.com/org/app.git (fetch)\nupstream\thttps://github.com/org/app.git (push)\n'
+    expect(parseRemoteVerbose(out)).toEqual([
+      { name: 'origin', fetchUrl: 'git@github.com:me/app.git', pushUrl: 'git@github.com:me/app.git' },
+      { name: 'upstream', fetchUrl: 'https://github.com/org/app.git', pushUrl: 'https://github.com/org/app.git' },
+    ])
+  })
+
+  test('a remote whose push url differs keeps both', () => {
+    const out = 'origin\thttps://github.com/o/r.git (fetch)\norigin\tgit@github.com:o/r.git (push)\n'
+    expect(parseRemoteVerbose(out)).toEqual([{ name: 'origin', fetchUrl: 'https://github.com/o/r.git', pushUrl: 'git@github.com:o/r.git' }])
+  })
+
+  test('a path with spaces survives, and noise is skipped', () => {
+    const out = 'warning: something\nlocal\t/home/me/my repo.git (fetch)\nlocal\t/home/me/my repo.git (push)\n\n'
+    expect(parseRemoteVerbose(out)).toEqual([{ name: 'local', fetchUrl: '/home/me/my repo.git', pushUrl: '/home/me/my repo.git' }])
+  })
+
+  test('no remotes is an empty list', () => {
+    expect(parseRemoteVerbose('')).toEqual([])
   })
 })
