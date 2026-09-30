@@ -37,6 +37,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 🧭 Empty says why
 - A view whose list **could not be loaded** says so, quoted, with **Try again**.
 - **Pull requests** and **Issues** say why they are empty — no GitHub account, no remote, no remote on GitHub, or a read that failed — each with the button that fixes it.
+
+### 🔗 A remote that is not \`origin\` can be the GitHub one
+- A repository is on GitHub if **any** of its remotes is: an \`upstream\` on GitHub behind an \`origin\` on GitLab now gets its pull requests and issues in the panel instead of *no GitHub remote*. And the **Enterprise Server** you declared in Settings is recognised — the repository on it used to be reported as not on GitHub even with its token set. \`origin\` still wins when it is on GitHub, and a host you have not declared is still not GitHub.
 `,
   '1.37.0': `## What's new in 1.37.0
 

@@ -19,6 +19,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 🧭 Empty says why
 - A side bar list that **could not be loaded** says so, quoted, with **Try again** — it used to show an empty list, which reads as *there are none*.
 - The **pull request and issue sections** of a GitHub repository with no account connected say so and open **Settings › GitHub**, instead of not being there at all.
+
+### 🔗 A remote that is not \`origin\` can be the GitHub one
+- A repository is on GitHub if **any** of its remotes is: an \`upstream\` on GitHub behind an \`origin\` on GitLab now gets its pull requests and issues instead of *no GitHub remote*. And the **Enterprise Server** you declared in Settings is recognised — the repository on it used to be reported as not on GitHub even with its token set. \`origin\` still wins when it is on GitHub, and a host you have not declared is still not GitHub.
 `,
   '1.39.0': `## What's new in 1.39.0
 
