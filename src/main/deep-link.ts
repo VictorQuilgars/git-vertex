@@ -86,13 +86,18 @@ export function dispatchDeepLink(link: DeepLink): void {
 
 export async function handleProtocolUrl(url: string): Promise<void> {
   if (url.startsWith('gitgui://callback')) {
-    const result = await handleOAuthCallback(url)
-    if ('token' in result) {
-      const s = readSettings(); s.githubToken = result.token; writeSettings(s)
-      state.mainWindow?.webContents.send('github:auth-complete', { token: result.token })
-    } else {
-      state.mainWindow?.webContents.send('github:auth-complete', { error: result.error })
+    // Whatever happens below, the window hears about it: this runs from an
+    // event handler, where a throw goes nowhere and the button would stay on
+    // "Connecting…" with no trace of why.
+    let result: { token: string } | { error: string }
+    try {
+      result = await handleOAuthCallback(url)
+      if ('token' in result) { const s = readSettings(); s.githubToken = result.token; writeSettings(s) }
+    } catch (e: any) {
+      result = { error: e?.message ?? String(e) }
     }
+    if ('error' in result) console.error('[github-auth] sign-in failed:', result.error)
+    state.mainWindow?.webContents.send('github:auth-complete', result)
     return
   }
   const link = parseDeepLink(url)

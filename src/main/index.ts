@@ -15,6 +15,7 @@ import { stopWatchers } from './repo-session'
 import { stopCopilot } from './ai-copilot'
 import { state } from './app-state'
 import { handleProtocolUrl, registerDeepLinkHandlers } from './deep-link'
+import { registerProtocol } from './github-auth'
 import { watchAutoUpdater, registerUpdaterHandlers } from './ipc/updater'
 import { registerAppHandlers } from './ipc/app'
 import { registerGitHandlers } from './ipc/git'
@@ -224,7 +225,7 @@ registerSettingsHandlers()
 registerUpdaterHandlers()
 registerDeepLinkHandlers()
 
-app.setAsDefaultProtocolClient('gitgui')
+registerProtocol()
 
 // Windows: only one instance allowed — second instance passes its args to the first
 const gotLock = app.requestSingleInstanceLock()

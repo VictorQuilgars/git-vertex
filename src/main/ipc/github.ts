@@ -74,9 +74,8 @@ export function registerGithubHandlers(): void {
     } catch (e: any) { return { error: e.message } }
   })
 
-  handle('github:start-auth', () => {
-    startOAuthFlow()
-  })
+  // undefined: the result comes later on github:auth-complete. { error }: it never will.
+  handle('github:start-auth', () => startOAuthFlow())
 
   handle('github:disconnect', () => {
     const s = readSettings()
