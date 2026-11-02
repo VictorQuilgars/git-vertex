@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.38.0
 
 ### Added
 - **GitHub Copilot is an AI provider: the Copilot subscription you are signed into in VS Code writes the commit messages, explanations and descriptions.** Through the editor's own **Language Model API** — no key, no URL, nothing installed beside the GitHub Copilot Chat extension you already have. Its row in Settings › AI Assistant is a **switch**: turning it on lists the models the editor offers your account, which then join the pickers like any other provider's. The first request is the one VS Code asks you to allow; a declined consent, or a model your account no longer has, is said once rather than retried. It needs VS Code **1.90** or later, and says so on an older one — the extension itself still runs on 1.85. It can also be pinned from the editor's own settings: `gitVertex.aiProvider: copilot` needs no API key, and with `gitVertex.aiModel` left empty it takes the first model the editor offers.
