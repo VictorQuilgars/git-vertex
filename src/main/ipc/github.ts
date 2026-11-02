@@ -1,5 +1,6 @@
 // github:* and avatar:* — the GitHub integration.
 import { handle } from './handle'
+import { netFetch } from '../net-fetch'
 import { ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { gitBinary, makeSimpleGit } from '../git-service'
@@ -20,7 +21,7 @@ export function registerGithubHandlers(): void {
     try {
       const api = await ghApi()
       const token = api.token
-      const r = await fetch(`${api.base}/gitignore/templates`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      const r = await netFetch(`${api.base}/gitignore/templates`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
       return r.ok ? { templates: await r.json() } : { templates: [] }
     } catch { return { templates: [] } }
   })
@@ -29,7 +30,7 @@ export function registerGithubHandlers(): void {
     try {
       const api = await ghApi()
       const token = api.token
-      const r = await fetch(`${api.base}/licenses`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      const r = await netFetch(`${api.base}/licenses`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
       if (!r.ok) return { licenses: [] }
       const d = await r.json() as any[]
       return { licenses: d.map(l => ({ key: l.key, name: l.name })) }
@@ -43,7 +44,7 @@ export function registerGithubHandlers(): void {
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
     try {
-      const r = await fetch(`${api.base}/user/repos`, {
+      const r = await netFetch(`${api.base}/user/repos`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
         body: JSON.stringify({
@@ -74,9 +75,8 @@ export function registerGithubHandlers(): void {
     } catch (e: any) { return { error: e.message } }
   })
 
-  handle('github:start-auth', () => {
-    startOAuthFlow()
-  })
+  // undefined: the result comes later on github:auth-complete. { error }: it never will.
+  handle('github:start-auth', () => startOAuthFlow())
 
   handle('github:disconnect', () => {
     const s = readSettings()
@@ -108,7 +108,7 @@ export function registerGithubHandlers(): void {
       }
       if (token) {
         try {
-          const res = await fetch(`${api.base}/users/${login}`, {
+          const res = await netFetch(`${api.base}/users/${login}`, {
             headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
           })
           if (res.ok) {
@@ -133,7 +133,7 @@ export function registerGithubHandlers(): void {
         const repo = await detectGithubRepo()
         if (repo) {
           try {
-            const res = await fetch(
+            const res = await netFetch(
               `${api.base}/repos/${repo.owner}/${repo.repo}/commits/${sha}`,
               { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
             )
@@ -154,7 +154,7 @@ export function registerGithubHandlers(): void {
 
       // Fallback: search the user by public email.
       try {
-        const res = await fetch(
+        const res = await netFetch(
           `${api.base}/search/users?q=${encodeURIComponent(key)}+in:email&per_page=1`,
           { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
         )
@@ -230,7 +230,7 @@ export function registerGithubHandlers(): void {
     const asked = prFactsNumbers(Array.isArray(numbers) ? numbers : [])
     if (!asked.length) return { facts: {} }
     try {
-      const res = await fetch(graphqlUrl(api.base), {
+      const res = await netFetch(graphqlUrl(api.base), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: prFactsQuery(asked), variables: { o: owner, r: repo } }),
@@ -258,7 +258,7 @@ export function registerGithubHandlers(): void {
       try {
         subject = (await (state.gitService as any).git.raw(['log', '-1', '--pretty=format:%s', hash])).trim() || short
       } catch { /* subject is cosmetic */ }
-      const res = await fetch(`${api.base}/gists`, {
+      const res = await netFetch(`${api.base}/gists`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
         body: JSON.stringify({
@@ -360,7 +360,7 @@ export function registerGithubHandlers(): void {
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
     try {
-      const prRes = await fetch(`${api.base}/repos/${owner}/${repo}/pulls/${number}`, {
+      const prRes = await netFetch(`${api.base}/repos/${owner}/${repo}/pulls/${number}`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
       })
       if (!prRes.ok) return { error: `HTTP ${prRes.status}` }
@@ -370,7 +370,7 @@ export function registerGithubHandlers(): void {
       const gqlUrl = api.base.endsWith('/api/v3')
         ? api.base.replace(/\/api\/v3$/, '/api/graphql')
         : `${api.base}/graphql`
-      const res = await fetch(gqlUrl, {
+      const res = await netFetch(gqlUrl, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
         body: JSON.stringify({
@@ -442,7 +442,7 @@ export function registerGithubHandlers(): void {
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
     try {
-      const res = await fetch(`${api.base}/repos/${owner}/${repo}/issues/${number}/comments`, {
+      const res = await netFetch(`${api.base}/repos/${owner}/${repo}/issues/${number}/comments`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
         body: JSON.stringify({ body }),
@@ -461,7 +461,7 @@ export function registerGithubHandlers(): void {
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
     try {
-      const res = await fetch(`${api.base}/repos/${owner}/${repo}/issues/${number}`, {
+      const res = await netFetch(`${api.base}/repos/${owner}/${repo}/issues/${number}`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
         body: JSON.stringify(patch),
@@ -481,7 +481,7 @@ export function registerGithubHandlers(): void {
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
     try {
-      const res = await fetch(`${api.base}/repos/${owner}/${repo}/pulls/${number}/requested_reviewers`, {
+      const res = await netFetch(`${api.base}/repos/${owner}/${repo}/pulls/${number}/requested_reviewers`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -503,7 +503,7 @@ export function registerGithubHandlers(): void {
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
     try {
-      const res = await fetch(`${api.base}/repos/${owner}/${repo}/assignees?per_page=100`, {
+      const res = await netFetch(`${api.base}/repos/${owner}/${repo}/assignees?per_page=100`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
       })
       if (!res.ok) return { error: `HTTP ${res.status}` }
@@ -521,7 +521,7 @@ export function registerGithubHandlers(): void {
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
     try {
-      const res = await fetch(`${api.base}/repos/${owner}/${repo}/issues`, {
+      const res = await netFetch(`${api.base}/repos/${owner}/${repo}/issues`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -554,7 +554,7 @@ export function registerGithubHandlers(): void {
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
     try {
-      const res = await fetch(`${api.base}/repos/${owner}/${repo}/labels`, {
+      const res = await netFetch(`${api.base}/repos/${owner}/${repo}/labels`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -580,7 +580,7 @@ export function registerGithubHandlers(): void {
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
     try {
-      const res = await fetch(`${api.base}/repos/${owner}/${repo}/labels?per_page=100`, {
+      const res = await netFetch(`${api.base}/repos/${owner}/${repo}/labels?per_page=100`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
       })
       if (!res.ok) return { error: `HTTP ${res.status}` }
@@ -596,7 +596,7 @@ export function registerGithubHandlers(): void {
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
     try {
-      const res = await fetch(`${api.base}/repos/${owner}/${repo}/issues/${number}`, {
+      const res = await netFetch(`${api.base}/repos/${owner}/${repo}/issues/${number}`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
         body: JSON.stringify({ state: 'closed' }),
@@ -622,7 +622,7 @@ export function registerGithubHandlers(): void {
       const patch = diff.stdout
       if (!patch.trim()) return { error: 'no_changes' }
       const name = repoPath.split('/').pop() || 'wip'
-      const res = await fetch(`${api.base}/gists`, {
+      const res = await netFetch(`${api.base}/gists`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
         body: JSON.stringify({
@@ -675,7 +675,7 @@ export function registerGithubHandlers(): void {
     const hit = searchCache.get(q)
     if (!force && hit && Date.now() - hit.ts < 20_000) return hit.data
     try {
-      const res = await fetch(
+      const res = await netFetch(
         `${api.base}/search/issues?q=${encodeURIComponent(q)}&per_page=50&sort=updated`,
         { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
       )
@@ -721,7 +721,7 @@ export function registerGithubHandlers(): void {
     if (token) headers.Authorization = `Bearer ${token}`
     try {
       // The issues endpoint resolves both issues and PRs by number
-      const res = await fetch(`${api.base}/repos/${owner}/${repo}/issues/${number}`, { headers })
+      const res = await netFetch(`${api.base}/repos/${owner}/${repo}/issues/${number}`, { headers })
       if (!res.ok) return { error: `HTTP ${res.status}` }
       const d = await res.json() as any
       return {
@@ -752,7 +752,7 @@ export function registerGithubHandlers(): void {
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
     try {
-      const res = await fetch(`${api.base}/repos/${owner}/${repo}/pulls`, {
+      const res = await netFetch(`${api.base}/repos/${owner}/${repo}/pulls`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -790,7 +790,7 @@ export function registerGithubHandlers(): void {
     const token = api.token
     if (!token) return { parent: null }
     try {
-      const res = await fetch(`${api.base}/repos/${owner}/${repo}`, {
+      const res = await netFetch(`${api.base}/repos/${owner}/${repo}`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
       })
       if (!res.ok) return { parent: null }
@@ -812,7 +812,7 @@ export function registerGithubHandlers(): void {
     const token = api.token
     if (!token) return { branches: [] }
     try {
-      const res = await fetch(`${api.base}/repos/${owner}/${repo}/branches?per_page=100`, {
+      const res = await netFetch(`${api.base}/repos/${owner}/${repo}/branches?per_page=100`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
       })
       if (!res.ok) return { branches: [] }
@@ -829,7 +829,7 @@ export function registerGithubHandlers(): void {
       let repos: any[] = []
       let page = 1
       while (true) {
-        const res = await fetch(
+        const res = await netFetch(
           `${api.base}/user/repos?per_page=100&sort=updated&page=${page}`,
           { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
         )
@@ -880,7 +880,7 @@ export function registerGithubHandlers(): void {
     const token = api.token
     if (!token) return { user: null }
     try {
-      const res = await fetch(`${api.base}/user`, {
+      const res = await netFetch(`${api.base}/user`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
       })
       if (!res.ok) return { user: null }
@@ -889,7 +889,7 @@ export function registerGithubHandlers(): void {
       // Fetch avatar as base64 to avoid CSP issues in renderer
       let avatar = ''
       try {
-        const imgRes = await fetch(user.avatar_url)
+        const imgRes = await netFetch(user.avatar_url)
         const contentType = imgRes.headers.get('content-type') ?? 'image/png'
         const buffer = Buffer.from(await imgRes.arrayBuffer())
         avatar = `data:${contentType};base64,${buffer.toString('base64')}`

@@ -1,5 +1,6 @@
 // git:* — every git operation the renderer can ask for, answered by the repository that is open.
 import { handle } from './handle'
+import { netFetch } from '../net-fetch'
 import { ipcMain, dialog } from 'electron'
 import { join, dirname } from 'path'
 import { existsSync, readdirSync } from 'fs'
@@ -92,13 +93,13 @@ export function registerGitHandlers(): void {
       if (token) ghHeaders.Authorization = `Bearer ${token}`
       if (opts.gitignore) {
         try {
-          const r = await fetch(`${api.base}/gitignore/templates/${opts.gitignore}`, { headers: ghHeaders })
+          const r = await netFetch(`${api.base}/gitignore/templates/${opts.gitignore}`, { headers: ghHeaders })
           if (r.ok) { const d = await r.json() as any; writeFileSync(join(target, '.gitignore'), d.source ?? '') }
         } catch { /* optional */ }
       }
       if (opts.license) {
         try {
-          const r = await fetch(`${api.base}/licenses/${opts.license}`, { headers: ghHeaders })
+          const r = await netFetch(`${api.base}/licenses/${opts.license}`, { headers: ghHeaders })
           if (r.ok) { const d = await r.json() as any; writeFileSync(join(target, 'LICENSE'), d.body ?? '') }
         } catch { /* optional */ }
       }

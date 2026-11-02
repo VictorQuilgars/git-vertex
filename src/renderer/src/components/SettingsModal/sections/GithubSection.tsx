@@ -6,7 +6,7 @@ import type { SettingsPage } from '../useSettingsPage'
 import { SaveNote } from '../shared'
 
 export function GithubSection({ page }: { page: SettingsPage }) {
-  const { t, githubToken, setGithubToken, ghEnterpriseHost, setGhEnterpriseHost, ghEnterpriseToken, setGhEnterpriseToken, showToken, setShowToken, githubUser, githubSource, githubLoading, fetchGithubUser, autolinks, saveAutolinks, handleGithubLogin, handleGithubDisconnect, saveGithub, embedded } = page
+  const { t, githubToken, setGithubToken, ghEnterpriseHost, setGhEnterpriseHost, ghEnterpriseToken, setGhEnterpriseToken, showToken, setShowToken, githubUser, githubSource, githubLoading, fetchGithubUser, autolinks, saveAutolinks, handleGithubLogin, cancelGithubLogin, handleGithubDisconnect, saveGithub, embedded } = page
   return (
               <div className="stg-section">
                 <h2 className="stg-section-title">{t('settings.github.title')}</h2>
@@ -31,6 +31,12 @@ export function GithubSection({ page }: { page: SettingsPage }) {
                     <Brand name="github" size={18} />
                     {githubLoading ? t('settings.github.connecting') : t('settings.github.login')}
                   </button>
+                )}
+                {!githubUser && githubLoading && !embedded && (
+                  <div className="stg-gh-waiting">
+                    <p className="stg-desc">{t('settings.github.waiting')}</p>
+                    <button className="stg-save" onClick={cancelGithubLogin}>{t('settings.github.cancel')}</button>
+                  </div>
                 )}
                 {/* Autolinks — nothing here is GitHub-specific, but this is the
                     section people look in when a reference in a commit message
@@ -73,8 +79,10 @@ export function GithubSection({ page }: { page: SettingsPage }) {
                     already has. This stays for hosts that do not bundle that
                     provider (VSCodium and other OSS builds), and for anyone who
                     would rather hand over a narrowly scoped token. On desktop,
-                    OAuth handles it (prod builds carry the client id). */}
-                {!githubUser && embedded && (
+                    OAuth handles it (prod builds carry the client id) — and the
+                    field appears while that waits, for when the browser never
+                    hands the sign-in back. */}
+                {!githubUser && (embedded || githubLoading) && (
                   <div className="stg-field" style={{ marginTop: 16 }}>
                     <label>{t('settings.github.pat')}</label>
                     <div style={{ display: 'flex', gap: 8 }}>

@@ -1,5 +1,6 @@
 // The GitHub API as this app uses it: the token, the remote, and the caches that keep it polite.
 import { bypassVerdict, RULESET_PROBE_CAP } from './ruleset-bypass'
+import { netFetch } from './net-fetch'
 import { apiForUser, knownGithubHosts, type GithubApi } from './github-host'
 import { githubRemote, pickRemote, type GithubRemote, type Remote } from '../renderer/src/utils/remoteUrl'
 import { makeSimpleGit } from './git-service'
@@ -98,7 +99,7 @@ export function loadAuthedUserEmails(base: string, token: string): Promise<void>
   if (authedEmailsLoaded) return authedEmailsLoaded
   authedEmailsLoaded = (async () => {
     try {
-      const userRes = await fetch(`${base}/user`, {
+      const userRes = await netFetch(`${base}/user`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
       })
       if (!userRes.ok) return
@@ -109,7 +110,7 @@ export function loadAuthedUserEmails(base: string, token: string): Promise<void>
       const emails = new Set<string>()
       if (user?.email) emails.add(String(user.email).trim().toLowerCase())
 
-      const emailsRes = await fetch(`${base}/user/emails`, {
+      const emailsRes = await netFetch(`${base}/user/emails`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
       })
       if (emailsRes.ok) {
@@ -145,7 +146,7 @@ export async function conditionalGet<T extends object>(
   key: string, url: string, token: string, shape: (data: any) => T | Promise<T>,
 ): Promise<(T & { notModified?: true }) | { error: string }> {
   const hit = listCache.get(key)
-  const res = await fetch(url, {
+  const res = await netFetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: 'application/vnd.github+json',
@@ -201,7 +202,7 @@ export async function prBlockedSupplement(
     const gqlUrl = api.base.endsWith('/api/v3')
       ? api.base.replace(/\/api\/v3$/, '/api/graphql')
       : `${api.base}/graphql`
-    const res = await fetch(gqlUrl, {
+    const res = await netFetch(gqlUrl, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
       body: JSON.stringify({
@@ -245,7 +246,7 @@ export async function rulesetBypass(
   if (!baseRef) return null
   const headers = { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
   try {
-    const res = await fetch(
+    const res = await netFetch(
       `${api.base}/repos/${owner}/${repo}/rules/branches/${encodeURIComponent(baseRef)}`,
       { headers },
     )
@@ -255,7 +256,7 @@ export async function rulesetBypass(
     const ids = [...new Set(rules.map(r => r?.ruleset_id).filter((n: any) => typeof n === 'number'))]
     if (!ids.length || ids.length > RULESET_PROBE_CAP) return null
     const verdicts = await Promise.all(ids.map(async id => {
-      const r = await fetch(`${api.base}/repos/${owner}/${repo}/rulesets/${id}`, { headers })
+      const r = await netFetch(`${api.base}/repos/${owner}/${repo}/rulesets/${id}`, { headers })
       if (!r.ok) return null
       const d = await r.json().catch(() => null) as any
       const v = d?.current_user_can_bypass

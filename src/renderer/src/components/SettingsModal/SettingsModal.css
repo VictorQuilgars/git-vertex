@@ -366,6 +366,8 @@
 }
 .stg-gh-login-btn:hover:not(:disabled) { background: var(--surface-active); border-color: var(--border-strong); }
 .stg-gh-login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.stg-gh-waiting { display: flex; align-items: flex-start; gap: var(--space-lg); margin-top: var(--space-md); }
+.stg-gh-waiting .stg-desc { flex: 1; margin: 0; }
 
 .stg-gh-connected {
   display: flex;
