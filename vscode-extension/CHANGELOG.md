@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.39.0
 
 ### Fixed
 - **Reword, squash, fixup, drop and move work on Windows.** Every rewrite is a `git rebase -i` with two small scripts of ours standing in for the editors — one writes the plan, the other the message you typed. Git does not run those itself: it hands them to `sh`, and on Windows the path arrived with backslashes, which `sh` swallows — `C:\Users\…\Temp\gitvertex-rebase-editor-….sh` was looked for as `C:Users…Tempgitvertex-rebase-editor-….sh` and not found, so the rebase stopped before it began. The paths now reach the shell with forward slashes and quoted, and the scripts run through `sh` rather than by their execute bit; a temp directory under a user name with a space, a quote or a `$` broke it on every platform the same way, and works now too. Git's own no-op editor `:` replaces `true`, which is not on every Windows PATH.

@@ -16,7 +16,7 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.39.0': `## What's new in 1.39.0
 
 ### 🪟 Rewriting history works on Windows
 - **Reword, squash, fixup, drop and move** failed on Windows before they began: git could not find the small script that writes the rebase plan, because the path reached it without its \\ separators. Fixed — and a user name with a space in it no longer trips it on any platform.
