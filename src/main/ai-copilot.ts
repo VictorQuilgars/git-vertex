@@ -45,7 +45,9 @@ import type { ProviderAnswer } from './ai-call'
  * integrated terminals only. "Not found" alone sent the user to a terminal
  * that disagreed with it; the list says which folders this process saw.
  */
-export function copilotNotFoundMessage(explicit: string | undefined, searched: readonly string[]): string {
+export function copilotNotFoundMessage(
+  explicit: string | undefined, searched: readonly string[], skipped: readonly string[] = [],
+): string {
   const install = 'Install it (`npm install -g @github/copilot`, `winget install GitHub.Copilot` or '
     + '`brew install copilot-cli`), run `copilot` once in a terminal and sign in with /login — then try again.'
   const chosen = explicit?.trim()
@@ -55,6 +57,10 @@ export function copilotNotFoundMessage(explicit: string | undefined, searched: r
   }
   return `GitHub Copilot CLI not found. ${install} `
     + 'A copy elsewhere can be named with the COPILOT_CLI_PATH environment variable. '
+    + (skipped.length
+      ? `Not used: ${skipped.join(' · ')} — VS Code's launcher for its own terminal, which opens a window `
+        + 'and does not stay up as a server. '
+      : '')
     + (searched.length ? `Looked in: ${searched.join(' · ')}` : 'There was no folder to look in: the PATH is empty.')
 }
 
@@ -86,12 +92,11 @@ const SYSTEM_PROMPT =
  * Where the installers put the CLI, beyond the PATH.
  *
  * A desktop icon starts the app with the PATH its launcher had, which is not
- * the terminal's: on Windows, Explorer's — and a folder added since, or added
- * only to some terminals, is not in it. VS Code's Copilot extension is the case
- * that made this list: it installs a `copilot` under its own `bin\copilot-shim`
- * and puts that folder on the PATH of VS Code's integrated terminals only, so
- * `where copilot` answers there and the app, started from its icon, saw
- * nothing. These are looked at AFTER the PATH, which still wins.
+ * the terminal's: on Windows, Explorer's — and a folder added since is not in
+ * it. These are looked at AFTER the PATH, which still wins.
+ *
+ * VS Code's `bin\copilot-shim` was on this list in 1.40.1 and is not any more:
+ * see `isVsCodeShim`.
  */
 export function copilotFallbackDirs(platform: NodeJS.Platform, env: NodeJS.ProcessEnv, home: string): string[] {
   if (platform === 'win32') {
@@ -99,9 +104,6 @@ export function copilotFallbackDirs(platform: NodeJS.Platform, env: NodeJS.Proce
     return [
       ...at(env.APPDATA, 'npm'),                                                           // npm install -g
       ...at(env.LOCALAPPDATA, 'Microsoft', 'WinGet', 'Links'),                             // winget
-      ...at(env.LOCALAPPDATA, 'Programs', 'Microsoft VS Code', 'bin', 'copilot-shim'),          // VS Code, user install
-      ...at(env.LOCALAPPDATA, 'Programs', 'Microsoft VS Code Insiders', 'bin', 'copilot-shim'),
-      ...at(env.ProgramFiles, 'Microsoft VS Code', 'bin', 'copilot-shim'),                 // VS Code, system install
     ]
   }
   return [
@@ -132,13 +134,44 @@ export function copilotSearchDirs(
 }
 
 /**
+ * VS Code's own `copilot`, under its `bin/copilot-shim` folder — never run.
+ *
+ * It is a launcher for VS Code's integrated terminal, not the CLI: started by
+ * this app it opened a PowerShell window on the user's screen — at startup and
+ * on every visit to Settings › AI — and it did not stay up as a server, which
+ * is the `Client not connected` that followed. 1.40.1 looked for it on purpose;
+ * now it is skipped wherever it is found, the PATH included (an app started
+ * from VS Code's terminal inherits that folder). An explicit COPILOT_CLI_PATH
+ * naming it is still the user's choice, and is honoured.
+ */
+export function isVsCodeShim(dir: string): boolean {
+  return /(^|[\\/])copilot-shim$/i.test(dir.replace(/[\\/]+$/, ''))
+}
+
+/**
+ * Where VS Code keeps that launcher on Windows — looked at only to SAY it was
+ * not used, so a user whose only `copilot` is VS Code's learns why the row
+ * says *not found* while `where copilot` answers in VS Code's terminal.
+ */
+export function vsCodeShimDirs(platform: NodeJS.Platform, env: NodeJS.ProcessEnv): string[] {
+  if (platform !== 'win32') return []
+  const at = (base: string | undefined, ...parts: string[]) => base ? [[base.replace(/[\\/]+$/, ''), ...parts].join('\\')] : []
+  return [
+    ...at(env.LOCALAPPDATA, 'Programs', 'Microsoft VS Code', 'bin', 'copilot-shim'),
+    ...at(env.LOCALAPPDATA, 'Programs', 'Microsoft VS Code Insiders', 'bin', 'copilot-shim'),
+    ...at(env.ProgramFiles, 'Microsoft VS Code', 'bin', 'copilot-shim'),
+  ]
+}
+
+/**
  * Where the Copilot CLI is, or null.
  *
  * Pure — the folders, the platform and the file test are arguments — because
  * the one thing that breaks here is a layout, and layouts are what tests can pin:
  *
  *   - an explicit COPILOT_CLI_PATH wins, as the SDK itself honours it;
- *   - Windows: `copilot.exe` (winget, the installer, VS Code's shim) is run as
+ *   - VS Code's launcher is skipped (`isVsCodeShim`);
+ *   - Windows: `copilot.exe` (winget, the installer) is run as
  *     it is, while npm leaves a `copilot.cmd` shim that cannot be spawned
  *     without a shell — the package's own entry beside it is returned instead,
  *     a `.js`, which the SDK runs with the current executable (see `runtimeEnv`);
@@ -155,6 +188,7 @@ export function locateCopilotCli(
   if (chosen) return chosen
   const join_ = (dir: string, ...parts: string[]) => [dir, ...parts].join(platform === 'win32' ? '\\' : '/')
   for (const dir of dirs) {
+    if (isVsCodeShim(dir)) continue
     if (platform === 'win32') {
       const exe = join_(dir, 'copilot.exe')
       if (exists(exe)) return exe
@@ -257,7 +291,11 @@ async function startClient(): Promise<CopilotClient> {
   const dirs = copilotSearchDirs(searchPath ?? process.env.PATH, process.platform,
     copilotFallbackDirs(process.platform, process.env, homedir()))
   const cli = locateCopilotCli(process.env.COPILOT_CLI_PATH, dirs, process.platform, existsSync)
-  if (!cli || !existsSync(cli)) throw new CopilotSetupError(copilotNotFoundMessage(process.env.COPILOT_CLI_PATH, dirs))
+  if (!cli || !existsSync(cli)) {
+    const skipped = [...new Set([...dirs.filter(isVsCodeShim),
+      ...vsCodeShimDirs(process.platform, process.env).filter(d => existsSync(join(d, 'copilot.exe')))])]
+    throw new CopilotSetupError(copilotNotFoundMessage(process.env.COPILOT_CLI_PATH, dirs.filter(d => !isVsCodeShim(d)), skipped))
+  }
   cliPath = cli
   const c = new CopilotClient({
     connection: RuntimeConnection.forStdio({ path: cli }),

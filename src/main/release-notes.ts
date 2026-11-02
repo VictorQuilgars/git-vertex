@@ -4,6 +4,9 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🪟 No more PowerShell window
+- **GitHub Copilot** no longer starts VS Code's own \`copilot\` launcher, which opened a PowerShell window at startup and in Settings › AI. Install the Copilot CLI itself (\`winget install GitHub.Copilot\` or \`npm install -g @github/copilot\`) — the row says so when VS Code's launcher is the only one it finds.
+
 ### 🔌 Copilot reconnects
 - When the **Copilot CLI** stops, the next request starts it again instead of failing with *Client not connected* until a restart. If it keeps stopping, the message names the CLI it ran and what it said before it stopped.
 `,
