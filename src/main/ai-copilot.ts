@@ -215,11 +215,36 @@ export function modelCosts(
   return out
 }
 
+/**
+ * Whether a failure means the runtime is GONE rather than that it refused.
+ *
+ * The SDK keeps a client object after its CLI process has exited — its state
+ * turns `disconnected` and every later call throws `Client not connected`.
+ * Before this, the app kept that dead client for good: the settings row had
+ * just listed the models, the CLI then stopped, and every request after it
+ * failed with those three words until the app was restarted.
+ */
+export function isRuntimeGone(message: string): boolean {
+  return /client not connected|connection (is )?closed|connection got disposed|cli server exited|EPIPE|write after end/i
+    .test(message)
+}
+
+/** Said when a fresh runtime died under the call too — with what it left behind. */
+export function copilotStoppedMessage(cli: string | null, why: string): string {
+  return `The GitHub Copilot CLI stopped answering${why ? ` (${why})` : ''}.`
+    + (cli ? ` It was started from ${cli}.` : '')
+    + ' Run `copilot` in a terminal to see whether it starts there; if this copy keeps stopping, install the standalone CLI'
+    + ' (`npm install -g @github/copilot` or `winget install GitHub.Copilot`) and restart Git Vertex.'
+}
+
 // ── The one runtime ─────────────────────────────────────────────
 
 let client: Promise<CopilotClient> | null = null
 let idle: ReturnType<typeof setTimeout> | null = null
 let scratch: string | null = null
+/** The CLI the current (or last) runtime was started from, and why the last one went away. */
+let cliPath: string | null = null
+let lastExit = ''
 
 function scratchDir(): string {
   if (!scratch) scratch = mkdtempSync(join(tmpdir(), 'git-vertex-copilot-'))
@@ -233,6 +258,7 @@ async function startClient(): Promise<CopilotClient> {
     copilotFallbackDirs(process.platform, process.env, homedir()))
   const cli = locateCopilotCli(process.env.COPILOT_CLI_PATH, dirs, process.platform, existsSync)
   if (!cli || !existsSync(cli)) throw new CopilotSetupError(copilotNotFoundMessage(process.env.COPILOT_CLI_PATH, dirs))
+  cliPath = cli
   const c = new CopilotClient({
     connection: RuntimeConnection.forStdio({ path: cli }),
     env: runtimeEnv(process.env, searchPath, cli),
@@ -246,10 +272,50 @@ async function startClient(): Promise<CopilotClient> {
   return c
 }
 
-/** The running client, started on first use and after any failure to start. */
+/**
+ * Still connected. Read off the SDK's own state, which it sets to
+ * `disconnected` when the process exits or the pipe closes; a client that
+ * does not carry the field is taken at its word.
+ */
+const alive = (c: CopilotClient): boolean => {
+  const state = (c as any).state
+  return state === undefined || state === 'connected'
+}
+
+/**
+ * Why a runtime that was running is not any more: its exit code or signal,
+ * and the last lines it wrote to stderr — the SDK keeps them, and they are the
+ * only account of a CLI that died after it had started.
+ */
+function whyGone(c: CopilotClient): string {
+  const proc = (c as any).cliProcess
+  const code = proc?.exitCode ?? proc?.signalCode
+  const tail = String((c as any).stderrBuffer ?? '').trim().split(/\r?\n/).filter(Boolean).slice(-3).join(' | ')
+  return [code !== null && code !== undefined ? `exit ${code}` : '', tail].filter(Boolean).join(': ')
+}
+
+function start(): Promise<CopilotClient> {
+  const p: Promise<CopilotClient> = startClient().catch(e => { if (client === p) client = null; throw e })
+  client = p
+  return p
+}
+
+/**
+ * The running client: started on first use, after a failure to start, and
+ * again when the one kept here has lost its process — checked on every use
+ * rather than trusted, which is what turned one exit into a dead provider.
+ */
 function getClient(): Promise<CopilotClient> {
-  if (!client) client = startClient().catch(e => { client = null; throw e })
-  return client
+  const current = client
+  if (!current) return start()
+  return current.then(c => {
+    if (alive(c)) return c
+    if (client !== current) return getClient()          // another call already replaced it
+    lastExit = whyGone(c)
+    console.warn(`[ai] copilot runtime went away${lastExit ? ` (${lastExit})` : ''} — starting a new one`)
+    void c.stop().catch(() => { /* already gone */ })
+    return start()
+  })
 }
 
 function armIdle(): void {
@@ -278,11 +344,32 @@ async function signedInClient(): Promise<CopilotClient> {
   return c
 }
 
+/**
+ * Runs `fn` on a signed-in runtime, and once more on a fresh one if the
+ * runtime went away under it. Twice is the whole policy: a CLI that dies again
+ * straight after starting will not be helped by a third go, and the message
+ * then names the binary and what it said, which is what the user needs to act.
+ */
+async function withRuntime<T>(fn: (c: CopilotClient) => Promise<T>): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fn(await signedInClient())
+    } catch (e: any) {
+      const msg = String(e?.message ?? e)
+      if (!isRuntimeGone(msg)) throw e
+      if (attempt >= 2) {
+        const c = await client?.catch(() => null)
+        throw new CopilotSetupError(copilotStoppedMessage(cliPath, (c && whyGone(c)) || lastExit || msg))
+      }
+      console.warn(`[ai] copilot call lost its runtime (${msg}) — retrying on a new one`)
+    }
+  }
+}
+
 /** The models the signed-in account may use — the settings row's probe. */
 export async function listCopilotModels(): Promise<{ models?: string[]; cost?: Record<string, number>; error?: string }> {
   try {
-    const c = await signedInClient()
-    const all = await c.listModels()
+    const all = await withRuntime(c => c.listModels())
     const models = usableModelIds(all)
     return models.length ? { models, cost: modelCosts(all) } : { error: 'Copilot answered with no model this account may use.' }
   } catch (e: any) {
@@ -292,28 +379,31 @@ export async function listCopilotModels(): Promise<{ models?: string[]; cost?: R
 
 /** One prompt, one answer — a session opened for it and deleted after it. */
 export async function callCopilot(model: string, prompt: string): Promise<ProviderAnswer> {
-  const c = await signedInClient()
-  const session = await c.createSession({
-    model,
-    clientName: 'git-vertex',
-    systemMessage: { mode: 'replace', content: SYSTEM_PROMPT },
-    // No tool from any source, and a refusal for anything that asks anyway.
-    availableTools: [],
-    excludedTools: ['builtin:*', 'mcp:*', 'custom:*'],
-    onPermissionRequest: () => ({ kind: 'reject', feedback: 'Git Vertex runs Copilot without tools.' }),
-    skipCustomInstructions: true,
-    enableHostGitOperations: false,
-    enableSessionStore: false,
-    infiniteSessions: { enabled: false },
-    workingDirectory: scratchDir(),
+  return withRuntime(async c => {
+    const session = await c.createSession({
+      model,
+      clientName: 'git-vertex',
+      systemMessage: { mode: 'replace', content: SYSTEM_PROMPT },
+      // No tool from any source, and a refusal for anything that asks anyway.
+      availableTools: [],
+      excludedTools: ['builtin:*', 'mcp:*', 'custom:*'],
+      onPermissionRequest: () => ({ kind: 'reject', feedback: 'Git Vertex runs Copilot without tools.' }),
+      skipCustomInstructions: true,
+      enableHostGitOperations: false,
+      enableSessionStore: false,
+      infiniteSessions: { enabled: false },
+      workingDirectory: scratchDir(),
+    })
+    try {
+      // Safe to send again on a new runtime: with no tools, an answer that
+      // never arrived changed nothing anywhere.
+      const reply = await session.sendAndWait(prompt, REPLY_TIMEOUT_MS)
+      // The SDK reports no length cut-off for a plain reply; the empty answer is
+      // the retry loop's to handle, like any other dialect's.
+      return { text: (reply?.data?.content ?? '').trim(), truncated: false }
+    } finally {
+      armIdle()
+      await c.deleteSession(session.sessionId).catch(() => session.disconnect().catch(() => {}))
+    }
   })
-  try {
-    const reply = await session.sendAndWait(prompt, REPLY_TIMEOUT_MS)
-    // The SDK reports no length cut-off for a plain reply; the empty answer is
-    // the retry loop's to handle, like any other dialect's.
-    return { text: (reply?.data?.content ?? '').trim(), truncated: false }
-  } finally {
-    armIdle()
-    await c.deleteSession(session.sessionId).catch(() => session.disconnect().catch(() => {}))
-  }
 }

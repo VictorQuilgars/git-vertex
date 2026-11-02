@@ -2,6 +2,11 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🔌 Copilot reconnects
+- When the **Copilot CLI** stops, the next request starts it again instead of failing with *Client not connected* until a restart. If it keeps stopping, the message names the CLI it ran and what it said before it stopped.
+`,
   '1.40.1': `## What's new in 1.40.1
 
 ### 🔎 Copilot is found from the desktop icon

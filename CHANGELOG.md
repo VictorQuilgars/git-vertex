@@ -1,5 +1,10 @@
 # Changelog — Git Vertex (desktop)
 
+## Unreleased
+
+### Fixed
+- **GitHub Copilot no longer stays on *Client not connected* after the Copilot CLI stops.** The app keeps one CLI runtime and reuses it, and the SDK keeps its client object after the process behind it has exited — every later call on it then throws *Client not connected*. So a CLI that stopped once, after the settings row had already listed its models, left Copilot dead until the app was restarted. The runtime is now checked on every use and started again when it has gone, and a call that loses it halfway is made once more on the new one — safe, since Copilot runs here with no tools and an answer that never arrived changed nothing. A CLI that stops again straight away is not retried a third time: the message says so, names the binary it was started from, and quotes its exit code and the last lines it wrote, which is what tells a broken install from a passing crash.
+
 ## 1.40.1
 
 ### Fixed
