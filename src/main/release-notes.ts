@@ -2,7 +2,7 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.40.1': `## What's new in 1.40.1
 
 ### 🔎 Copilot is found from the desktop icon
 - **GitHub Copilot** now finds the Copilot CLI even when the app is started from its icon rather than a terminal: after your PATH it looks where npm, winget and VS Code's Copilot extension put it. When it still cannot find it, the message lists **every folder it looked in**.
