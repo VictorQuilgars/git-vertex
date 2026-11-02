@@ -1,5 +1,5 @@
 import {
-  locateCopilotCli, copilotSearchDirs, copilotFallbackDirs, copilotNotFoundMessage,
+  locateCopilotCli, copilotSearchDirs, copilotFallbackDirs, copilotNotFoundMessage, isVsCodeShim, vsCodeShimDirs,
   runtimeEnv, usableModelIds, modelCosts,
 } from '../ai-copilot'
 
@@ -52,13 +52,10 @@ describe('beyond the PATH — where the installers put it', () => {
     ProgramFiles: 'C:\\Program Files',
   }
 
-  test('Windows: npm, winget and the copy VS Code installs, user and system', () => {
+  test('Windows: npm and winget — and not VS Code\'s launcher', () => {
     expect(copilotFallbackDirs('win32', env, 'C:\\Users\\v')).toEqual([
       'C:\\Users\\v\\AppData\\Roaming\\npm',
       'C:\\Users\\v\\AppData\\Local\\Microsoft\\WinGet\\Links',
-      'C:\\Users\\v\\AppData\\Local\\Programs\\Microsoft VS Code\\bin\\copilot-shim',
-      'C:\\Users\\v\\AppData\\Local\\Programs\\Microsoft VS Code Insiders\\bin\\copilot-shim',
-      'C:\\Program Files\\Microsoft VS Code\\bin\\copilot-shim',
     ])
   })
 
@@ -70,12 +67,41 @@ describe('beyond the PATH — where the installers put it', () => {
     expect(copilotFallbackDirs('darwin', {}, '/Users/v/')).toEqual(['/Users/v/.local/bin', '/opt/homebrew/bin', '/usr/local/bin'])
   })
 
-  test("VS Code's copy is found from a desktop icon, whose PATH does not hold it", () => {
-    // The case that made the list: `where copilot` answered in VS Code's
-    // terminal, and the app — started from Explorer — saw nothing.
+  test("VS Code's launcher is never run, even on the PATH — it opened a PowerShell window", () => {
+    // 1.40.1 looked for it on purpose; started by the app it opened a visible
+    // PowerShell window and did not stay up as a server.
     const shim = 'C:\\Users\\v\\AppData\\Local\\Programs\\Microsoft VS Code\\bin\\copilot-shim'
-    const dirs = dirsOf('C:\\Windows\\system32;C:\\Windows', 'win32', copilotFallbackDirs('win32', env, ''))
-    expect(locateCopilotCli(undefined, dirs, 'win32', fsOf(`${shim}\\copilot.exe`))).toBe(`${shim}\\copilot.exe`)
+    const npm = 'C:\\Users\\v\\AppData\\Roaming\\npm'
+    const dirs = dirsOf(`${shim};C:\\Windows`, 'win32', copilotFallbackDirs('win32', env, ''))
+    expect(locateCopilotCli(undefined, dirs, 'win32', fsOf(`${shim}\\copilot.exe`))).toBeNull()
+    // the real CLI further down the list is still found
+    expect(locateCopilotCli(undefined, dirs, 'win32', fsOf(`${shim}\\copilot.exe`, `${npm}\\copilot.cmd`,
+      `${npm}\\node_modules\\@github\\copilot\\npm-loader.js`))).toBe(`${npm}\\node_modules\\@github\\copilot\\npm-loader.js`)
+    // elsewhere too
+    expect(locateCopilotCli(undefined, ['/Applications/VS Code.app/bin/copilot-shim', '/usr/bin'], 'darwin',
+      fsOf('/Applications/VS Code.app/bin/copilot-shim/copilot'))).toBeNull()
+  })
+
+  test('an explicit COPILOT_CLI_PATH naming the launcher is still the user\'s choice', () => {
+    const exe = 'C:\\VS Code\\bin\\copilot-shim\\copilot.exe'
+    expect(locateCopilotCli(exe, [], 'win32', fsOf())).toBe(exe)
+  })
+
+  test('what counts as the launcher', () => {
+    expect(isVsCodeShim('C:\\x\\bin\\copilot-shim')).toBe(true)
+    expect(isVsCodeShim('C:\\x\\bin\\Copilot-Shim\\')).toBe(true)
+    expect(isVsCodeShim('/opt/copilot-shim')).toBe(true)
+    expect(isVsCodeShim('C:\\tools\\my-copilot-shim')).toBe(false)
+    expect(isVsCodeShim('C:\\copilot-shim\\real')).toBe(false)
+  })
+
+  test("where VS Code keeps it, on Windows only — to say it was not used", () => {
+    expect(vsCodeShimDirs('win32', env)).toEqual([
+      'C:\\Users\\v\\AppData\\Local\\Programs\\Microsoft VS Code\\bin\\copilot-shim',
+      'C:\\Users\\v\\AppData\\Local\\Programs\\Microsoft VS Code Insiders\\bin\\copilot-shim',
+      'C:\\Program Files\\Microsoft VS Code\\bin\\copilot-shim',
+    ])
+    expect(vsCodeShimDirs('darwin', env)).toEqual([])
   })
 
   test('the PATH still wins over a fallback, and a folder is looked in once', () => {
@@ -98,6 +124,12 @@ describe('saying it was not found', () => {
     expect(msg).toContain('Looked in: C:\\Windows · C:\\Users\\v\\AppData\\Roaming\\npm')
     expect(msg).toContain('winget install GitHub.Copilot')
     expect(msg).toContain('COPILOT_CLI_PATH')
+  })
+
+  test('a launcher it skipped is named, with why', () => {
+    const msg = copilotNotFoundMessage(undefined, ['C:\\Windows'], ['C:\\VS Code\\bin\\copilot-shim'])
+    expect(msg).toContain("Not used: C:\\VS Code\\bin\\copilot-shim — VS Code's launcher for its own terminal")
+    expect(msg).toContain('Looked in: C:\\Windows')
   })
 
   test('a COPILOT_CLI_PATH that names nothing says so, rather than listing a search it did not make', () => {

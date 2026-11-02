@@ -1,5 +1,11 @@
 # Changelog — Git Vertex (desktop)
 
+## Unreleased
+
+### Fixed
+- **GitHub Copilot no longer opens a PowerShell window.** 1.40.1 went looking for VS Code's own `copilot` under `bin\copilot-shim` — and started it. That file is a launcher for VS Code's integrated terminal, not the CLI: run by the app it opened a visible PowerShell window, at startup and on every visit to **Settings › AI Assistant**, and it did not stay up as a server, which is where the *Client not connected* below came from. It is no longer looked for, and is skipped wherever it is found, the PATH included. When it is the only `copilot` on the machine, the row says so — *not used, VS Code's launcher* — beside the install line for the real CLI. A `COPILOT_CLI_PATH` that names it on purpose is still honoured.
+- **GitHub Copilot no longer stays on *Client not connected* after the Copilot CLI stops.** The app keeps one CLI runtime and reuses it, and the SDK keeps its client object after the process behind it has exited — every later call on it then throws *Client not connected*. So a CLI that stopped once, after the settings row had already listed its models, left Copilot dead until the app was restarted. The runtime is now checked on every use and started again when it has gone, and a call that loses it halfway is made once more on the new one — safe, since Copilot runs here with no tools and an answer that never arrived changed nothing. A CLI that stops again straight away is not retried a third time: the message says so, names the binary it was started from, and quotes its exit code and the last lines it wrote, which is what tells a broken install from a passing crash.
+
 ## 1.40.1
 
 ### Fixed
