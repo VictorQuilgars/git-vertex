@@ -18,6 +18,9 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🤖 GitHub Copilot writes your commit messages
+- **GitHub Copilot** joins the AI providers, through the editor's own **Language Model API**: the subscription you are signed into in VS Code, nothing else to install beside GitHub Copilot Chat. Tick **GitHub Copilot** in **Settings › AI Assistant**, or pin \`gitVertex.aiProvider: copilot\` in the editor's settings. VS Code asks once to let Git Vertex use Copilot's models. Needs VS Code **1.90** or later.
+
 ### 🏷 The model, on branches and tags
 - Right-click a branch in the side bar **ahead of its upstream**: **Explain Unpushed Changes** reads only what has not been pushed. **Recompose Commits** proposes a new cut of the checked-out branch's commits and rewrites them once you apply the plan — any other branch shows it greyed out, asking to be checked out first. Right-click a **tag**: **Generate Changelog Since This Tag**, for the branch you are on.
 

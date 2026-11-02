@@ -1215,6 +1215,7 @@ const fr = {
   'settings.ai.desc': 'Connectez un ou plusieurs fournisseurs, choisissez un modèle par défaut, puis réglez chaque fonction — le modèle qu’elle utilise et les instructions qu’elle suit.',
   'settings.ai.model': (p: string) => `Modèle — ${p}`,
   'settings.ai.modelsCount': (n: number) => n === 1 ? '1 modèle disponible' : `${n} modèles disponibles`,
+  'settings.ai.premiumCost': (x: number) => x === 0 ? 'Inclus dans votre abonnement — aucune requête premium' : `${String(Number(x.toFixed(2)))} requête(s) premium par message`,
   'settings.ai.modelsUnverified': (n: number) => n === 1 ? '1 modèle — clé non vérifiée' : `${n} modèles — clé non vérifiée`,
   'settings.ai.custom': '(personnalisé)',
   'settings.ai.reloadModels': 'Recharger les modèles disponibles',
@@ -1282,6 +1283,10 @@ const fr = {
   'settings.ai.show': 'Afficher',
   'settings.ai.hide': 'Masquer',
   'settings.ai.getKey': 'Obtenir une clé',
+  'settings.ai.signInHow': 'Comment l’activer',
+  'settings.ai.signInOff': 'Désactivé',
+  'settings.ai.signInUseCli': (label: string) => `Utiliser mon abonnement ${label} (via le Copilot CLI)`,
+  'settings.ai.signInUseEditor': (label: string) => `Utiliser mon abonnement ${label} (connecté à VS Code)`,
   'settings.ai.tuto.anthropic': [
     '1. Créer un compte sur console.anthropic.com',
     '2. Aller dans Settings → API Keys',
@@ -1305,6 +1310,17 @@ const fr = {
     '2. Aller dans "API keys" dans le menu gauche',
     '3. Cliquer sur "Create new secret key"',
     "4. Copier la clé (elle ne sera plus visible ensuite)",
+  ],
+  'settings.ai.tuto.copilot': [
+    '1. Avoir un abonnement GitHub Copilot (Free, Pro, Business ou Enterprise)',
+    '2. Installer le Copilot CLI : npm install -g @github/copilot (ou brew install copilot-cli)',
+    '3. Lancer copilot dans un terminal et se connecter avec /login',
+    '4. Cocher la case — Git Vertex liste les modèles autorisés pour votre compte',
+  ],
+  'settings.ai.tuto.copilotEditor': [
+    '1. Avoir un abonnement GitHub Copilot (Free, Pro, Business ou Enterprise)',
+    '2. Installer l’extension GitHub Copilot Chat et se connecter à GitHub dans VS Code',
+    '3. Cocher la case — la première requête demande d’autoriser Git Vertex à utiliser les modèles de Copilot',
   ],
   'settings.ai.tuto.openLink': (label: string) => label,
 
@@ -3635,6 +3651,7 @@ const en: typeof fr = {
   'settings.ai.desc': 'Connect one or more providers, choose a default model, then tune each feature — the model it runs on and the instructions it follows.',
   'settings.ai.model': (p: string) => `Model — ${p}`,
   'settings.ai.modelsCount': (n: number) => n === 1 ? '1 model available' : `${n} models available`,
+  'settings.ai.premiumCost': (x: number) => x === 0 ? 'Included in your plan — uses no premium requests' : `${String(Number(x.toFixed(2)))} premium request${x === 1 ? '' : 's'} per message`,
   'settings.ai.modelsUnverified': (n: number) => n === 1 ? '1 model — key not checked' : `${n} models — key not checked`,
   'settings.ai.custom': '(custom)',
   'settings.ai.reloadModels': 'Reload available models',
@@ -3702,6 +3719,10 @@ const en: typeof fr = {
   'settings.ai.show': 'Show',
   'settings.ai.hide': 'Hide',
   'settings.ai.getKey': 'Get a key',
+  'settings.ai.signInHow': 'How to set it up',
+  'settings.ai.signInOff': 'Off',
+  'settings.ai.signInUseCli': (label: string) => `Use my ${label} subscription (through the Copilot CLI)`,
+  'settings.ai.signInUseEditor': (label: string) => `Use my ${label} subscription (signed in to VS Code)`,
   'settings.ai.tuto.anthropic': [
     '1. Create an account on console.anthropic.com',
     '2. Go to Settings → API Keys',
@@ -3725,6 +3746,17 @@ const en: typeof fr = {
     '2. Go to "API keys" in the left menu',
     '3. Click "Create new secret key"',
     '4. Copy the key (it will not be visible again)',
+  ],
+  'settings.ai.tuto.copilot': [
+    '1. Have a GitHub Copilot subscription (Free, Pro, Business or Enterprise)',
+    '2. Install the Copilot CLI: npm install -g @github/copilot (or brew install copilot-cli)',
+    '3. Run copilot in a terminal and sign in with /login',
+    '4. Tick the box — Git Vertex lists the models your account may use',
+  ],
+  'settings.ai.tuto.copilotEditor': [
+    '1. Have a GitHub Copilot subscription (Free, Pro, Business or Enterprise)',
+    '2. Install the GitHub Copilot Chat extension and sign in to GitHub in VS Code',
+    '3. Tick the box — the first request asks you to allow Git Vertex to use Copilot’s models',
   ],
   'settings.ai.tuto.openLink': (label: string) => label,
 

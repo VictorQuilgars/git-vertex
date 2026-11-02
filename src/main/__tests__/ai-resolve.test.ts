@@ -242,3 +242,35 @@ describe('a dialect the call does not speak yet', () => {
     )).rejects.toThrow(/answers questions rather than prompts/)
   })
 })
+
+describe('GitHub Copilot — keyless, on its switch', () => {
+  const base = { aiGroqKey: 'gsk_x', aiDefaultProvider: 'groq', aiDefaultModel: 'llama-3.3-70b-versatile' }
+
+  test('switched on, its pair resolves with no key and its own dialect', () => {
+    const r = resolveAICall({
+      ...base, aiCopilotEnabled: 'true',
+      'aiFeatureProvider:commit': 'copilot', 'aiFeatureModel:commit': 'gpt-4.1',
+    }, 'commit')
+    expect(r).toEqual(expect.objectContaining({
+      provider: 'copilot', model: 'gpt-4.1', apiKey: '', dialect: 'copilot', keyless: true,
+    }))
+  })
+
+  test('switched off, its pair falls through like a provider that lost its key', () => {
+    const r = resolveAICall({
+      ...base,
+      'aiFeatureProvider:commit': 'copilot', 'aiFeatureModel:commit': 'gpt-4.1',
+    }, 'commit')
+    expect(r.provider).toBe('groq')
+  })
+
+  test('the legacy mirror naming it after it was switched off is not a call', () => {
+    // saveAI mirrors the default into `aiProvider`; turning Copilot off later
+    // leaves that behind. It must end as NO_API_KEY (no key, not keyless),
+    // never as a request the user took back.
+    const r = resolveAICall({ aiProvider: 'copilot', aiDefaultProvider: 'copilot', aiDefaultModel: 'gpt-4.1' }, 'commit')
+    expect(r.provider).toBe('copilot')
+    expect(r.apiKey).toBe('')
+    expect(r.keyless).toBe(false)
+  })
+})

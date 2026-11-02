@@ -332,6 +332,25 @@ export function DefenderNote() {
   )
 }
 
+/** One premium request's worth, said the short way: 0.33, 1, 10. */
+export const formatCost = (x: number) => String(Number(x.toFixed(2)))
+
+/**
+ * What a message on this model costs, in premium requests — GitHub Copilot's
+ * unit. Included models (0×) are quiet, a multiple above one is in the warning
+ * ink: it is the one that empties a monthly allowance.
+ */
+export function CostBadge({ cost }: { cost?: number }) {
+  const { t } = useLang()
+  if (cost === undefined) return null
+  const level = cost === 0 ? 'free' : cost > 1 ? 'high' : 'std'
+  return (
+    <span className={`stg-kind stg-kind--cost stg-kind--cost-${level}`} title={t('settings.ai.premiumCost', cost)}>
+      {formatCost(cost)}×
+    </span>
+  )
+}
+
 export function KindBadge({ id }: { id: string }) {
   const k = modelKind(id)
   if (!k) return null
@@ -346,7 +365,7 @@ export function KindBadge({ id }: { id: string }) {
  * declares a temperament, the current pick badged on the face itself. Same
  * closing contract as the composer's pickers: focus leaves, it closes.
  */
-export function ModelSelect({ value, onChange, defaultLabel, defaultModel, providers, liveModels, suggest, suggestLabel, recommend, recommendLabel }: {
+export function ModelSelect({ value, onChange, defaultLabel, defaultModel, providers, liveModels, modelCost, suggest, suggestLabel, recommend, recommendLabel }: {
   value: AIPair | null
   onChange: (v: AIPair | null) => void
   /** Present ⇒ an empty choice is offered, reading as the default it falls to. */
@@ -356,6 +375,8 @@ export function ModelSelect({ value, onChange, defaultLabel, defaultModel, provi
   /** The USABLE providers — catalog entries with a key, customs regardless. */
   providers: { id: string; label: string }[]
   liveModels: Record<string, string[] | null>
+  /** Per provider, per model: premium requests per message (Copilot). */
+  modelCost?: Record<string, Record<string, number>>
   /** The kind of model this caller rewards — heads the list with live
    *  matches. A suggestion, never a gate; absent for balanced features. */
   suggest?: 'reasoning' | 'fast'
@@ -396,6 +417,7 @@ export function ModelSelect({ value, onChange, defaultLabel, defaultModel, provi
         onMouseDown={e => { e.preventDefault(); pick({ provider: p, model: m }) }}>
         <span className="stg-msel-name">{m}</span>
         <KindBadge id={m} />
+        <CostBadge cost={modelCost?.[p]?.[m]} />
         {on && <span className="stg-msel-check">✓</span>}
       </button>
     )
@@ -408,6 +430,7 @@ export function ModelSelect({ value, onChange, defaultLabel, defaultModel, provi
         onKeyDown={e => { if (e.key === 'Escape' && open) { e.preventDefault(); e.stopPropagation(); setOpen(false) } }}>
         <span className="stg-msel-name">{value ? value.model : defaultLabel}</span>
         <KindBadge id={value ? value.model : (defaultModel ?? '')} />
+        {value && <CostBadge cost={modelCost?.[value.provider]?.[value.model]} />}
         <span className="stg-msel-caret">▾</span>
       </button>
       {open && (

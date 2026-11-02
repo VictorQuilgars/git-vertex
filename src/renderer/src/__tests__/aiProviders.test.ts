@@ -1,4 +1,4 @@
-import { parseCustomProviders, providerUsable, providerServes, providerCredential, allProviders, AI_PROVIDER_CATALOG } from '../utils/aiProviders'
+import { parseCustomProviders, providerUsable, providerServes, providerCredential, providerKeyless, allProviders, AI_PROVIDER_CATALOG } from '../utils/aiProviders'
 
 // #169 — providers are DATA over three dialects. The catalog is code; the
 // customs are user JSON, and malformed input costs the entry, never the
@@ -133,5 +133,34 @@ describe('usable — connected stopped meaning "has a key"', () => {
   test("groq still answers to its pre-rename key", () => {
     const groq = AI_PROVIDER_CATALOG.find(p => p.id === 'groq')!
     expect(providerCredential({ groqApiKey: 'old' }, groq)).toBe('old')
+  })
+})
+
+describe('a sign-in provider — GitHub Copilot, whose credential is the host\'s login', () => {
+  const copilot = AI_PROVIDER_CATALOG.find(p => p.id === 'copilot')!
+
+  test('it is a catalog line over its own dialect, with a switch where a key would be', () => {
+    expect(copilot).toEqual(expect.objectContaining({ dialect: 'copilot', signIn: true, keySetting: 'aiCopilotEnabled' }))
+    // No URL to speak to and no model pinned: the account's list is asked live.
+    expect(copilot.baseUrl).toBeUndefined()
+    expect(copilot.defaultModel).toBeUndefined()
+  })
+
+  test('its switch is never handed out as a key', () => {
+    expect(providerCredential({ aiCopilotEnabled: 'true' }, copilot)).toBe('')
+  })
+
+  test('usable, and keyless, only once switched on', () => {
+    expect(providerUsable({}, copilot)).toBe(false)
+    expect(providerUsable({ aiCopilotEnabled: '' }, copilot)).toBe(false)
+    expect(providerUsable({ aiCopilotEnabled: 'true' }, copilot)).toBe(true)
+    expect(providerKeyless({}, copilot)).toBe(false)
+    expect(providerKeyless({ aiCopilotEnabled: 'true' }, copilot)).toBe(true)
+  })
+
+  test('a custom stays keyless and a catalog cloud stays keyed', () => {
+    const [c] = parseCustomProviders(JSON.stringify([{ id: 'custom-o', baseUrl: 'http://localhost:11434/v1' }]))
+    expect(providerKeyless({}, c)).toBe(true)
+    expect(providerKeyless({ aiGroqKey: 'gsk_x' }, AI_PROVIDER_CATALOG.find(p => p.id === 'groq'))).toBe(false)
   })
 })

@@ -6,7 +6,7 @@ import { AI_FEATURES, DIFF_FEATURES, type AIPair, ModelSelect, AI_GLOBAL_CHIPS, 
 import type { SettingsPage } from '../useSettingsPage'
 
 export function AiSection({ page }: { page: SettingsPage }) {
-  const { t, aiGlobalInstr, setAiGlobalInstr, aiFeatSel, setAiFeatSel, aiFeatInstr, setAiFeatInstr, aiFeatRoom, setAiFeatRoom, aiFeatDetail, setAiFeatDetail, aiKeys, setAiKeys, aiCustoms, setAiCustoms, aiDefault, setAiDefault, liveModels, unverifiedModels, loadingModels, modelsError, showKeyFor, setShowKeyFor, showTutoFor, setShowTutoFor, fetchModels, aiDirty, saveAI } = page
+  const { t, embedded, setLiveModels, setModelsError, aiGlobalInstr, setAiGlobalInstr, aiFeatSel, setAiFeatSel, aiFeatInstr, setAiFeatInstr, aiFeatRoom, setAiFeatRoom, aiFeatDetail, setAiFeatDetail, aiKeys, setAiKeys, aiCustoms, setAiCustoms, aiDefault, setAiDefault, liveModels, modelCost, unverifiedModels, loadingModels, modelsError, showKeyFor, setShowKeyFor, showTutoFor, setShowTutoFor, fetchModels, aiDirty, saveAI } = page
 
               // Usable = a catalog entry with its key, or any custom — local
               // runtimes are keyless, their /models answer is the connection
@@ -91,6 +91,30 @@ export function AiSection({ page }: { page: SettingsPage }) {
                             <span className="stg-ai-dot" style={on ? { background: p.color } : undefined} />
                             <span className="stg-ai-provider-name" style={on ? { color: p.color } : undefined}>{p.label}</span>
                           </div>
+                          {p.signIn ? (
+                          // A sign-in provider has no key to type (GitHub
+                          // Copilot): the host's login is the credential, so
+                          // the row is a switch, and switching it on is what
+                          // asks the host whether that login is there.
+                          <div className="stg-ai-row-input">
+                            <label className="stg-ai-signin">
+                              <input
+                                type="checkbox"
+                                checked={key === 'true'}
+                                onChange={e => {
+                                  const on = e.target.checked
+                                  setAiKeys(k => ({ ...k, [p.id]: on ? 'true' : '' }))
+                                  if (on) fetchModels(p.id, 'true')
+                                  else {
+                                    setLiveModels(({ [p.id]: _gone, ...rest }) => rest)
+                                    setModelsError(({ [p.id]: _gone, ...rest }) => rest)
+                                  }
+                                }}
+                              />
+                              <span>{t(embedded ? 'settings.ai.signInUseEditor' : 'settings.ai.signInUseCli', p.label)}</span>
+                            </label>
+                          </div>
+                          ) : (
                           <div className="stg-ai-row-input">
                             <input
                               className="stg-input stg-mono"
@@ -107,12 +131,17 @@ export function AiSection({ page }: { page: SettingsPage }) {
                               <Icon name={showKeyFor === p.id ? 'eyeOff' : 'eye'} size={14} />
                             </button>
                           </div>
+                          )}
                           <div className="stg-ai-row-status">
-                            {status(models, !!loadingModels[p.id], key ? t('settings.ai.keyUnverified') : t('settings.ai.noKey'), unverifiedModels[p.id])}
+                            {status(models, !!loadingModels[p.id],
+                              p.signIn
+                                ? (key === 'true' ? t('settings.ai.notReached') : t('settings.ai.signInOff'))
+                                : (key ? t('settings.ai.keyUnverified') : t('settings.ai.noKey')),
+                              unverifiedModels[p.id])}
                             {p.hasTuto && !on && (
                               <button type="button" className="stg-ai-link" aria-expanded={!!tuto}
                                 onClick={() => setShowTutoFor(v => v === p.id ? null : p.id)}>
-                                {t('settings.ai.getKey')}
+                                {p.signIn ? t('settings.ai.signInHow') : t('settings.ai.getKey')}
                               </button>
                             )}
                           </div>
@@ -121,7 +150,9 @@ export function AiSection({ page }: { page: SettingsPage }) {
                               {err && <span className="stg-models-error">{err}</span>}
                               {tuto && (
                                 <ol className="stg-tuto-steps">
-                                  {(t(`settings.ai.tuto.${p.id}` as any) as unknown as string[]).map((step: string, i: number) => <li key={i}>{step}</li>)}
+                                  {/* A sign-in provider is set up where the host signs in: the
+                                      CLI on the desktop, the editor's extension in VS Code. */}
+                                  {(t(`settings.ai.tuto.${p.id}${p.signIn && embedded ? 'Editor' : ''}` as any) as unknown as string[]).map((step: string, i: number) => <li key={i}>{step}</li>)}
                                 </ol>
                               )}
                             </div>
@@ -236,7 +267,7 @@ export function AiSection({ page }: { page: SettingsPage }) {
                     <AITuning
                       modelLabel={t('settings.ai.defaultModelLabel')}
                       picker={<ModelSelect value={aiDefault} onChange={v => { if (v) setAiDefault(v) }}
-                        providers={generalProviders} liveModels={liveModels} />}
+                        providers={generalProviders} liveModels={liveModels} modelCost={modelCost} />}
                       warn={orphanWarn(aiDefault)}
                       instrLabel={t('settings.ai.globalInstructions')}
                       templates={AI_GLOBAL_CHIPS}
@@ -297,7 +328,7 @@ export function AiSection({ page }: { page: SettingsPage }) {
                           suggestLabel={t('settings.ai.suggested')}
                           recommend={built ? [built.pair] : undefined}
                           recommendLabel={t('settings.ai.builtFor')}
-                          providers={serving(f.id)} liveModels={liveModels} />}
+                          providers={serving(f.id)} liveModels={liveModels} modelCost={modelCost} />}
                         warn={orphanWarn(aiFeatSel[f.id] ?? null)}
                         instrLabel={t('settings.ai.instructionsLabel')}
                         templates={f.chips}

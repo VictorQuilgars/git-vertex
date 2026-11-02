@@ -36,7 +36,9 @@ export const SECRET_KEYS = new Set<string>([
   'githubToken', 'githubEnterpriseToken',
   // The legacy spellings, which no catalog entry names any more.
   'groqApiKey', 'geminiApiKey',
-  ...AI_PROVIDER_CATALOG.map(p => p.keySetting).filter((k): k is string => !!k),
+  // A sign-in provider's setting is a switch, not a credential: its key is
+  // the host's login, which never passes through this file.
+  ...AI_PROVIDER_CATALOG.filter(p => !p.signIn).map(p => p.keySetting).filter((k): k is string => !!k),
 ])
 /** A JSON array whose entries carry a `key` — the custom AI providers. */
 export const SECRET_BLOBS = new Set(['aiCustomProviders'])

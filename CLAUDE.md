@@ -109,7 +109,8 @@ Stored in `app.getPath('userData')/settings.json` via `readSettings()` / `writeS
 Key settings:
 ```
 githubToken        GitHub PAT
-aiProvider         'anthropic' | 'google' | 'groq' | 'openai'
+aiProvider         'anthropic' | 'google' | 'groq' | 'openai' | … (any catalog id)
+aiCopilotEnabled   'true' when GitHub Copilot is switched on (a switch, not a key)
 aiAnthropicKey     API key for Anthropic
 aiGoogleKey        API key for Google
 aiGroqKey          API key for Groq (also groqApiKey for backward compat)
@@ -129,7 +130,17 @@ Handler: `ai:generate-commit-message` in `src/main/index.ts`
 - Prompt forces English output
 
 Supported providers: Anthropic (`@anthropic-ai/sdk`), Google (`@google/generative-ai`),
-Groq (`groq-sdk`), OpenAI (`openai`).
+Groq (`groq-sdk`), OpenAI (`openai`) — and the rest of the catalog in
+`src/renderer/src/utils/aiProviders.ts`.
+
+**GitHub Copilot** is a `signIn` provider (dialect `copilot`): no key, its
+`aiCopilotEnabled` setting is a switch (never sealed, never a credential), and each
+host speaks it its own way. Desktop: `src/main/ai-copilot.ts` drives the **user's**
+Copilot CLI through `@github/copilot-sdk` — found on the login-shell PATH like git;
+the SDK's 171 MB platform runtime packages are excluded from the installers in
+`build.files`. Every session runs with no tools, a replaced system prompt and a
+scratch cwd, and is deleted after the answer. Extension: `vscode-extension/src/copilotLm.ts`
+uses `vscode.lm`, feature-detected (stable from 1.90; `engines` stays 1.85).
 
 Models list fetched live from provider API via `ai:list-provider-models`.
 Groq list excludes `whisper*` and `distil-whisper*` (audio-only models).

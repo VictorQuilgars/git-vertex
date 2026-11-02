@@ -492,6 +492,55 @@ describe('SettingsModal — per-feature AI overrides', () => {
     expect(within(row('Google (Gemini)')).queryByText('Invalid API key')).not.toBeInTheDocument()
     expect(screen.getByText('1 connected')).toBeInTheDocument()
   })
+
+  // GitHub Copilot's credential is the CLI's (or the editor's) login: the row
+  // is a switch, switching it on is the probe, and Save writes the switch.
+  test('GitHub Copilot is a switch, not a key — turning it on asks the host and is saved', async () => {
+    const list = jest.fn().mockImplementation(async (p: string) =>
+      p === 'copilot' ? { models: ['gpt-4.1', 'gpt-5'] } : { error: 'nope' })
+    const mock = await open({ aiListProviderModels: list })
+    const row = screen.getByText('GitHub Copilot').closest('.stg-ai-row') as HTMLElement
+    // no password field to type a key into, and nothing asked before it is on
+    expect(row.querySelector('input[type="password"]')).toBeNull()
+    expect(within(row).getByText('Off')).toBeInTheDocument()
+    expect(list).not.toHaveBeenCalledWith('copilot', expect.anything(), undefined)
+    await userEvent.click(within(row).getByRole('checkbox', { name: /Use my GitHub Copilot subscription/ }))
+    expect(await within(row).findByText('2 models available')).toBeInTheDocument()
+    expect(list).toHaveBeenCalledWith('copilot', 'true', undefined)
+    await userEvent.click(screen.getByText('Save'))
+    await waitFor(() => expect(mock.settingsSet).toHaveBeenCalledWith('aiCopilotEnabled', 'true'))
+  })
+
+  test("Copilot's models wear what a message costs in premium requests", async () => {
+    await open({
+      settingsGetAll: jest.fn().mockResolvedValue({ aiCopilotEnabled: 'true' }),
+      aiListProviderModels: jest.fn().mockImplementation(async (p: string) =>
+        p === 'copilot'
+          ? { models: ['claude-opus-4.1', 'gpt-4.1', 'gpt-5-mini'], cost: { 'gpt-4.1': 0, 'claude-opus-4.1': 10 } }
+          : { error: 'nope' }),
+    })
+    const row = screen.getByText('GitHub Copilot').closest('.stg-ai-row') as HTMLElement
+    await within(row).findByText('3 models available')
+    await userEvent.click(screen.getAllByText(/^Global model \(/)[0])
+    const list = document.querySelector('.stg-msel-list') as HTMLElement
+    const option = (m: string) => within(list).getAllByText(m)[0].closest('.stg-msel-row') as HTMLElement
+    // included is quiet, a multiple is the warning ink, a model that says nothing wears nothing
+    expect(within(option('gpt-4.1')).getByText('0×').className).toContain('stg-kind--cost-free')
+    expect(within(option('claude-opus-4.1')).getByText('10×').className).toContain('stg-kind--cost-high')
+    expect(within(option('claude-opus-4.1')).getByText('10×').title).toBe('10 premium requests per message')
+    expect(option('gpt-5-mini').querySelector('.stg-kind--cost')).toBeNull()
+  })
+
+  test('a Copilot that cannot be reached says why on its own row', async () => {
+    await open({
+      settingsGetAll: jest.fn().mockResolvedValue({ aiCopilotEnabled: 'true' }),
+      aiListProviderModels: jest.fn().mockImplementation(async (p: string) =>
+        p === 'copilot' ? { error: 'GitHub Copilot CLI not found.' } : { error: 'nope' }),
+    })
+    const row = screen.getByText('GitHub Copilot').closest('.stg-ai-row') as HTMLElement
+    expect(await within(row).findByText('GitHub Copilot CLI not found.')).toBeInTheDocument()
+    expect((within(row).getByRole('checkbox') as HTMLInputElement).checked).toBe(true)
+  })
 })
 
 // A provider may answer only some features. Where it can, the page has to put

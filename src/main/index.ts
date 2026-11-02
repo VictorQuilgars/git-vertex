@@ -12,6 +12,7 @@ import iconPng from '../../resources/icon.png?asset'
 import iconIco from '../../resources/icon.ico?asset'
 import path from 'path'
 import { stopWatchers } from './repo-session'
+import { stopCopilot } from './ai-copilot'
 import { state } from './app-state'
 import { handleProtocolUrl, registerDeepLinkHandlers } from './deep-link'
 import { watchAutoUpdater, registerUpdaterHandlers } from './ipc/updater'
@@ -305,3 +306,7 @@ app.on('window-all-closed', () => {
   stopWatchers()
   if (process.platform !== 'darwin') app.quit()
 })
+
+// The Copilot CLI runtime is a child process started on first use; it goes
+// with the app rather than outliving it.
+app.on('will-quit', () => { void stopCopilot() })

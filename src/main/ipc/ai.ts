@@ -48,6 +48,12 @@ export function registerAiHandlers(): void {
       const def = providerById(s, provider)
       apiKey = def ? providerCredential(s, def) : ''
     }
+    // GitHub Copilot has no URL and no key to probe with: the CLI is asked,
+    // and its answer is the connection — signed in, and to which models.
+    if (providerById(readSettings(), provider)?.dialect === 'copilot') {
+      const { listCopilotModels } = await import('../ai-copilot')
+      return listCopilotModels()
+    }
     // A provider that publishes no /models answers from the catalog. Asked
     // first, before the probe, because the probe would 404 and the row would
     // read as a bad key.

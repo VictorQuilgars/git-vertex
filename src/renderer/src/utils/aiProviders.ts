@@ -19,7 +19,7 @@
 // serves, and a def that names none serves them all: the day this arrived
 // nobody's settings moved, which is the density rule applied to a catalog.
 
-export type AIDialect = 'anthropic' | 'google' | 'openai-compat' | 'typesafe'
+export type AIDialect = 'anthropic' | 'google' | 'openai-compat' | 'typesafe' | 'copilot'
 
 export interface AIProviderDef {
   id: string
@@ -28,8 +28,22 @@ export interface AIProviderDef {
   /** Where the dialect is spoken, ending in /v1 — chat-completions for
    *  openai-compat, systemone for typesafe. */
   baseUrl?: string
-  /** Where the credential lives — catalog entries only; customs carry theirs inline. */
+  /** Where the credential lives — catalog entries only; customs carry theirs inline.
+   *  For a `signIn` def it is a SWITCH ('true' or absent), never a secret. */
   keySetting?: string
+  /**
+   * The credential is the HOST's own sign-in, not a key typed into this page.
+   *
+   * GitHub Copilot is the case: the subscription belongs to the account the
+   * desktop's Copilot CLI is logged into, or the one the editor's Copilot
+   * extension uses, and neither hands this app anything it could store. So
+   * `keySetting` holds whether the user turned it on, the settings row draws
+   * a switch rather than a password field, `providerCredential` answers '' —
+   * there is no key, and pretending the switch was one would log it as such —
+   * and the sealing in settings-secrets skips it, because sealing a 'true'
+   * protects nothing and masks the one setting the page has to read back.
+   */
+  signIn?: boolean
   keyPlaceholder?: string
   /** Brand colour — data, not theme, like GitHub language colours. */
   color?: string
@@ -101,6 +115,17 @@ export const AI_PROVIDER_CATALOG: AIProviderDef[] = [
   { id: 'typesafe', label: 'TypeSafe (Jev)', dialect: 'typesafe', baseUrl: 'https://api.typesafe.ai/v1',
     keySetting: 'aiTypesafeKey', keyPlaceholder: '…', defaultModel: 'jev-latest',
     features: ['search', 'filter'], models: ['jev-latest', 'jev-1.13.0'] },
+  // The user's Copilot subscription, spoken through whatever the HOST has
+  // signed in: on the desktop the Copilot CLI run in server mode by
+  // @github/copilot-sdk (the user installs and logs into the CLI — the
+  // runtime the SDK can bundle is 171 MB per platform), in VS Code the
+  // editor's own Language Model API. Neither publishes a URL or a key, so
+  // the dialect is its own and each host implements it. The model list is
+  // the account's, asked live, and no `defaultModel` is pinned here on
+  // purpose: which models a seat offers is the organisation's policy and
+  // moves, and a default naming a retired one is a pair that cannot run.
+  { id: 'copilot', label: 'GitHub Copilot', dialect: 'copilot',
+    keySetting: 'aiCopilotEnabled', signIn: true, color: '#8957e5', hasTuto: true },
 ]
 
 /** The two local runtimes worth a one-click preset. Both speak openai-compat. */
@@ -148,6 +173,8 @@ export function providerById(s: AISettingsView, id: string): AIProviderDef | und
 
 export function providerCredential(s: AISettingsView, def: AIProviderDef): string {
   if (def.custom) return def.key ?? ''
+  // A sign-in provider has no key to give: its switch is not one.
+  if (def.signIn) return ''
   const v = s[def.keySetting ?? ''] ?? ''
   // backward compat: groqApiKey was the old key
   return v || (def.id === 'groq' ? (s.groqApiKey ?? '') : '')
@@ -159,7 +186,26 @@ export function providerCredential(s: AISettingsView, def: AIProviderDef): strin
  * stopped meaning "has a key" the day they arrived (#169).
  */
 export function providerUsable(s: AISettingsView, def: AIProviderDef): boolean {
-  return !!providerCredential(s, def) || !!def.custom
+  return !!providerCredential(s, def) || !!def.custom || signedInEnabled(s, def)
+}
+
+/**
+ * A sign-in provider the user switched on. Whether the host's sign-in is
+ * actually there is only known by asking it — the settings row's model probe
+ * does, and a call made without one fails saying how to sign in.
+ */
+export function signedInEnabled(s: AISettingsView, def: AIProviderDef): boolean {
+  return !!def.signIn && (s[def.keySetting ?? ''] ?? '').trim() === 'true'
+}
+
+/**
+ * Runs with no key — a custom endpoint (local runtimes), or a host sign-in the
+ * user switched on. Switched OFF it is not keyless, it is unconfigured: the
+ * legacy `aiProvider` mirror can still name it after the user turned it off,
+ * and that must end as NO_API_KEY rather than as a call they took back.
+ */
+export function providerKeyless(s: AISettingsView, def: AIProviderDef | undefined): boolean {
+  return !!def?.custom || (!!def && signedInEnabled(s, def))
 }
 
 /**
