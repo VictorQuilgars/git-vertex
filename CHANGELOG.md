@@ -1,6 +1,6 @@
 # Changelog — Git Vertex (desktop)
 
-## Unreleased
+## 1.40.3
 
 ### Fixed
 - **A Copilot CLI installed with npm no longer opens a console window on Windows.** npm leaves a `copilot.cmd` behind which the package's `npm-loader.js` does one thing: start the native `copilot.exe` of `@github/copilot-win32-x64` — with `stdio: 'inherit'` and no `windowsHide`. The app ran that loader, hidden, and the loader's child came up in a console of its own, on screen, for as long as the runtime lived. The app now starts the **native binary itself** (nested under the package or hoisted beside it, for the machine's architecture), which it starts hidden; the loader is only the fallback when no native package is there.
