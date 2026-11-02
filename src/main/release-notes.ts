@@ -2,7 +2,7 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.40.2': `## What's new in 1.40.2
 
 ### 🪟 No more PowerShell window
 - **GitHub Copilot** no longer starts VS Code's own \`copilot\` launcher, which opened a PowerShell window at startup and in Settings › AI. Install the Copilot CLI itself (\`winget install GitHub.Copilot\` or \`npm install -g @github/copilot\`) — the row says so when VS Code's launcher is the only one it finds.
