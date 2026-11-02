@@ -1494,7 +1494,9 @@ describe('GitService', () => {
       // Force a non-existent GPG program so signing deterministically fails
       // regardless of any GPG key the host machine may have configured. -S must
       // then report an error rather than silently producing an unsigned commit.
-      execSync(`cd ${tempDir} && git config gpg.program /nonexistent-gpg-binary`)
+      // The format is pinned too: a host that signs with SSH (gpg.format=ssh)
+      // never reads gpg.program, so it signed anyway and this test failed there.
+      execSync(`cd ${tempDir} && git config gpg.format openpgp && git config gpg.program /nonexistent-gpg-binary`)
       fs.writeFileSync(path.join(tempDir, 'f.txt'), 'x')
       execSync(`cd ${tempDir} && git add f.txt`)
       const r = await git.commit('Signed commit', false, true)

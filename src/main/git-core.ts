@@ -498,6 +498,98 @@ export async function explainUnrewritable(run: GitRunner, missing: string[]): Pr
   return `${subject} ${where} — rewriting can only remove commits from the branch you are on.${also}`
 }
 
+// ── The editors a rewrite hands to git ──────────────────────────
+//
+// Reword, squash, drop and move all run `git rebase -i` with two scripts of
+// ours standing in for the user's editors: GIT_SEQUENCE_EDITOR writes the todo
+// the UI built, GIT_EDITOR writes the message the user typed. Git does not
+// exec those values, it hands them to `sh -c` — and on Windows that is Git for
+// Windows' own sh, reading a path Node built with backslashes:
+//
+//   C:\Users\Victor\AppData\Local\Temp\gitgui-rebase-editor-1.sh
+//   → sh: C:UsersVictorAppDataLocalTempgitgui-rebase-editor-1.sh: not found
+//
+// An unquoted backslash escapes the next character and vanishes, so every
+// rewrite failed on Windows before git had read a single line of the todo; a
+// temp directory under a user name with a space broke it on every platform.
+// So a path only ever reaches the shell through `shellPath`: forward slashes
+// (which Git for Windows' sh and Windows itself both accept) inside single
+// quotes (where sh expands nothing — not `$`, not `~`, not a space).
+
+/** Git's own "no editor": it recognises ':' and spawns nothing at all. */
+export const NO_EDITOR = ':'
+
+/** A file path as ONE sh word, read back unchanged on every platform. */
+export function shellPath(p: string): string {
+  return `'${p.replace(/\\/g, '/').replace(/'/g, `'\\''`)}'`
+}
+
+/**
+ * The value of GIT_EDITOR / GIT_SEQUENCE_EDITOR for a script we wrote. Run
+ * through `sh` explicitly rather than by its execute bit, which Windows does not
+ * have and a `noexec` /tmp refuses.
+ */
+export function editorCommand(scriptPath: string): string {
+  return `sh ${shellPath(scriptPath)}`
+}
+
+/** A sequence editor that replaces git's todo with the one in `seqFile`. */
+export function sequenceEditorScript(seqFile: string): string {
+  return `#!/bin/sh\ncp ${shellPath(seqFile)} "$1"\n`
+}
+
+/**
+ * A commit-message editor that answers git's Nth call with `<msgDir>/<N>.txt`,
+ * counting in `counterFile`. A call beyond the messages written leaves git's own
+ * text untouched.
+ */
+export function messageEditorScript(counterFile: string, msgDir: string): string {
+  const counter = shellPath(counterFile)
+  const dir = shellPath(msgDir.replace(/[\\/]+$/, '') + '/')
+  return `#!/bin/sh
+N=$(cat ${counter} 2>/dev/null || echo 0)
+M=${dir}"$N.txt"
+if [ -f "$M" ]; then cp "$M" "$1"; fi
+echo $((N+1)) > ${counter}
+exit 0
+`
+}
+
+/**
+ * How long a rewrite may run before it is stopped. It was 30 s, which a long
+ * rebase on Windows — where every step is a handful of processes, each slow to
+ * start — or a heavy post-rewrite hook could outlive; the process was killed
+ * mid-rebase and the half-done state was then reported as a conflict.
+ */
+export const REWRITE_TIMEOUT_MS = 10 * 60 * 1000
+
+/** True when an execFile failure is the timeout above killing git. */
+export function timedOut(e: unknown): boolean {
+  return !!e && typeof e === 'object' && (e as { killed?: unknown }).killed === true
+}
+
+/** What a rewrite git did not finish says — never "conflict", which it is not. */
+export function timeoutMessage(state: 'aborted' | 'paused' | 'stopped'): string {
+  const head = `git did not finish within ${REWRITE_TIMEOUT_MS / 60000} minutes and was stopped`
+  if (state === 'aborted') return `${head} — the rebase was aborted, history unchanged`
+  if (state === 'paused') return `${head} — the rebase is still in progress: Continue or Abort it`
+  return head
+}
+
+// ── Where git keeps its state ───────────────────────────────────
+//
+// `<repo>/.git` is a directory only in a main working tree. In a linked
+// worktree or a submodule it is a FILE reading `gitdir: <path>`, and the
+// rebase-merge/, MERGE_HEAD, CHERRY_PICK_HEAD… of that tree live there. A join
+// on '.git' found none of them, so a rebase that stopped on a conflict in a
+// worktree was reported as a plain failure, with no way to resolve it.
+
+/** The path a `.git` file points to, as written (maybe relative), or null. */
+export function parseGitdirFile(content: string): string | null {
+  const m = /^gitdir:\s*(.+?)\s*$/m.exec(content)
+  return m ? m[1] : null
+}
+
 export function assertRef(ref: string, label = 'reference'): string | null {
   if (typeof ref !== 'string' || !ref.trim()) return `Empty git ${label}`
   if (ref.trim().startsWith('-')) return `Invalid git ${label}: "${ref}"`

@@ -2,6 +2,14 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🪟 Rewriting history works on Windows
+- **Reword, squash, fixup, drop and move** failed on Windows before they began: git could not find the small script that writes the rebase plan, because the path reached it without its \\ separators. Fixed — and a user name with a space in it no longer trips it on any platform.
+- **Continue** no longer discards a commit git refused to make: it skips only a commit with nothing staged, and otherwise tells you why it stopped.
+- A rebase in a **worktree** now stops on its conflicts and offers Continue, instead of failing outright.
+- A long rebase is no longer cut off after **30 seconds**: it gets ten minutes, and says so if it runs out.
+`,
   '1.40.3': `## What's new in 1.40.3
 
 ### 🪟 No console window from an npm-installed Copilot CLI

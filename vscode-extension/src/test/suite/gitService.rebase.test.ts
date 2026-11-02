@@ -99,3 +99,50 @@ suite('gitService rebase state', () => {
     assert.strictEqual(s.inProgress, false)
   })
 })
+
+// In a linked worktree `.git` is a FILE pointing at .git/worktrees/<name>, where
+// that tree's rebase-merge/ lives. rebaseInProgress() and getConflictMode() used
+// to join '<tree>/.git/…', found nothing, and a conflict read as a failure.
+suite('gitService rebase in a linked worktree', () => {
+  let root: string
+  let wt: string
+  let svc: GitService
+  const sh = (cmd: string, cwd = wt): string =>
+    execSync(cmd, { cwd, encoding: 'utf8', env: { ...process.env, GIT_EDITOR: ':' } }).trim()
+  const commit = (body: string, msg: string): string => {
+    fs.writeFileSync(path.join(wt, 'f.txt'), body)
+    sh(`git commit -q -am "${msg}"`)
+    return sh('git rev-parse HEAD')
+  }
+
+  setup(() => {
+    root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'gv-wt-test-')))
+    const main = path.join(root, 'main')
+    wt = path.join(root, 'linked')
+    fs.mkdirSync(main)
+    sh('git init -q -b main && git config user.email t@t && git config user.name T', main)
+    fs.writeFileSync(path.join(main, 'f.txt'), 'zero\n')
+    sh('git add . && git commit -q -m base', main)
+    sh(`git worktree add -q -b topic "${wt}"`, main)
+    svc = new GitService(wt)
+  })
+
+  teardown(() => {
+    fs.rmSync(root, { recursive: true, force: true })
+  })
+
+  test('a conflict pauses the rebase, is seen as one, and continues', async () => {
+    assert.ok(fs.statSync(path.join(wt, '.git')).isFile())
+    const a = commit('one\n', 'a')
+    const b = commit('two\n', 'b')
+    const r = await svc.interactiveRebase([{ action: 'drop', hash: a }, { action: 'pick', hash: b }])
+    assert.strictEqual(r.conflict, true)
+    assert.deepStrictEqual(await svc.getConflictMode(), { mode: 'rebase' })
+
+    fs.writeFileSync(path.join(wt, 'f.txt'), 'two\n')
+    sh('git add f.txt')
+    assert.deepStrictEqual(await svc.continueRebase(), { success: true })
+    assert.strictEqual(sh('git log --format=%s'), 'b\nbase')
+    assert.deepStrictEqual(await svc.getConflictMode(), { mode: null })
+  })
+})

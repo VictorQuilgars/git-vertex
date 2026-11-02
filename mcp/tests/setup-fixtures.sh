@@ -79,6 +79,20 @@ c "main: edit a and b" "2026-07-03T10:00:00"
 git merge feature >/dev/null 2>&1 || true
 cd ..
 
+# ── merge-editor: mid-merge, 1 conflicted file — continued under a GIT_EDITOR
+# that fails, as a user's exported editor would under a headless server ─────
+ginit merge-editor
+printf 'alpha base\n' > a.txt
+c "base" "2026-07-01T10:00:00"
+git checkout -qb feature
+printf 'alpha FEATURE\n' > a.txt
+c "feature: edit a" "2026-07-02T10:00:00"
+git checkout -q main
+printf 'alpha MAIN\n' > a.txt
+c "main: edit a" "2026-07-03T10:00:00"
+git merge feature >/dev/null 2>&1 || true
+cd ..
+
 # ── rebase-conflict: mid-rebase of topic onto main ──────────────
 ginit rebase-conflict
 printf 'base\n' > f.txt

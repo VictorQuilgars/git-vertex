@@ -270,6 +270,21 @@ await t(c1, 'abort_operation: nothing in progress → error', 'abort_operation',
   isError: true, expect: ['No operation in progress'],
 })
 
+// GIT_EDITOR in the environment outranks `-c core.editor`: the server used to
+// pass `-c core.editor=true`, so a user's exported editor was opened anyway —
+// here `false`, which fails the way an editor nobody can see would hang.
+{
+  const me = R('merge-editor')
+  const cEd = await connect({ env: { GIT_EDITOR: 'false' } })
+  await t(cEd, 'resolve_conflict: merge-editor a.txt resolved', 'resolve_conflict', { repo: me, file: 'a.txt', content: 'alpha MERGED\n' }, {
+    expect: ['Resolved and staged a.txt'],
+  })
+  await t(cEd, "continue_operation: the user's GIT_EDITOR is not run", 'continue_operation', { repo: me }, {
+    expect: ['merge continued'],
+  })
+  await cEd.close()
+}
+
 // ── rebase conflict + abort ──
 const rc = R('rebase-conflict')
 await t(c1, 'git_conflicts: rebase detected, topic replayed onto main', 'git_conflicts', { repo: rc }, {

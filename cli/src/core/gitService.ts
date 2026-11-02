@@ -17,6 +17,37 @@ function gitEnv(extra: Record<string, string> = {}): NodeJS.ProcessEnv {
   return { ...process.env, LC_ALL: 'C', ...extra }
 }
 
+// Git hands GIT_EDITOR / GIT_SEQUENCE_EDITOR to `sh -c`. On Windows a path
+// Node built (`C:\Users\…\Temp\x.sh`) loses every backslash there and
+// becomes `C:Users…Tempx.sh: not found` — so a path only reaches the shell
+// with forward slashes, single-quoted. The desktop and the panel share the same
+// helpers from src/main/git-core.ts; this package is built on its own.
+function shellPath(p: string): string {
+  return `'${p.replace(/\\/g, '/').replace(/'/g, `'\\''`)}'`
+}
+function editorCommand(scriptPath: string): string {
+  return `sh ${shellPath(scriptPath)}`
+}
+function sequenceEditorScript(seqFile: string): string {
+  return `#!/bin/sh\ncp ${shellPath(seqFile)} "$1"\n`
+}
+/** Git's own "no editor": it recognises ':' and spawns nothing. */
+const NO_EDITOR = ':'
+
+// A rewrite gets ten minutes, not 30 s: a long rebase on Windows outlived the
+// old limit, was killed mid-step, and the half-done state was called a
+// conflict. A kill by the timeout is said as such, and never skipped over.
+const REWRITE_TIMEOUT_MS = 10 * 60 * 1000
+function timedOut(e: unknown): boolean {
+  return !!e && typeof e === 'object' && (e as { killed?: unknown }).killed === true
+}
+function timeoutMessage(state: 'aborted' | 'paused' | 'stopped'): string {
+  const head = `git did not finish within ${REWRITE_TIMEOUT_MS / 60000} minutes and was stopped`
+  if (state === 'aborted') return `${head} — the rebase was aborted, history unchanged`
+  if (state === 'paused') return `${head} — the rebase is still in progress: continue or abort it`
+  return head
+}
+
 // simple-git needs a different shape: it screens the environment it is handed and
 // refuses the call on sight of EDITOR, VISUAL, PAGER, GIT_ASKPASS or any of ~19
 // other variables (@simple-git/argv-parser), while its .env(name, value) form
@@ -71,6 +102,15 @@ export class GitService {
     try {
       await this.git.raw(['rev-parse', '--verify', 'HEAD'])
       return true
+    } catch {
+      return false
+    }
+  }
+
+  private async hasStagedChanges(): Promise<boolean> {
+    try {
+      const out = await this.git.raw(['diff', '--cached', '--name-only'])
+      return out.trim().length > 0
     } catch {
       return false
     }
@@ -478,7 +518,7 @@ export class GitService {
     try {
       const fs = nodeFs
       const path = nodePath
-      const p = path.join(this.repoPath, '.git', 'MERGE_MSG')
+      const p = path.join(this.gitDirPath(), 'MERGE_MSG')
       if (fs.existsSync(p)) {
         const raw = fs.readFileSync(p, 'utf8')
         // Strip comment lines git adds
@@ -672,7 +712,7 @@ export class GitService {
     try {
       const fs = nodeFs
       const path = nodePath
-      const g = path.join(this.repoPath, '.git')
+      const g = this.gitDirPath()
       if (fs.existsSync(path.join(g, 'MERGE_HEAD'))) return { mode: 'merge' }
       if (fs.existsSync(path.join(g, 'rebase-merge')) || fs.existsSync(path.join(g, 'rebase-apply'))) return { mode: 'rebase' }
       if (fs.existsSync(path.join(g, 'CHERRY_PICK_HEAD'))) return { mode: 'cherry-pick' }
@@ -867,17 +907,18 @@ export class GitService {
     try {
       const seqContent = sequence.map(s => `${s.action} ${s.hash}`).join('\n') + '\n'
       fs.writeFileSync(seqFile, seqContent, 'utf8')
-      const scriptContent = `#!/bin/sh\ncp "${seqFile}" "$1"\n`
+      const scriptContent = sequenceEditorScript(seqFile)
       fs.writeFileSync(scriptFile, scriptContent, 'utf8')
       fs.chmodSync(scriptFile, 0o755)
 
       await execFileAsync('git', ['-C', this.repoPath, 'rebase', '-i', '--autostash', baseRef], {
-        env: gitEnv({ GIT_SEQUENCE_EDITOR: scriptFile }),
-        timeout: 30000
+        env: gitEnv({ GIT_SEQUENCE_EDITOR: editorCommand(scriptFile) }),
+        timeout: REWRITE_TIMEOUT_MS
       })
       return { success: true }
     } catch (e: any) {
       const aborted = await this.abortRebaseIfInProgress()
+      if (timedOut(e)) return { success: false, error: timeoutMessage(aborted ? 'aborted' : 'stopped') }
       const base = e.stderr ?? e.message
       return {
         success: false,
@@ -949,16 +990,30 @@ export class GitService {
     const { promisify } = await import('util')
     const execFileAsync = promisify(execFile)
     await execFileAsync('git', ['-C', this.repoPath, ...args], {
-      env: gitEnv({ GIT_EDITOR: 'true' }),
-      timeout: 30000,
+      env: gitEnv({ GIT_EDITOR: NO_EDITOR }),
+      timeout: REWRITE_TIMEOUT_MS,
     })
+  }
+
+  // The real git dir: `.git` is a FILE ("gitdir: <path>") in a linked worktree
+  // or a submodule, and the rebase/merge state of that tree lives where it
+  // points. A join on '.git' found none of it there.
+  private gitDirPath(): string {
+    const dotGit = nodePath.join(this.repoPath, '.git')
+    try {
+      if (nodeFs.statSync(dotGit).isFile()) {
+        const m = /^gitdir:\s*(.+?)\s*$/m.exec(nodeFs.readFileSync(dotGit, 'utf8'))
+        if (m) return nodePath.resolve(this.repoPath, m[1])
+      }
+    } catch { /* not a repo yet — the existsSync checks that follow all fail */ }
+    return dotGit
   }
 
   // True if a rebase is currently in progress (stopped on a conflict, etc.).
   private rebaseInProgress(): boolean {
     const fs = nodeFs
     const path = nodePath
-    const g = path.join(this.repoPath, '.git')
+    const g = this.gitDirPath()
     return fs.existsSync(path.join(g, 'rebase-merge')) || fs.existsSync(path.join(g, 'rebase-apply'))
   }
 
@@ -984,18 +1039,21 @@ export class GitService {
     try {
       const seqContent = sequence.map(s => `${s.action} ${s.hash} commit`).join('\n') + '\n'
       fs.writeFileSync(seqFile, seqContent, 'utf8')
-      const scriptContent = `#!/bin/sh\ncp "${seqFile}" "$1"\n`
+      const scriptContent = sequenceEditorScript(seqFile)
       fs.writeFileSync(scriptFile, scriptContent, 'utf8')
       fs.chmodSync(scriptFile, 0o755)
 
       // GIT_EDITOR=true accepts the default message for squash/fixup/reword
       // instead of opening an editor (which would hang in this headless call).
       await execFileAsync('git', ['-C', this.repoPath, 'rebase', '-i', '--autostash', sequence[0].hash + '^'], {
-        env: gitEnv({ GIT_SEQUENCE_EDITOR: scriptFile, GIT_EDITOR: 'true' }),
-        timeout: 30000
+        env: gitEnv({ GIT_SEQUENCE_EDITOR: editorCommand(scriptFile), GIT_EDITOR: NO_EDITOR }),
+        timeout: REWRITE_TIMEOUT_MS
       })
       return { success: true }
     } catch (e: any) {
+      if (timedOut(e)) {
+        return { success: false, error: timeoutMessage(this.rebaseInProgress() ? 'paused' : 'stopped') }
+      }
       // If the rebase stopped on a conflict it is still in progress — do NOT
       // abort. Leave it so the user can resolve the conflicts and continue via
       // the conflict UI (the banner detects conflictMode='rebase').
@@ -1071,17 +1129,23 @@ export class GitService {
   }
 
   async continueRebase(): Promise<{ success: boolean; error?: string; conflict?: boolean }> {
-    // `-c core.editor=true` accepts the default message for squash/fixup steps
-    // without an editor. (We must NOT override the process env — re-injecting
-    // GIT_CONFIG_COUNT from the VS Code host makes git refuse to run.)
+    // gitExec's GIT_EDITOR=':' accepts the default message for squash/fixup
+    // steps without an editor.
     try {
       await this.gitExec(['rebase', '--continue'])
       return { success: true }
     } catch (e: any) {
       if (!this.rebaseInProgress()) return { success: false, error: e.stderr ?? e.message }
+      // Stopped mid-step by the timeout: skipping would discard a half-applied step.
+      if (timedOut(e)) return { success: false, error: timeoutMessage('paused') }
       // Real conflicts remain → the user must resolve them first.
       if (await this.hasUnmergedPaths()) {
         return { success: false, conflict: true, error: 'Conflicts remain — resolve them, then continue' }
+      }
+      // Something still staged: the commit was not empty, a hook or git refused
+      // it. Skipping would throw the changes away — report it instead.
+      if (await this.hasStagedChanges()) {
+        return { success: false, error: e.stderr || e.message }
       }
       // Clean tree but `--continue` couldn't advance → the current commit is
       // empty / already applied. Skip it so the rebase moves on (no changes lost).

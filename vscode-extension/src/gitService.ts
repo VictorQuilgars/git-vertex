@@ -203,6 +203,18 @@ export class GitService {
     }
   }
 
+  // Anything in the index that HEAD does not have. `diff --cached --quiet`
+  // would answer by its exit code alone, which simple-git does not report as
+  // an error when stderr is empty — so read the names instead.
+  private async hasStagedChanges(): Promise<boolean> {
+    try {
+      const out = await this.git.raw(['diff', '--cached', '--name-only'])
+      return out.trim().length > 0
+    } catch {
+      return false
+    }
+  }
+
   private async hasUnmergedPaths(): Promise<boolean> {
     try {
       const out = await this.git.raw(['ls-files', '--unmerged'])
@@ -698,7 +710,7 @@ export class GitService {
     try {
       const fs = require('fs') as typeof import('fs')
       const path = require('path') as typeof import('path')
-      const p = path.join(this.repoPath, '.git', 'MERGE_MSG')
+      const p = path.join(this.gitDirPath(), 'MERGE_MSG')
       if (fs.existsSync(p)) {
         const raw = fs.readFileSync(p, 'utf8')
         // Strip comment lines git adds
@@ -935,7 +947,7 @@ export class GitService {
     try {
       const fs = require('fs') as typeof import('fs')
       const path = require('path') as typeof import('path')
-      const g = path.join(this.repoPath, '.git')
+      const g = this.gitDirPath()
       if (fs.existsSync(path.join(g, 'MERGE_HEAD'))) return { mode: 'merge' }
       if (fs.existsSync(path.join(g, 'rebase-merge')) || fs.existsSync(path.join(g, 'rebase-apply'))) return { mode: 'rebase' }
       if (fs.existsSync(path.join(g, 'CHERRY_PICK_HEAD'))) return { mode: 'cherry-pick' }
@@ -954,8 +966,8 @@ export class GitService {
     const dotGit = path.join(this.repoPath, '.git')
     try {
       if (fs.statSync(dotGit).isFile()) {
-        const m = fs.readFileSync(dotGit, 'utf8').match(/^gitdir:\s*(.+?)\s*$/m)
-        if (m) return path.resolve(this.repoPath, m[1])
+        const target = core.parseGitdirFile(fs.readFileSync(dotGit, 'utf8'))
+        if (target) return path.resolve(this.repoPath, target)
       }
     } catch { /* not a repo yet — existsSync checks below all fail */ }
     return dotGit
@@ -1268,17 +1280,18 @@ export class GitService {
     try {
       const seqContent = sequence.map(s => `${s.action} ${s.hash}`).join('\n') + '\n'
       fs.writeFileSync(seqFile, seqContent, 'utf8')
-      const scriptContent = `#!/bin/sh\ncp "${seqFile}" "$1"\n`
+      const scriptContent = core.sequenceEditorScript(seqFile)
       fs.writeFileSync(scriptFile, scriptContent, 'utf8')
       fs.chmodSync(scriptFile, 0o755)
 
       await execFileAsync('git', ['-C', this.repoPath, 'rebase', '-i', '--autostash', baseRef], {
-        env: gitEnv({ GIT_SEQUENCE_EDITOR: scriptFile }),
-        timeout: 30000
+        env: gitEnv({ GIT_SEQUENCE_EDITOR: core.editorCommand(scriptFile) }),
+        timeout: core.REWRITE_TIMEOUT_MS
       })
       return { success: true }
     } catch (e: any) {
       const aborted = await this.abortRebaseIfInProgress()
+      if (core.timedOut(e)) return { success: false, error: core.timeoutMessage(aborted ? 'aborted' : 'stopped') }
       const base = e.stderr ?? e.message
       return {
         success: false,
@@ -1365,15 +1378,15 @@ export class GitService {
   }
 
   // Run a git command via execFile, bypassing simple-git's editor/env guards
-  // (it blocks both `-c core.editor` and a GIT_EDITOR env override). GIT_EDITOR=true
-  // accepts the default message for squash/fixup steps without opening an editor.
-  private async gitExec(args: string[], gitEditor = 'true'): Promise<void> {
+  // (it blocks both `-c core.editor` and a GIT_EDITOR env override). The default,
+  // git's own ':' no-editor, accepts the prepared message without spawning anything.
+  private async gitExec(args: string[], gitEditor = core.NO_EDITOR): Promise<void> {
     const { execFile } = await import('child_process')
     const { promisify } = await import('util')
     const execFileAsync = promisify(execFile)
     await execFileAsync('git', ['-C', this.repoPath, ...args], {
       env: gitEnv({ GIT_EDITOR: gitEditor }),
-      timeout: 30000,
+      timeout: core.REWRITE_TIMEOUT_MS,
     })
   }
 
@@ -1383,7 +1396,7 @@ export class GitService {
   // content untouched. Returns the plain accept-default editor ('true') when
   // no messages are given.
   private buildMessageEditor(messages?: string[]): { gitEditor: string; cleanup: () => void } {
-    if (!messages || messages.length === 0) return { gitEditor: 'true', cleanup: () => { /* nothing to clean up */ } }
+    if (!messages || messages.length === 0) return { gitEditor: core.NO_EDITOR, cleanup: () => { /* nothing to clean up */ } }
     const fs = require('fs') as typeof import('fs')
     const path = require('path') as typeof import('path')
     const os = require('os') as typeof import('os')
@@ -1395,16 +1408,10 @@ export class GitService {
     fs.mkdirSync(msgDir, { recursive: true })
     messages.forEach((m, i) => fs.writeFileSync(path.join(msgDir, `${i}.txt`), m, 'utf8'))
     fs.writeFileSync(counterFile, '0', 'utf8')
-    fs.writeFileSync(scriptFile, `#!/bin/sh
-N=$(cat "${counterFile}" 2>/dev/null || echo 0)
-M="${msgDir}/$N.txt"
-if [ -f "$M" ]; then cp "$M" "$1"; fi
-echo $((N+1)) > "${counterFile}"
-exit 0
-`, 'utf8')
+    fs.writeFileSync(scriptFile, core.messageEditorScript(counterFile, msgDir), 'utf8')
     fs.chmodSync(scriptFile, 0o755)
     return {
-      gitEditor: scriptFile,
+      gitEditor: core.editorCommand(scriptFile),
       cleanup: () => {
         try { fs.rmSync(msgDir, { recursive: true, force: true }) } catch { /* best effort */ }
         try { fs.unlinkSync(counterFile) } catch { /* best effort */ }
@@ -1417,7 +1424,7 @@ exit 0
   private rebaseInProgress(): boolean {
     const fs = require('fs') as typeof import('fs')
     const path = require('path') as typeof import('path')
-    const g = path.join(this.repoPath, '.git')
+    const g = this.gitDirPath()
     return fs.existsSync(path.join(g, 'rebase-merge')) || fs.existsSync(path.join(g, 'rebase-apply'))
   }
 
@@ -1449,16 +1456,20 @@ exit 0
     try {
       const seqContent = sequence.map(s => `${s.action} ${s.hash} commit`).join('\n') + '\n'
       fs.writeFileSync(seqFile, seqContent, 'utf8')
-      const scriptContent = `#!/bin/sh\ncp "${seqFile}" "$1"\n`
+      const scriptContent = core.sequenceEditorScript(seqFile)
       fs.writeFileSync(scriptFile, scriptContent, 'utf8')
       fs.chmodSync(scriptFile, 0o755)
 
       await execFileAsync('git', ['-C', this.repoPath, 'rebase', '-i', '--autostash', sequence[0].hash + '^'], {
-        env: gitEnv({ GIT_SEQUENCE_EDITOR: scriptFile, GIT_EDITOR: editor.gitEditor }),
-        timeout: 30000
+        env: gitEnv({ GIT_SEQUENCE_EDITOR: core.editorCommand(scriptFile), GIT_EDITOR: editor.gitEditor }),
+        timeout: core.REWRITE_TIMEOUT_MS
       })
       return { success: true }
     } catch (e: any) {
+      // Killed by the timeout: whatever state it left is not a conflict.
+      if (core.timedOut(e)) {
+        return { success: false, error: core.timeoutMessage(this.rebaseInProgress() ? 'paused' : 'stopped') }
+      }
       // If the rebase stopped on a conflict it is still in progress — do NOT
       // abort. Leave it so the user can resolve the conflicts and continue via
       // the conflict UI (the banner detects conflictMode='rebase').
@@ -1564,9 +1575,19 @@ exit 0
       return { success: true }
     } catch (e: any) {
       if (!this.rebaseInProgress()) return { success: false, error: e.stderr ?? e.message }
+      // Stopped mid-step by the timeout: the step may be half applied, and
+      // skipping it would throw that half away. Leave it paused.
+      if (core.timedOut(e)) return { success: false, error: core.timeoutMessage('paused') }
       // Real conflicts remain → the user must resolve them first.
       if (await this.hasUnmergedPaths()) {
         return { success: false, conflict: true, error: 'Remaining conflicts — resolve them then continue' }
+      }
+      // `--continue` failed with something still staged: the commit was NOT
+      // empty — its editor, a hook or git itself refused it. Skipping here would
+      // throw the user's changes away (on Windows every reword did exactly that
+      // while the message editor could not be found), so say why and stop.
+      if (await this.hasStagedChanges()) {
+        return { success: false, error: e.stderr || e.message }
       }
       // Clean tree but `--continue` couldn't advance → the current commit is
       // empty / already applied. Skip it so the rebase moves on (no changes lost).
