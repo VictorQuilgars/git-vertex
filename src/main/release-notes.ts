@@ -4,6 +4,13 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🤖 GitHub Copilot writes your commit messages
+- **GitHub Copilot** joins the AI providers: your Copilot subscription, through the **Copilot CLI** you already use. Install it, run \`copilot\` once and \`/login\`, then tick **GitHub Copilot** in **Settings › AI Assistant** — no key to paste. The models your account may use join the pickers, each wearing what a message **costs in premium requests** (\`0×\` is included in your plan).
+- Copilot answers here with **no tools at all** and without reading your repository's instructions, and its sessions are deleted afterwards — they never show up in \`copilot --resume\`.
+
+### 🛡 Electron 45
+- The app is built on **Electron 45**, with its Chromium and Node security fixes.
+
 ### 🏷 The model, on branches and tags
 - Right-click a branch **ahead of its upstream**: **Explain Unpushed Changes** reads only what has not been pushed. **Recompose Commits** proposes a new cut of the checked-out branch's commits and rewrites them once you apply the plan — any other branch shows it greyed out, asking to be checked out first. Right-click a **tag**: **Generate Changelog Since This Tag**, for the branch you are on.
 
