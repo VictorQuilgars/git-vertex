@@ -6,7 +6,7 @@ import { AI_FEATURES, DIFF_FEATURES, type AIPair, ModelSelect, AI_GLOBAL_CHIPS, 
 import type { SettingsPage } from '../useSettingsPage'
 
 export function AiSection({ page }: { page: SettingsPage }) {
-  const { t, embedded, setLiveModels, setModelsError, aiGlobalInstr, setAiGlobalInstr, aiFeatSel, setAiFeatSel, aiFeatInstr, setAiFeatInstr, aiFeatRoom, setAiFeatRoom, aiFeatDetail, setAiFeatDetail, aiKeys, setAiKeys, aiCustoms, setAiCustoms, aiDefault, setAiDefault, liveModels, unverifiedModels, loadingModels, modelsError, showKeyFor, setShowKeyFor, showTutoFor, setShowTutoFor, fetchModels, aiDirty, saveAI } = page
+  const { t, embedded, setLiveModels, setModelsError, aiGlobalInstr, setAiGlobalInstr, aiFeatSel, setAiFeatSel, aiFeatInstr, setAiFeatInstr, aiFeatRoom, setAiFeatRoom, aiFeatDetail, setAiFeatDetail, aiKeys, setAiKeys, aiCustoms, setAiCustoms, aiDefault, setAiDefault, liveModels, modelCost, unverifiedModels, loadingModels, modelsError, showKeyFor, setShowKeyFor, showTutoFor, setShowTutoFor, fetchModels, aiDirty, saveAI } = page
 
               // Usable = a catalog entry with its key, or any custom — local
               // runtimes are keyless, their /models answer is the connection
@@ -267,7 +267,7 @@ export function AiSection({ page }: { page: SettingsPage }) {
                     <AITuning
                       modelLabel={t('settings.ai.defaultModelLabel')}
                       picker={<ModelSelect value={aiDefault} onChange={v => { if (v) setAiDefault(v) }}
-                        providers={generalProviders} liveModels={liveModels} />}
+                        providers={generalProviders} liveModels={liveModels} modelCost={modelCost} />}
                       warn={orphanWarn(aiDefault)}
                       instrLabel={t('settings.ai.globalInstructions')}
                       templates={AI_GLOBAL_CHIPS}
@@ -328,7 +328,7 @@ export function AiSection({ page }: { page: SettingsPage }) {
                           suggestLabel={t('settings.ai.suggested')}
                           recommend={built ? [built.pair] : undefined}
                           recommendLabel={t('settings.ai.builtFor')}
-                          providers={serving(f.id)} liveModels={liveModels} />}
+                          providers={serving(f.id)} liveModels={liveModels} modelCost={modelCost} />}
                         warn={orphanWarn(aiFeatSel[f.id] ?? null)}
                         instrLabel={t('settings.ai.instructionsLabel')}
                         templates={f.chips}

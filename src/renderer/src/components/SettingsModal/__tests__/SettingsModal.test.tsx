@@ -511,6 +511,26 @@ describe('SettingsModal — per-feature AI overrides', () => {
     await waitFor(() => expect(mock.settingsSet).toHaveBeenCalledWith('aiCopilotEnabled', 'true'))
   })
 
+  test("Copilot's models wear what a message costs in premium requests", async () => {
+    await open({
+      settingsGetAll: jest.fn().mockResolvedValue({ aiCopilotEnabled: 'true' }),
+      aiListProviderModels: jest.fn().mockImplementation(async (p: string) =>
+        p === 'copilot'
+          ? { models: ['claude-opus-4.1', 'gpt-4.1', 'gpt-5-mini'], cost: { 'gpt-4.1': 0, 'claude-opus-4.1': 10 } }
+          : { error: 'nope' }),
+    })
+    const row = screen.getByText('GitHub Copilot').closest('.stg-ai-row') as HTMLElement
+    await within(row).findByText('3 models available')
+    await userEvent.click(screen.getAllByText(/^Global model \(/)[0])
+    const list = document.querySelector('.stg-msel-list') as HTMLElement
+    const option = (m: string) => within(list).getAllByText(m)[0].closest('.stg-msel-row') as HTMLElement
+    // included is quiet, a multiple is the warning ink, a model that says nothing wears nothing
+    expect(within(option('gpt-4.1')).getByText('0×').className).toContain('stg-kind--cost-free')
+    expect(within(option('claude-opus-4.1')).getByText('10×').className).toContain('stg-kind--cost-high')
+    expect(within(option('claude-opus-4.1')).getByText('10×').title).toBe('10 premium requests per message')
+    expect(option('gpt-5-mini').querySelector('.stg-kind--cost')).toBeNull()
+  })
+
   test('a Copilot that cannot be reached says why on its own row', async () => {
     await open({
       settingsGetAll: jest.fn().mockResolvedValue({ aiCopilotEnabled: 'true' }),

@@ -1,4 +1,4 @@
-import { locateCopilotCli, runtimeEnv, usableModelIds } from '../ai-copilot'
+import { locateCopilotCli, runtimeEnv, usableModelIds, modelCosts } from '../ai-copilot'
 
 // The Copilot CLI is the user's, found the way git is (git-binary.ts): on the
 // login shell's PATH. What breaks here is a LAYOUT — where each installer puts
@@ -61,5 +61,26 @@ describe('the models a picker offers', () => {
       { id: 'gpt-5' },
       { id: '' } as any,
     ])).toEqual(['gemini-2.5-pro', 'gpt-4.1', 'gpt-5'])
+  })
+})
+
+describe('what a model costs, in premium requests', () => {
+  test('the multiplier of every usable model that states one — zero included', () => {
+    expect(modelCosts([
+      { id: 'gpt-4.1', billing: { multiplier: 0 } },
+      { id: 'claude-sonnet-4.5', billing: { multiplier: 1 } },
+      { id: 'claude-opus-4.1', billing: { multiplier: 10 } },
+      { id: 'gemini-flash', billing: { multiplier: 0.33 } },
+    ])).toEqual({ 'gpt-4.1': 0, 'claude-sonnet-4.5': 1, 'claude-opus-4.1': 10, 'gemini-flash': 0.33 })
+  })
+
+  test('a model that states none, a nonsense one, or a disabled one is left out', () => {
+    expect(modelCosts([
+      { id: 'a' },
+      { id: 'b', billing: {} },
+      { id: 'c', billing: { multiplier: -1 } },
+      { id: 'd', billing: { multiplier: NaN } },
+      { id: 'e', billing: { multiplier: 2 }, policy: { state: 'disabled' } },
+    ])).toEqual({})
   })
 })

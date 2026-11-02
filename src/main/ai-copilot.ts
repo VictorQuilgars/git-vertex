@@ -135,6 +135,24 @@ export function usableModelIds(models: ReadonlyArray<{ id: string; policy?: { st
     .map(m => m.id))].sort()
 }
 
+/**
+ * What each model costs in premium requests — Copilot bills a message on a
+ * paid model as a MULTIPLE of one request (0 for what the plan includes, 1,
+ * 10…), and the picker wears it as a badge so a ten-fold model is not chosen
+ * for one-line commit messages by accident. Only the models that say.
+ */
+export function modelCosts(
+  models: ReadonlyArray<{ id: string; policy?: { state?: string }; billing?: { multiplier?: number } }>,
+): Record<string, number> {
+  const out: Record<string, number> = {}
+  for (const m of models) {
+    const x = m?.billing?.multiplier
+    if (m && typeof m.id === 'string' && m.id && m.policy?.state !== 'disabled'
+      && typeof x === 'number' && Number.isFinite(x) && x >= 0) out[m.id] = x
+  }
+  return out
+}
+
 // ── The one runtime ─────────────────────────────────────────────
 
 let client: Promise<CopilotClient> | null = null
@@ -197,11 +215,12 @@ async function signedInClient(): Promise<CopilotClient> {
 }
 
 /** The models the signed-in account may use — the settings row's probe. */
-export async function listCopilotModels(): Promise<{ models?: string[]; error?: string }> {
+export async function listCopilotModels(): Promise<{ models?: string[]; cost?: Record<string, number>; error?: string }> {
   try {
     const c = await signedInClient()
-    const models = usableModelIds(await c.listModels())
-    return models.length ? { models } : { error: 'Copilot answered with no model this account may use.' }
+    const all = await c.listModels()
+    const models = usableModelIds(all)
+    return models.length ? { models, cost: modelCosts(all) } : { error: 'Copilot answered with no model this account may use.' }
   } catch (e: any) {
     return { error: e?.message ?? String(e) }
   }
