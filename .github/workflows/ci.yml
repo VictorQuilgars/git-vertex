@@ -46,7 +46,7 @@ jobs:
           for t in scripts/__tests__/*.test.sh; do echo "── $t"; bash "$t"; done
       - uses: actions/setup-node@v4
         with:
-          node-version: 22   # Electron 44 asks for node >= 22.12
+          node-version: 22   # Electron 45 asks for node >= 22.12
           cache: npm
       - run: npm ci
       # Nothing type-checked the renderer until v1.30.2, and two ReferenceErrors

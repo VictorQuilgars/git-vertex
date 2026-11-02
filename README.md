@@ -69,8 +69,8 @@
 | **Windows** | 10 or later, 64-bit |
 | **Linux** | 64-bit (AppImage, `.deb`) |
 
-The macOS floor is where Electron 44 puts it: v38 dropped macOS 11 and v44
-dropped macOS 12. That line is as much about hardware as about versions —
+The macOS floor is where Electron puts it: v38 dropped macOS 11 and v44
+dropped macOS 12 (v45 keeps that floor). That line is as much about hardware as about versions —
 **every Mac that cannot run Ventura is an Intel one** (broadly a 2017 model or
 older; 2018 for the Air and the mini, 2019 for the Mac Pro). Intel Macs that
 *can* run Ventura are fully supported: every release carries its own x64 build

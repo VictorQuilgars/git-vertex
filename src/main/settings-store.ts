@@ -17,6 +17,11 @@ export function getSettingsPath(): string {
 // something; on a platform with no protected storage it stays in clear,
 // because there is nowhere to put it.
 export const settingsCipher: Cipher = {
+  // ⚠️ The synchronous safeStorage calls are deprecated since Electron 45 and
+  // REMOVED in 46 (Chromium dropped the synchronous OSCrypt backend). The move
+  // is to isAsyncEncryptionAvailable / encryptStringAsync / decryptStringAsync,
+  // which read the same key stores — so a value sealed here still opens — but
+  // it makes readSettings() async, and every caller with it.
   available: () => { try { return safeStorage.isEncryptionAvailable() } catch { return false } },
   seal: (plain) => safeStorage.encryptString(plain).toString('base64'),
   open: (sealed) => safeStorage.decryptString(Buffer.from(sealed, 'base64')),
