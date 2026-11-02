@@ -16,7 +16,7 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.38.0': `## What's new in 1.38.0
 
 ### 🤖 GitHub Copilot writes your commit messages
 - **GitHub Copilot** joins the AI providers, through the editor's own **Language Model API**: the subscription you are signed into in VS Code, nothing else to install beside GitHub Copilot Chat. Tick **GitHub Copilot** in **Settings › AI Assistant**, or pin \`gitVertex.aiProvider: copilot\` in the editor's settings. VS Code asks once to let Git Vertex use Copilot's models. Needs VS Code **1.90** or later.

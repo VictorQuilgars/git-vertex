@@ -2,7 +2,7 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.40.0': `## What's new in 1.40.0
 
 ### 🤖 GitHub Copilot writes your commit messages
 - **GitHub Copilot** joins the AI providers: your Copilot subscription, through the **Copilot CLI** you already use. Install it, run \`copilot\` once and \`/login\`, then tick **GitHub Copilot** in **Settings › AI Assistant** — no key to paste. The models your account may use join the pickers, each wearing what a message **costs in premium requests** (\`0×\` is included in your plan).

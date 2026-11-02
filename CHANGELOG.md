@@ -1,6 +1,6 @@
 # Changelog — Git Vertex (desktop)
 
-## Unreleased
+## 1.40.0
 
 ### Security
 - **Built on Electron 45** (Chromium and Node security fixes), from 44. Nothing the app uses was removed: the preload only reaches `contextBridge`, `ipcRenderer` and `webFrame`, none of the Node shims Electron 45 takes out of sandboxed preloads; the Theme Builder window is sandboxed like its opener, so `window.open` still hands it back. The synchronous `safeStorage` calls that seal the credentials are **deprecated** in 45 and go in 46 — they still work, and moving to the asynchronous ones is the next upgrade's work.
