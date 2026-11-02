@@ -36,7 +36,8 @@
     "files": [
       "out/**/*",
       "resources/icon.png",
-      "resources/icon.ico"
+      "resources/icon.ico",
+      "!**/node_modules/@github/copilot-sdk-*/**"
     ],
     "publish": {
       "provider": "github",
@@ -109,6 +110,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.99.0",
+    "@github/copilot-sdk": "^1.0.22",
     "@google/generative-ai": "^0.24.1",
     "diff2html": "^3.4.47",
     "electron-updater": "^6.8.3",

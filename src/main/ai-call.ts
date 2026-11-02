@@ -43,6 +43,12 @@ export async function callProvider(
     const reason = (result.response as any)?.candidates?.[0]?.finishReason
     return { text: result.response.text().trim(), truncated: reason === 'MAX_TOKENS' }
   }
+  if (target.dialect === 'copilot') {
+    // No URL and no key: the Copilot CLI's own sign-in answers, through the
+    // SDK. Imported late so nothing loads it until a user switches it on.
+    const { callCopilot } = await import('./ai-copilot')
+    return callCopilot(model, prompt)
+  }
   if (target.dialect === 'typesafe') {
     // A judgement engine has no answer to a prompt. Falling through would POST
     // this to `{base}/chat/completions` on a host that serves `/systemone`,

@@ -1,4 +1,4 @@
-import { providerById, providerCredential, providerUsable, providerServes, type AIDialect } from '../renderer/src/utils/aiProviders'
+import { providerById, providerCredential, providerUsable, providerServes, providerKeyless, type AIDialect } from '../renderer/src/utils/aiProviders'
 
 // ai-resolve.ts — which (provider, model, key) an AI call runs on, and which
 // instructions ride it. Free of `electron` on purpose, the theme-validate
@@ -24,7 +24,8 @@ export interface ResolvedAI {
   /** How ai-call speaks to it, and where (openai-compat, typesafe). */
   dialect: AIDialect
   baseUrl?: string
-  /** A custom endpoint may run with no key — local runtimes do (#169). */
+  /** A custom endpoint may run with no key — local runtimes do (#169) — and
+   *  so does a provider whose credential is the host's sign-in (Copilot). */
   keyless: boolean
   /** Auth quirks (customs only, #169 P2) — interpreted by authHeaders(). */
   authHeader?: string
@@ -51,7 +52,8 @@ const serves = (s: AISettings, p: string, feature?: AIFeature): boolean => {
 }
 
 /**
- * Usable = credentialed (or a custom endpoint — keyless local runtimes), AND
+ * Usable = credentialed (or a custom endpoint — keyless local runtimes — or a
+ * sign-in provider the user switched on), AND
  * able to answer THIS feature.
  *
  * The feature belongs here rather than beside the call because the two ways a
@@ -112,7 +114,7 @@ export function resolveAICall(s: AISettings, feature?: AIFeature): ResolvedAI {
     apiKey: keyFor(s, provider),
     dialect: def?.dialect ?? 'openai-compat',
     baseUrl: def?.baseUrl,
-    keyless: !!def?.custom,
+    keyless: providerKeyless(s, def),
     authHeader: def?.authHeader,
     extraHeaders: def?.extraHeaders,
   }

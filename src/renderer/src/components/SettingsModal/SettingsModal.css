@@ -647,6 +647,8 @@
 .stg-ai-row-id { grid-area: id; display: flex; align-items: center; gap: var(--space-md); min-width: 0; }
 .stg-ai-row-input { grid-area: input; display: flex; align-items: center; gap: var(--space-sm); min-width: 0; }
 .stg-ai-row-input .stg-input { flex: 1; min-width: 0; }
+/* A sign-in provider's switch (GitHub Copilot) stands where a key field would. */
+.stg-ai-signin { display: flex; align-items: center; gap: var(--space-sm); min-width: 0; cursor: pointer; font-size: var(--text-sm); color: var(--text-secondary); }
 .stg-ai-row-status { grid-area: status; display: flex; align-items: center; justify-content: flex-end; gap: var(--space-md); }
 /* Placed by column rather than named in the areas: an empty named row would
    still take its row-gap on every line that has nothing to say. */

@@ -78,6 +78,9 @@ export async function runAIPrompt(prompt: string, feature?: AIFeature): Promise<
       if (attempt < 3) await new Promise(r => setTimeout(r, 500 * attempt))
     } catch (e: any) {
       console.error(`[ai] attempt=${attempt} error:`, e.message)
+      // A provider that is not set up (no Copilot CLI, not signed in) is
+      // exactly as unset up half a second later.
+      if (e?.fatal) return { error: e.message }
       // A prompt that does not fit will not fit half a second later either.
       // Retrying it twice more is three certain failures where one was
       // already certain — and the raw provider string names an organization

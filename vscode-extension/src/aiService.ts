@@ -5,7 +5,8 @@
 // (gitVertex.aiProvider / aiApiKey / aiModel), falling back to the shared
 // gvSettings store (same keys as the desktop app) if present.
 import * as vscode from 'vscode'
-import { providerById, providerCredential, providerUsable, providerServes, authHeaders, AI_PROVIDER_CATALOG, type AIDialect } from '../../src/renderer/src/utils/aiProviders'
+import { providerById, providerCredential, providerUsable, providerServes, providerKeyless, authHeaders, AI_PROVIDER_CATALOG, type AIDialect } from '../../src/renderer/src/utils/aiProviders'
+import { callCopilot, listCopilotModels } from './copilotLm'
 
 export interface AIConfig {
   provider: string; apiKey: string; model: string
@@ -13,7 +14,8 @@ export interface AIConfig {
    *  catalog (#169), customs included. */
   dialect: AIDialect
   baseUrl?: string
-  /** A custom endpoint may run keyless — local runtimes do (#169). */
+  /** A custom endpoint may run keyless — local runtimes do (#169) — and so
+   *  does a provider whose credential is the editor's sign-in (Copilot). */
   keyless?: boolean
   /** Auth quirks (customs only, #169 P2) — interpreted by authHeaders(). */
   authHeader?: string
@@ -136,14 +138,15 @@ export function readAIConfig(gv: Record<string, string>, feature?: AIFeature): A
   }
   const def = providerById(gv, provider)
   const apiKey = userSetting(cfg, 'aiApiKey') || keyFor(provider)
-  if (!apiKey && !def?.custom) return null
+  // Keyless: a custom endpoint, or a sign-in provider switched on (Copilot).
+  if (!apiKey && !providerKeyless(gv, def)) return null
   const extras = [gv.aiGlobalInstructions, feature ? gv[`aiFeatureInstructions:${feature}`] : '']
     .map(x => (x ?? '').trim()).filter(Boolean)
   return {
     provider, apiKey, model,
     dialect: def?.dialect ?? 'openai-compat',
     baseUrl: def?.baseUrl,
-    keyless: !!def?.custom,
+    keyless: providerKeyless(gv, def),
     authHeader: def?.authHeader,
     extraHeaders: def?.extraHeaders,
     instructions: extras.length ? extras.join('\n') : undefined,
@@ -188,6 +191,8 @@ async function callOnce(cfg: AIConfig, prompt: string, maxTokens: number): Promi
       `${cfg.model} answers questions rather than prompts, and this call is a prompt. `
       + 'This feature has no judgement path — choose another model for it.')
   }
+  // The editor's own Copilot sign-in, through vscode.lm — no URL, no key.
+  if (cfg.dialect === 'copilot') return callCopilot(model, prompt)
   if (cfg.dialect === 'anthropic') {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -272,8 +277,9 @@ export async function runAIPrompt(
       if (attempt < 3) await new Promise(r => setTimeout(r, 500 * attempt))
     } catch (e: any) {
       const status = e instanceof AIHttpError ? e.status : 0
-      // Auth/key problems won't fix themselves — fail fast.
-      if (status === 401 || status === 403) return { error: e.message }
+      // Auth/key problems won't fix themselves — fail fast. Nor will a
+      // provider that is not set up (`fatal`: no Copilot sign-in, no consent).
+      if (status === 401 || status === 403 || e?.fatal) return { error: e.message }
       // Neither will a prompt that does not fit: backing off and sending the
       // same oversized request is three certain failures instead of one, and
       // the provider's own words name an org id rather than the fix (#185).
@@ -339,7 +345,10 @@ export async function listProviderModels(provider: string, apiKey: string, baseU
     // the probe that would 404. Only a catalog entry can declare them — the
     // customs blob does not carry the field — so this reads the catalog
     // rather than providerById.
-    const declared = AI_PROVIDER_CATALOG.find(p => p.id === provider)?.models
+    const def = AI_PROVIDER_CATALOG.find(p => p.id === provider)
+    // Copilot is asked of the editor: its answer is the connection.
+    if (def?.dialect === 'copilot') return await listCopilotModels()
+    const declared = def?.models
     if (declared) return { models: [...declared], unverified: true }
     // Everything that is not Anthropic or Google is the OpenAI dialect —
     // one GET {base}/models covers the catalog's clouds, the customs and

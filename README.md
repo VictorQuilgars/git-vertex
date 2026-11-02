@@ -37,7 +37,7 @@
 - **Stage & commit** — stage individual files or hunks, amend commits
 - **Interactive rebase** — reorder, squash, drop commits visually
 - **Push & pull** — push to any remote and branch with custom options
-- **AI commit messages** — generate commit messages with Anthropic, Google, Groq or OpenAI
+- **AI commit messages** — generate commit messages with Anthropic, Google, Groq, OpenAI, GitHub Copilot (your subscription, through the Copilot CLI) and more
 - **Branch management** — create, checkout, cherry-pick, revert, reset
 - **Tags** — create and visualize tags directly in the graph
 

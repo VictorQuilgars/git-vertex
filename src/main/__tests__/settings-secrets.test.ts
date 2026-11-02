@@ -86,14 +86,23 @@ describe('which settings are credentials — derived, never listed', () => {
     // (Mistral, DeepSeek, xAI, OpenRouter) then went to disk in clear and
     // reached the window unmasked, because nobody edited a second list.
     for (const p of AI_PROVIDER_CATALOG) {
-      if (!p.keySetting) continue
+      if (!p.keySetting || p.signIn) continue
       expect(isSecretSetting(p.keySetting)).toBe(true)
     }
   })
 
   test('a provider added tomorrow is sealed by arriving, not by being remembered', () => {
     expect([...SECRET_KEYS]).toEqual(expect.arrayContaining(
-      AI_PROVIDER_CATALOG.map((p: any) => p.keySetting).filter(Boolean)))
+      AI_PROVIDER_CATALOG.filter((p: any) => !p.signIn).map((p: any) => p.keySetting).filter(Boolean)))
+  })
+
+  test("a sign-in provider's switch is not a secret — there is no key behind it", () => {
+    // GitHub Copilot's credential is the CLI's or the editor's login. Its
+    // setting says only whether it is on, and masking it would leave the page
+    // unable to read back the one thing it stores.
+    const signIns = AI_PROVIDER_CATALOG.filter((p: any) => p.signIn)
+    expect(signIns.map((p: any) => p.id)).toEqual(['copilot'])
+    for (const p of signIns) expect(isSecretSetting(p.keySetting!)).toBe(false)
   })
 
   test('the legacy spellings no catalog entry names are still secrets', () => {
@@ -142,7 +151,7 @@ describe('what an older version left in clear', () => {
     // The four that shipped unsealed for six releases, and the one that made
     // them visible: this is the list the startup pass has to be able to find.
     const all = Object.fromEntries(AI_PROVIDER_CATALOG
-      .filter((p: any) => p.keySetting).map((p: any) => [p.keySetting, 'in-clear']))
+      .filter((p: any) => p.keySetting && !p.signIn).map((p: any) => [p.keySetting, 'in-clear']))
     expect(unsealedSecrets(all).sort())
       .toEqual(Object.keys(all).sort())
   })
