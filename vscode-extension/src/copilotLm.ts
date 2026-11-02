@@ -84,9 +84,16 @@ export async function callCopilot(model: string, prompt: string): Promise<{ text
   const api = lm()
   if (!api) throw new CopilotSetupError(COPILOT_EDITOR_TOO_OLD)
   // A stored id first; a family second, for a pair saved under a family name
-  // the editor later started answering with versioned ids.
-  let [chat] = await api.selectChatModels({ vendor: 'copilot', id: model })
-  if (!chat) [chat] = await api.selectChatModels({ vendor: 'copilot', family: model })
+  // the editor later started answering with versioned ids. No model at all is
+  // the editor-level pin `gitVertex.aiProvider: copilot` with `aiModel` left
+  // empty: the first model the editor offers, as its description says.
+  let chat: LmChat | undefined
+  if (model) {
+    ;[chat] = await api.selectChatModels({ vendor: 'copilot', id: model })
+    if (!chat) [chat] = await api.selectChatModels({ vendor: 'copilot', family: model })
+  } else {
+    chat = [...await api.selectChatModels({ vendor: 'copilot' })].sort((a, b) => a.id.localeCompare(b.id))[0]
+  }
   if (!chat) {
     const any = await api.selectChatModels({ vendor: 'copilot' })
     throw new CopilotSetupError(any.length

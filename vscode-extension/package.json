@@ -843,7 +843,15 @@
             "anthropic",
             "google",
             "groq",
-            "openai"
+            "openai",
+            "copilot"
+          ],
+          "enumDescriptions": [
+            "Anthropic (Claude) — needs an API key.",
+            "Google (Gemini) — needs an API key.",
+            "Groq — needs an API key.",
+            "OpenAI — needs an API key.",
+            "GitHub Copilot — your Copilot subscription, through the GitHub Copilot Chat extension (VS Code 1.90+). No API key."
           ],
           "default": "groq",
           "description": "AI provider for commit-message generation, commit recompose/explain, conflict resolution and natural-language search."
@@ -851,12 +859,12 @@
         "gitVertex.aiApiKey": {
           "type": "string",
           "default": "",
-          "description": "API key for the selected AI provider. Required to enable the AI features."
+          "description": "API key for the selected AI provider. Required to enable the AI features — except for GitHub Copilot, which uses your VS Code sign-in."
         },
         "gitVertex.aiModel": {
           "type": "string",
           "default": "",
-          "description": "Model to use (e.g. claude-haiku-4-5-20251001, gemini-2.0-flash, llama-3.3-70b-versatile, gpt-4o-mini). Leave empty for the provider's default."
+          "description": "Model to use (e.g. claude-haiku-4-5-20251001, gemini-2.0-flash, llama-3.3-70b-versatile, gpt-4o-mini, or a Copilot model such as gpt-4.1). Leave empty for the provider's default — for GitHub Copilot, the first model the editor offers."
         }
       }
     },

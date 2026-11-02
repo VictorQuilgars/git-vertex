@@ -134,19 +134,26 @@ export function readAIConfig(gv: Record<string, string>, feature?: AIFeature): A
     // would be the same dead end.
     const last = pinnedProvider || legacyProvider
     provider = serves(last) ? last : (serves(legacyProvider) ? legacyProvider : 'groq')
-    model = gv[MODEL_SETTING[provider] ?? ''] || MODEL_DEFAULTS[provider] || MODEL_DEFAULTS.groq
+    // A sign-in provider pins no model (Copilot's list is the account's): an
+    // empty one means "the first the host offers", never Groq's default sent
+    // to a host that does not have it.
+    model = gv[MODEL_SETTING[provider] ?? ''] || MODEL_DEFAULTS[provider]
+      || (providerById(gv, provider)?.signIn ? '' : MODEL_DEFAULTS.groq)
   }
   const def = providerById(gv, provider)
   const apiKey = userSetting(cfg, 'aiApiKey') || keyFor(provider)
-  // Keyless: a custom endpoint, or a sign-in provider switched on (Copilot).
-  if (!apiKey && !providerKeyless(gv, def)) return null
+  // Keyless: a custom endpoint, or a sign-in provider switched on (Copilot) —
+  // in the panel's settings, or by the user pinning it in the editor's own
+  // (`gitVertex.aiProvider: copilot`), which is as explicit a yes.
+  const keyless = providerKeyless(gv, def) || (!!def?.signIn && pinnedProvider === provider)
+  if (!apiKey && !keyless) return null
   const extras = [gv.aiGlobalInstructions, feature ? gv[`aiFeatureInstructions:${feature}`] : '']
     .map(x => (x ?? '').trim()).filter(Boolean)
   return {
     provider, apiKey, model,
     dialect: def?.dialect ?? 'openai-compat',
     baseUrl: def?.baseUrl,
-    keyless: providerKeyless(gv, def),
+    keyless,
     authHeader: def?.authHeader,
     extraHeaders: def?.extraHeaders,
     instructions: extras.length ? extras.join('\n') : undefined,
