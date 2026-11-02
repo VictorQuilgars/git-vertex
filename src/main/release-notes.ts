@@ -2,7 +2,7 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.40.3': `## What's new in 1.40.3
 
 ### 🪟 No console window from an npm-installed Copilot CLI
 - On Windows, a **Copilot CLI installed with npm** no longer opens a console window while Git Vertex uses it: the app now starts the CLI's own program directly, hidden, instead of going through npm's launcher.
