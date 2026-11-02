@@ -1,6 +1,6 @@
 # Changelog — Git Vertex (desktop)
 
-## Unreleased
+## 1.41.1
 
 ### Fixed
 - **Sign in with GitHub works behind a company proxy, and never fails silently again.** On a work machine whose proxy inspects HTTPS, GitHub's page said *signed in* while the app stayed on *Connecting…* for good, with nothing on screen and nothing in a log. The callback did reach the app; the request that trades GitHub's code for a token did not get out. The main process sent it, like every GitHub request, through Node's own `fetch`, which ignores the system proxy and trusts only Node's own certificate list, so it failed where the browser on the same machine worked. That failure was then lost inside an event handler, so the window never heard about it. Every GitHub request of the main process now goes through **Chromium's network stack** (`net.fetch`), with the system proxy and the OS certificate store, as the browser does. Every way the sign-in can fail now ends in a message that names the server and the reason: an untrusted certificate, a proxy, DNS, a blocked connection, or the HTTP status and the start of the page that came back instead. GitHub declining the request is reported in its own words.

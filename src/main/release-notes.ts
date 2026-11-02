@@ -2,7 +2,7 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.41.1': `## What's new in 1.41.1
 
 ### 🔑 Sign in with GitHub behind a company proxy
 - **Sign in with GitHub** works on networks whose proxy inspects HTTPS: the app now reaches GitHub the way your browser does, through the system proxy and the system's certificates.
