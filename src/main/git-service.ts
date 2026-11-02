@@ -1027,12 +1027,12 @@ export class GitService {
     try {
       const seqContent = sequence.map(s => `${s.action} ${s.hash}`).join('\n') + '\n'
       fs.writeFileSync(seqFile, seqContent, 'utf8')
-      const scriptContent = `#!/bin/sh\ncp "${seqFile}" "$1"\n`
+      const scriptContent = core.sequenceEditorScript(seqFile)
       fs.writeFileSync(scriptFile, scriptContent, 'utf8')
       fs.chmodSync(scriptFile, 0o755)
 
       await execFileAsync(gitBinary(), ['-C', this.repoPath, 'rebase', '-i', '--autostash', baseRef], {
-        env: gitEnv({ GIT_SEQUENCE_EDITOR: scriptFile }),
+        env: gitEnv({ GIT_SEQUENCE_EDITOR: core.editorCommand(scriptFile) }),
         timeout: 30000
       })
       return { success: true }
@@ -1154,6 +1154,18 @@ export class GitService {
   }
 
   // Returns true if the index currently has unmerged (conflicted) paths.
+  // Anything in the index that HEAD does not have. `diff --cached --quiet`
+  // would answer by its exit code alone, which simple-git does not report as
+  // an error when stderr is empty — so read the names instead.
+  private async hasStagedChanges(): Promise<boolean> {
+    try {
+      const out = await this.git.raw(['diff', '--cached', '--name-only'])
+      return out.trim().length > 0
+    } catch {
+      return false
+    }
+  }
+
   private async hasUnmergedPaths(): Promise<boolean> {
     try {
       const out = await this.git.raw(['ls-files', '--unmerged'])
@@ -1647,9 +1659,9 @@ export class GitService {
   }
 
   // Run a git command via execFile, bypassing simple-git's editor/env guards
-  // (it blocks both `-c core.editor` and a GIT_EDITOR env override). GIT_EDITOR=true
-  // accepts the default message for squash/fixup steps without opening an editor.
-  private async gitExec(args: string[], gitEditor = 'true'): Promise<void> {
+  // (it blocks both `-c core.editor` and a GIT_EDITOR env override). The default,
+  // git's own ':' no-editor, accepts the prepared message without spawning anything.
+  private async gitExec(args: string[], gitEditor = core.NO_EDITOR): Promise<void> {
     const { execFile } = await import('child_process')
     const { promisify } = await import('util')
     const execFileAsync = promisify(execFile)
@@ -1665,7 +1677,7 @@ export class GitService {
   // content untouched. Returns the plain accept-default editor ('true') when
   // no messages are given.
   private buildMessageEditor(messages?: string[]): { gitEditor: string; cleanup: () => void } {
-    if (!messages || messages.length === 0) return { gitEditor: 'true', cleanup: () => { /* nothing to clean up */ } }
+    if (!messages || messages.length === 0) return { gitEditor: core.NO_EDITOR, cleanup: () => { /* nothing to clean up */ } }
     const fs = require('fs') as typeof import('fs')
     const path = require('path') as typeof import('path')
     const os = require('os') as typeof import('os')
@@ -1677,16 +1689,10 @@ export class GitService {
     fs.mkdirSync(msgDir, { recursive: true })
     messages.forEach((m, i) => fs.writeFileSync(path.join(msgDir, `${i}.txt`), m, 'utf8'))
     fs.writeFileSync(counterFile, '0', 'utf8')
-    fs.writeFileSync(scriptFile, `#!/bin/sh
-N=$(cat "${counterFile}" 2>/dev/null || echo 0)
-M="${msgDir}/$N.txt"
-if [ -f "$M" ]; then cp "$M" "$1"; fi
-echo $((N+1)) > "${counterFile}"
-exit 0
-`, 'utf8')
+    fs.writeFileSync(scriptFile, core.messageEditorScript(counterFile, msgDir), 'utf8')
     fs.chmodSync(scriptFile, 0o755)
     return {
-      gitEditor: scriptFile,
+      gitEditor: core.editorCommand(scriptFile),
       cleanup: () => {
         try { fs.rmSync(msgDir, { recursive: true, force: true }) } catch { /* best effort */ }
         try { fs.unlinkSync(counterFile) } catch { /* best effort */ }
@@ -1730,12 +1736,12 @@ exit 0
       const seqContent = sequence.map(s => `${s.action} ${s.hash} commit`).join('\n') + '\n'
       fs.writeFileSync(seqFile, seqContent, 'utf8')
       // Editor script: just copies our pre-written sequence file
-      const scriptContent = `#!/bin/sh\ncp "${seqFile}" "$1"\n`
+      const scriptContent = core.sequenceEditorScript(seqFile)
       fs.writeFileSync(scriptFile, scriptContent, 'utf8')
       fs.chmodSync(scriptFile, 0o755)
 
       await execFileAsync(gitBinary(), ['-C', this.repoPath, 'rebase', '-i', '--autostash', sequence[0].hash + '^'], {
-        env: gitEnv({ GIT_SEQUENCE_EDITOR: scriptFile, GIT_EDITOR: editor.gitEditor }),
+        env: gitEnv({ GIT_SEQUENCE_EDITOR: core.editorCommand(scriptFile), GIT_EDITOR: editor.gitEditor }),
         timeout: 30000
       })
       return { success: true }
@@ -1920,6 +1926,13 @@ exit 0
       // Real conflicts remain → the user must resolve them first.
       if (await this.hasUnmergedPaths()) {
         return { success: false, conflict: true, error: 'Remaining conflicts — resolve them then continue' }
+      }
+      // `--continue` failed with something still staged: the commit was NOT
+      // empty — its editor, a hook or git itself refused it. Skipping here would
+      // throw the user's changes away (on Windows every reword did exactly that
+      // while the message editor could not be found), so say why and stop.
+      if (await this.hasStagedChanges()) {
+        return { success: false, error: e.stderr || e.message }
       }
       // Clean tree but `--continue` couldn't advance → the current commit is
       // empty / already applied. Skip it so the rebase moves on (no changes lost).

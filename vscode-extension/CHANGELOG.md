@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+- **Reword, squash, fixup, drop and move work on Windows.** Every rewrite is a `git rebase -i` with two small scripts of ours standing in for the editors — one writes the plan, the other the message you typed. Git does not run those itself: it hands them to `sh`, and on Windows the path arrived with backslashes, which `sh` swallows — `C:\Users\…\Temp\gitvertex-rebase-editor-….sh` was looked for as `C:Users…Tempgitvertex-rebase-editor-….sh` and not found, so the rebase stopped before it began. The paths now reach the shell with forward slashes and quoted, and the scripts run through `sh` rather than by their execute bit; a temp directory under a user name with a space, a quote or a `$` broke it on every platform the same way, and works now too. Git's own no-op editor `:` replaces `true`, which is not on every Windows PATH.
+- **Continue no longer throws away a commit it could not make.** When `git rebase --continue` failed with nothing left in conflict, the panel took the commit for an empty one and ran `rebase --skip` — but a commit refused for another reason, its message editor among them, still has its changes staged, and skipping discarded them. That is how a reword on Windows could lose the commit it was rewording. Continue now skips only a commit that has nothing staged, and otherwise says what git said and leaves the rebase where it is.
+
 ## 1.38.0
 
 ### Added

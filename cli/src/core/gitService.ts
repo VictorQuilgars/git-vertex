@@ -17,6 +17,23 @@ function gitEnv(extra: Record<string, string> = {}): NodeJS.ProcessEnv {
   return { ...process.env, LC_ALL: 'C', ...extra }
 }
 
+// Git hands GIT_EDITOR / GIT_SEQUENCE_EDITOR to `sh -c`. On Windows a path
+// Node built (`C:\Users\…\Temp\x.sh`) loses every backslash there and
+// becomes `C:Users…Tempx.sh: not found` — so a path only reaches the shell
+// with forward slashes, single-quoted. The desktop and the panel share the same
+// helpers from src/main/git-core.ts; this package is built on its own.
+function shellPath(p: string): string {
+  return `'${p.replace(/\\/g, '/').replace(/'/g, `'\\''`)}'`
+}
+function editorCommand(scriptPath: string): string {
+  return `sh ${shellPath(scriptPath)}`
+}
+function sequenceEditorScript(seqFile: string): string {
+  return `#!/bin/sh\ncp ${shellPath(seqFile)} "$1"\n`
+}
+/** Git's own "no editor": it recognises ':' and spawns nothing. */
+const NO_EDITOR = ':'
+
 // simple-git needs a different shape: it screens the environment it is handed and
 // refuses the call on sight of EDITOR, VISUAL, PAGER, GIT_ASKPASS or any of ~19
 // other variables (@simple-git/argv-parser), while its .env(name, value) form
@@ -71,6 +88,15 @@ export class GitService {
     try {
       await this.git.raw(['rev-parse', '--verify', 'HEAD'])
       return true
+    } catch {
+      return false
+    }
+  }
+
+  private async hasStagedChanges(): Promise<boolean> {
+    try {
+      const out = await this.git.raw(['diff', '--cached', '--name-only'])
+      return out.trim().length > 0
     } catch {
       return false
     }
@@ -867,12 +893,12 @@ export class GitService {
     try {
       const seqContent = sequence.map(s => `${s.action} ${s.hash}`).join('\n') + '\n'
       fs.writeFileSync(seqFile, seqContent, 'utf8')
-      const scriptContent = `#!/bin/sh\ncp "${seqFile}" "$1"\n`
+      const scriptContent = sequenceEditorScript(seqFile)
       fs.writeFileSync(scriptFile, scriptContent, 'utf8')
       fs.chmodSync(scriptFile, 0o755)
 
       await execFileAsync('git', ['-C', this.repoPath, 'rebase', '-i', '--autostash', baseRef], {
-        env: gitEnv({ GIT_SEQUENCE_EDITOR: scriptFile }),
+        env: gitEnv({ GIT_SEQUENCE_EDITOR: editorCommand(scriptFile) }),
         timeout: 30000
       })
       return { success: true }
@@ -949,7 +975,7 @@ export class GitService {
     const { promisify } = await import('util')
     const execFileAsync = promisify(execFile)
     await execFileAsync('git', ['-C', this.repoPath, ...args], {
-      env: gitEnv({ GIT_EDITOR: 'true' }),
+      env: gitEnv({ GIT_EDITOR: NO_EDITOR }),
       timeout: 30000,
     })
   }
@@ -984,14 +1010,14 @@ export class GitService {
     try {
       const seqContent = sequence.map(s => `${s.action} ${s.hash} commit`).join('\n') + '\n'
       fs.writeFileSync(seqFile, seqContent, 'utf8')
-      const scriptContent = `#!/bin/sh\ncp "${seqFile}" "$1"\n`
+      const scriptContent = sequenceEditorScript(seqFile)
       fs.writeFileSync(scriptFile, scriptContent, 'utf8')
       fs.chmodSync(scriptFile, 0o755)
 
       // GIT_EDITOR=true accepts the default message for squash/fixup/reword
       // instead of opening an editor (which would hang in this headless call).
       await execFileAsync('git', ['-C', this.repoPath, 'rebase', '-i', '--autostash', sequence[0].hash + '^'], {
-        env: gitEnv({ GIT_SEQUENCE_EDITOR: scriptFile, GIT_EDITOR: 'true' }),
+        env: gitEnv({ GIT_SEQUENCE_EDITOR: editorCommand(scriptFile), GIT_EDITOR: NO_EDITOR }),
         timeout: 30000
       })
       return { success: true }
@@ -1082,6 +1108,11 @@ export class GitService {
       // Real conflicts remain → the user must resolve them first.
       if (await this.hasUnmergedPaths()) {
         return { success: false, conflict: true, error: 'Conflicts remain — resolve them, then continue' }
+      }
+      // Something still staged: the commit was not empty, a hook or git refused
+      // it. Skipping would throw the changes away — report it instead.
+      if (await this.hasStagedChanges()) {
+        return { success: false, error: e.stderr || e.message }
       }
       // Clean tree but `--continue` couldn't advance → the current commit is
       // empty / already applied. Skip it so the rebase moves on (no changes lost).

@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Fixed
+- **Drop, move and the interactive rebase work on Windows.** Git hands the sequence editor to `sh`, and the path to ours arrived with backslashes, which `sh` swallows — the script was looked for as `C:Users…Tempgitvertex-rebase-editor-….sh` and not found. The path is now quoted with forward slashes, and the script runs through `sh` rather than by its execute bit.
+- **Continue no longer skips a commit that still has staged changes.** A `--continue` that failed with nothing in conflict was taken for an empty commit and skipped, discarding what a hook or an editor had refused. It now skips only a commit with nothing staged.
 - **The `WIP` row counted a file staged and then modified again twice.** It is in both columns of `git status`, and the row added the two lists. It counts files now. (#232)
 
 ## 0.1.1
