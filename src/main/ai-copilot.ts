@@ -30,17 +30,33 @@
 //     would be a process the user never asked to keep.
 
 import { existsSync, mkdtempSync } from 'fs'
-import { tmpdir } from 'os'
+import { homedir, tmpdir } from 'os'
 import { join } from 'path'
 import type { CopilotClient } from '@github/copilot-sdk'
 import { getGitBinary } from './git-binary'
 import type { ProviderAnswer } from './ai-call'
 
-/** Said when the CLI is nowhere to be found. Names the two installs that exist. */
-export const COPILOT_NOT_INSTALLED =
-  'GitHub Copilot CLI not found. Install it (`npm install -g @github/copilot`, or `brew install copilot-cli`), '
-  + 'run `copilot` once in a terminal and sign in with /login — then try again. '
-  + 'A copy outside your PATH can be named with the COPILOT_CLI_PATH environment variable.'
+/**
+ * Said when the CLI is nowhere to be found — with WHERE it was looked for.
+ *
+ * The folders are the diagnosis. An app started from a desktop icon does not
+ * get the PATH of the terminal where `copilot` works: on Windows it gets
+ * Explorer's, and VS Code puts its own copy of the CLI on the PATH of its
+ * integrated terminals only. "Not found" alone sent the user to a terminal
+ * that disagreed with it; the list says which folders this process saw.
+ */
+export function copilotNotFoundMessage(explicit: string | undefined, searched: readonly string[]): string {
+  const install = 'Install it (`npm install -g @github/copilot`, `winget install GitHub.Copilot` or '
+    + '`brew install copilot-cli`), run `copilot` once in a terminal and sign in with /login — then try again.'
+  const chosen = explicit?.trim()
+  if (chosen) {
+    return `COPILOT_CLI_PATH names ${chosen}, which does not exist. Point it at the Copilot CLI, or unset it to search for one. `
+      + install
+  }
+  return `GitHub Copilot CLI not found. ${install} `
+    + 'A copy elsewhere can be named with the COPILOT_CLI_PATH environment variable. '
+    + (searched.length ? `Looked in: ${searched.join(' · ')}` : 'There was no folder to look in: the PATH is empty.')
+}
 
 /** Said when the CLI answers but has no account to answer for. */
 export const COPILOT_NOT_SIGNED_IN =
@@ -67,32 +83,78 @@ const SYSTEM_PROMPT =
   + 'the task asks for, in the format it asks for — no preamble, no closing remarks, no tool use.'
 
 /**
+ * Where the installers put the CLI, beyond the PATH.
+ *
+ * A desktop icon starts the app with the PATH its launcher had, which is not
+ * the terminal's: on Windows, Explorer's — and a folder added since, or added
+ * only to some terminals, is not in it. VS Code's Copilot extension is the case
+ * that made this list: it installs a `copilot` under its own `bin\copilot-shim`
+ * and puts that folder on the PATH of VS Code's integrated terminals only, so
+ * `where copilot` answers there and the app, started from its icon, saw
+ * nothing. These are looked at AFTER the PATH, which still wins.
+ */
+export function copilotFallbackDirs(platform: NodeJS.Platform, env: NodeJS.ProcessEnv, home: string): string[] {
+  if (platform === 'win32') {
+    const at = (base: string | undefined, ...parts: string[]) => base ? [[base.replace(/[\\/]+$/, ''), ...parts].join('\\')] : []
+    return [
+      ...at(env.APPDATA, 'npm'),                                                           // npm install -g
+      ...at(env.LOCALAPPDATA, 'Microsoft', 'WinGet', 'Links'),                             // winget
+      ...at(env.LOCALAPPDATA, 'Programs', 'Microsoft VS Code', 'bin', 'copilot-shim'),          // VS Code, user install
+      ...at(env.LOCALAPPDATA, 'Programs', 'Microsoft VS Code Insiders', 'bin', 'copilot-shim'),
+      ...at(env.ProgramFiles, 'Microsoft VS Code', 'bin', 'copilot-shim'),                 // VS Code, system install
+    ]
+  }
+  return [
+    ...(home ? [`${home.replace(/\/+$/, '')}/.local/bin`] : []),                           // the install script
+    '/opt/homebrew/bin', '/usr/local/bin',                                                  // Homebrew, both arches
+  ]
+}
+
+/**
+ * Every folder to look in, in order: the PATH's, then the fallbacks, each once.
+ * On Windows a folder is the same whatever its case or a trailing backslash.
+ */
+export function copilotSearchDirs(
+  searchPath: string | undefined, platform: NodeJS.Platform, fallback: readonly string[],
+): string[] {
+  const sep = platform === 'win32' ? ';' : ':'
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const raw of [...(searchPath ?? '').split(sep), ...fallback]) {
+    const dir = raw.trim().replace(/^"(.*)"$/, '$1').replace(/[\\/]+$/, '')
+    if (!dir) continue
+    const key = platform === 'win32' ? dir.toLowerCase() : dir
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(dir)
+  }
+  return out
+}
+
+/**
  * Where the Copilot CLI is, or null.
  *
- * Pure — the PATH, the platform and the file test are arguments — because the
- * one thing that breaks here is a layout, and layouts are what tests can pin:
+ * Pure — the folders, the platform and the file test are arguments — because
+ * the one thing that breaks here is a layout, and layouts are what tests can pin:
  *
  *   - an explicit COPILOT_CLI_PATH wins, as the SDK itself honours it;
- *   - Windows: `copilot.exe` (winget, the installer) is run as it is, while
- *     npm leaves a `copilot.cmd` shim that cannot be spawned without a shell —
- *     the package's own entry beside it is returned instead, a `.js`, which
- *     the SDK runs with the current executable (see `runtimeEnv`);
- *   - elsewhere: the first `copilot` on PATH. npm's is a symlink to a script
- *     whose shebang finds `node` on the PATH the child is given.
+ *   - Windows: `copilot.exe` (winget, the installer, VS Code's shim) is run as
+ *     it is, while npm leaves a `copilot.cmd` shim that cannot be spawned
+ *     without a shell — the package's own entry beside it is returned instead,
+ *     a `.js`, which the SDK runs with the current executable (see `runtimeEnv`);
+ *   - elsewhere: the first `copilot`. npm's is a symlink to a script whose
+ *     shebang finds `node` on the PATH the child is given.
  */
 export function locateCopilotCli(
   explicit: string | undefined,
-  searchPath: string | undefined,
+  dirs: readonly string[],
   platform: NodeJS.Platform,
   exists: (p: string) => boolean,
 ): string | null {
   const chosen = explicit?.trim()
   if (chosen) return chosen
-  const sep = platform === 'win32' ? ';' : ':'
-  const join_ = (dir: string, ...parts: string[]) => [dir.replace(/[\\/]+$/, ''), ...parts].join(platform === 'win32' ? '\\' : '/')
-  for (const raw of (searchPath ?? '').split(sep)) {
-    const dir = raw.trim().replace(/^"(.*)"$/, '$1')
-    if (!dir) continue
+  const join_ = (dir: string, ...parts: string[]) => [dir, ...parts].join(platform === 'win32' ? '\\' : '/')
+  for (const dir of dirs) {
     if (platform === 'win32') {
       const exe = join_(dir, 'copilot.exe')
       if (exists(exe)) return exe
@@ -167,8 +229,10 @@ function scratchDir(): string {
 async function startClient(): Promise<CopilotClient> {
   const { CopilotClient, RuntimeConnection } = await import('@github/copilot-sdk')
   const { searchPath } = getGitBinary()
-  const cli = locateCopilotCli(process.env.COPILOT_CLI_PATH, searchPath ?? process.env.PATH, process.platform, existsSync)
-  if (!cli || !existsSync(cli)) throw new CopilotSetupError(COPILOT_NOT_INSTALLED)
+  const dirs = copilotSearchDirs(searchPath ?? process.env.PATH, process.platform,
+    copilotFallbackDirs(process.platform, process.env, homedir()))
+  const cli = locateCopilotCli(process.env.COPILOT_CLI_PATH, dirs, process.platform, existsSync)
+  if (!cli || !existsSync(cli)) throw new CopilotSetupError(copilotNotFoundMessage(process.env.COPILOT_CLI_PATH, dirs))
   const c = new CopilotClient({
     connection: RuntimeConnection.forStdio({ path: cli }),
     env: runtimeEnv(process.env, searchPath, cli),
