@@ -1,5 +1,10 @@
 # Changelog — Git Vertex (desktop)
 
+## Unreleased
+
+### Fixed
+- **GitHub Copilot finds the Copilot CLI when the app is started from its icon, and says where it looked when it does not.** The CLI was looked for on the PATH alone, and an app started from a desktop icon has the PATH of what launched it — on Windows, Explorer's — which is not the terminal's: a CLI installed since, or put on the PATH of some terminals only, was *not found* while `where copilot` answered. VS Code's Copilot extension is that second case: it installs its own `copilot` under `bin\copilot-shim` and puts that folder on the PATH of **its integrated terminals only**. After the PATH, the app now also looks where the installers put it — on Windows `%APPDATA%\npm`, winget's `Links` and VS Code's `copilot-shim` (user, Insiders and system installs); elsewhere `~/.local/bin` and both Homebrews — and the PATH still wins. When none of them holds it, the message lists **every folder it looked in**, and a `COPILOT_CLI_PATH` that names nothing says so instead.
+
 ## 1.40.0
 
 ### Security
