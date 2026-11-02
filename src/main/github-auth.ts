@@ -1,6 +1,7 @@
 import { app, shell } from 'electron'
 import { resolve } from 'path'
 import { readCallback, exchangeCode, type OAuthResult } from './github-oauth'
+import { netFetch } from './net-fetch'
 
 const CLIENT_ID  = import.meta.env.VITE_GITHUB_CLIENT_ID as string
 const PROXY_URL  = import.meta.env.VITE_GITHUB_PROXY_URL as string
@@ -68,5 +69,5 @@ export async function handleOAuthCallback(callbackUrl: string): Promise<OAuthRes
   const read = readCallback(callbackUrl, pendingState)
   if ('error' in read) return read
   pendingState = null
-  return exchangeCode(PROXY_URL, read.code)
+  return exchangeCode(PROXY_URL, read.code, netFetch)
 }

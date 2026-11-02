@@ -75,6 +75,12 @@ describe('naming a network failure', () => {
   test('blocked', () => {
     expect(describeNetworkError({ message: 'fetch failed', cause: { code: 'ECONNRESET' } })).toMatch(/firewall/)
   })
+  test("Chromium's stack (net.fetch) is read from the message", () => {
+    expect(describeNetworkError(new Error('net::ERR_CERT_AUTHORITY_INVALID'))).toMatch(/certificate.*ERR_CERT_AUTHORITY_INVALID/)
+    expect(describeNetworkError(new Error('net::ERR_TUNNEL_CONNECTION_FAILED'))).toMatch(/proxy/)
+    expect(describeNetworkError(new Error('net::ERR_NAME_NOT_RESOLVED'))).toMatch(/resolved/)
+    expect(describeNetworkError(new Error('net::ERR_CONNECTION_RESET'))).toMatch(/firewall/)
+  })
   test('anything else keeps its own message', () => {
     expect(describeNetworkError(new Error('boom'))).toBe('boom')
   })
