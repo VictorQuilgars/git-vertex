@@ -28,7 +28,25 @@ describe('finding the Copilot CLI', () => {
       .toBe('C:\\Tools\\Copilot\\copilot.exe')
   })
 
-  test("Windows: npm's .cmd shim is traded for the package's own entry, which can be spawned", () => {
+  test("Windows: behind npm's .cmd, the native binary is run — not the loader, whose child showed a window", () => {
+    // Reported on 1.40.2: npm-loader.js starts the native copilot.exe without
+    // windowsHide, so it got a console of its own on screen.
+    const dir = 'C:\\Users\\v\\AppData\\Roaming\\npm'
+    const pkg = `${dir}\\node_modules\\@github\\copilot`
+    const nested = `${pkg}\\node_modules\\@github\\copilot-win32-x64\\copilot.exe`
+    const files = [`${dir}\\copilot.cmd`, `${pkg}\\npm-loader.js`, nested]
+    expect(locateCopilotCli(undefined, dirsOf(dir, 'win32'), 'win32', fsOf(...files), 'x64')).toBe(nested)
+  })
+
+  test('Windows: a hoisted native package is found too, and the arch is the one asked', () => {
+    const dir = 'C:\\npm'
+    const hoisted = `${dir}\\node_modules\\@github\\copilot-win32-arm64\\copilot.exe`
+    const x64 = `${dir}\\node_modules\\@github\\copilot-win32-x64\\copilot.exe`
+    const files = [`${dir}\\copilot.cmd`, hoisted, x64]
+    expect(locateCopilotCli(undefined, dirsOf(dir, 'win32'), 'win32', fsOf(...files), 'arm64')).toBe(hoisted)
+  })
+
+  test("Windows: with no native package, npm's .cmd is traded for the package's own entry", () => {
     const dir = 'C:\\Users\\v\\AppData\\Roaming\\npm'
     const entry = `${dir}\\node_modules\\@github\\copilot\\npm-loader.js`
     expect(locateCopilotCli(undefined, dirsOf(`"${dir}";C:\\Windows`, 'win32'), 'win32', fsOf(`${dir}\\copilot.cmd`, entry))).toBe(entry)

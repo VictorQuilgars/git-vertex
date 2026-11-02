@@ -171,10 +171,14 @@ export function vsCodeShimDirs(platform: NodeJS.Platform, env: NodeJS.ProcessEnv
  *
  *   - an explicit COPILOT_CLI_PATH wins, as the SDK itself honours it;
  *   - VS Code's launcher is skipped (`isVsCodeShim`);
- *   - Windows: `copilot.exe` (winget, the installer) is run as
- *     it is, while npm leaves a `copilot.cmd` shim that cannot be spawned
- *     without a shell — the package's own entry beside it is returned instead,
- *     a `.js`, which the SDK runs with the current executable (see `runtimeEnv`);
+ *   - Windows: `copilot.exe` (winget, the installer) is run as it is. npm
+ *     leaves a `copilot.cmd` shim that cannot be spawned without a shell, and
+ *     behind it the package's `npm-loader.js` — which only starts the NATIVE
+ *     binary of `@github/copilot-win32-<arch>` with `spawnSync(…, { stdio:
+ *     'inherit' })`, no `windowsHide`. Started through the loader, that binary
+ *     got a console of its own, on screen, for as long as the runtime lived
+ *     (reported on 1.40.2). So the native binary is returned when it is there —
+ *     the SDK starts it hidden — and the loader only when it is not;
  *   - elsewhere: the first `copilot`. npm's is a symlink to a script whose
  *     shebang finds `node` on the PATH the child is given.
  */
@@ -183,6 +187,7 @@ export function locateCopilotCli(
   dirs: readonly string[],
   platform: NodeJS.Platform,
   exists: (p: string) => boolean,
+  arch: string = 'x64',
 ): string | null {
   const chosen = explicit?.trim()
   if (chosen) return chosen
@@ -193,7 +198,14 @@ export function locateCopilotCli(
       const exe = join_(dir, 'copilot.exe')
       if (exists(exe)) return exe
       if (exists(join_(dir, 'copilot.cmd'))) {
-        const entry = join_(dir, 'node_modules', '@github', 'copilot', 'npm-loader.js')
+        const pkg = join_(dir, 'node_modules', '@github', 'copilot')
+        const native = `copilot-win32-${arch}`
+        // Nested under the package (a global install), or hoisted beside it.
+        for (const bin of [join_(pkg, 'node_modules', '@github', native, 'copilot.exe'),
+                           join_(dir, 'node_modules', '@github', native, 'copilot.exe')]) {
+          if (exists(bin)) return bin
+        }
+        const entry = join_(pkg, 'npm-loader.js')
         if (exists(entry)) return entry
       }
       continue
@@ -290,7 +302,7 @@ async function startClient(): Promise<CopilotClient> {
   const { searchPath } = getGitBinary()
   const dirs = copilotSearchDirs(searchPath ?? process.env.PATH, process.platform,
     copilotFallbackDirs(process.platform, process.env, homedir()))
-  const cli = locateCopilotCli(process.env.COPILOT_CLI_PATH, dirs, process.platform, existsSync)
+  const cli = locateCopilotCli(process.env.COPILOT_CLI_PATH, dirs, process.platform, existsSync, process.arch)
   if (!cli || !existsSync(cli)) {
     const skipped = [...new Set([...dirs.filter(isVsCodeShim),
       ...vsCodeShimDirs(process.platform, process.env).filter(d => existsSync(join(d, 'copilot.exe')))])]
