@@ -555,6 +555,41 @@ exit 0
 `
 }
 
+/**
+ * How long a rewrite may run before it is stopped. It was 30 s, which a long
+ * rebase on Windows — where every step is a handful of processes, each slow to
+ * start — or a heavy post-rewrite hook could outlive; the process was killed
+ * mid-rebase and the half-done state was then reported as a conflict.
+ */
+export const REWRITE_TIMEOUT_MS = 10 * 60 * 1000
+
+/** True when an execFile failure is the timeout above killing git. */
+export function timedOut(e: unknown): boolean {
+  return !!e && typeof e === 'object' && (e as { killed?: unknown }).killed === true
+}
+
+/** What a rewrite git did not finish says — never "conflict", which it is not. */
+export function timeoutMessage(state: 'aborted' | 'paused' | 'stopped'): string {
+  const head = `git did not finish within ${REWRITE_TIMEOUT_MS / 60000} minutes and was stopped`
+  if (state === 'aborted') return `${head} — the rebase was aborted, history unchanged`
+  if (state === 'paused') return `${head} — the rebase is still in progress: Continue or Abort it`
+  return head
+}
+
+// ── Where git keeps its state ───────────────────────────────────
+//
+// `<repo>/.git` is a directory only in a main working tree. In a linked
+// worktree or a submodule it is a FILE reading `gitdir: <path>`, and the
+// rebase-merge/, MERGE_HEAD, CHERRY_PICK_HEAD… of that tree live there. A join
+// on '.git' found none of them, so a rebase that stopped on a conflict in a
+// worktree was reported as a plain failure, with no way to resolve it.
+
+/** The path a `.git` file points to, as written (maybe relative), or null. */
+export function parseGitdirFile(content: string): string | null {
+  const m = /^gitdir:\s*(.+?)\s*$/m.exec(content)
+  return m ? m[1] : null
+}
+
 export function assertRef(ref: string, label = 'reference'): string | null {
   if (typeof ref !== 'string' || !ref.trim()) return `Empty git ${label}`
   if (ref.trim().startsWith('-')) return `Invalid git ${label}: "${ref}"`

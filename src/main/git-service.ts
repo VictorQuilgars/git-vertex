@@ -1033,13 +1033,14 @@ export class GitService {
 
       await execFileAsync(gitBinary(), ['-C', this.repoPath, 'rebase', '-i', '--autostash', baseRef], {
         env: gitEnv({ GIT_SEQUENCE_EDITOR: core.editorCommand(scriptFile) }),
-        timeout: 30000
+        timeout: core.REWRITE_TIMEOUT_MS
       })
       return { success: true }
     } catch (e: any) {
       // A conflict (or any failure) leaves the repo mid-rebase. Abort to restore
       // the original state — these targeted operations have no resolution UI.
       const aborted = await this.abortRebaseIfInProgress()
+      if (core.timedOut(e)) return { success: false, error: core.timeoutMessage(aborted ? 'aborted' : 'stopped') }
       const base = e.stderr ?? e.message
       return {
         success: false,
@@ -1667,7 +1668,7 @@ export class GitService {
     const execFileAsync = promisify(execFile)
     await execFileAsync(gitBinary(), ['-C', this.repoPath, ...args], {
       env: gitEnv({ GIT_EDITOR: gitEditor }),
-      timeout: 30000,
+      timeout: core.REWRITE_TIMEOUT_MS,
     })
   }
 
@@ -1701,11 +1702,28 @@ export class GitService {
     }
   }
 
+  // The real git dir, synchronously: `.git` is a FILE ("gitdir: <path>") in a
+  // linked worktree or a submodule, and the rebase/merge state lives where it
+  // points (see core.parseGitdirFile). The async gitDir() below asks git; this
+  // one is for the checks that run inside a catch, without another process.
+  private gitDirPath(): string {
+    const fs = require('fs') as typeof import('fs')
+    const path = require('path') as typeof import('path')
+    const dotGit = path.join(this.repoPath, '.git')
+    try {
+      if (fs.statSync(dotGit).isFile()) {
+        const target = core.parseGitdirFile(fs.readFileSync(dotGit, 'utf8'))
+        if (target) return path.resolve(this.repoPath, target)
+      }
+    } catch { /* not a repo yet — the existsSync checks that follow all fail */ }
+    return dotGit
+  }
+
   // True if a rebase is currently in progress (stopped on a conflict, etc.).
   private rebaseInProgress(): boolean {
-    const fs = require('fs')
-    const path = require('path')
-    const g = path.join(this.repoPath, '.git')
+    const fs = require('fs') as typeof import('fs')
+    const path = require('path') as typeof import('path')
+    const g = this.gitDirPath()
     return fs.existsSync(path.join(g, 'rebase-merge')) || fs.existsSync(path.join(g, 'rebase-apply'))
   }
 
@@ -1742,10 +1760,14 @@ export class GitService {
 
       await execFileAsync(gitBinary(), ['-C', this.repoPath, 'rebase', '-i', '--autostash', sequence[0].hash + '^'], {
         env: gitEnv({ GIT_SEQUENCE_EDITOR: core.editorCommand(scriptFile), GIT_EDITOR: editor.gitEditor }),
-        timeout: 30000
+        timeout: core.REWRITE_TIMEOUT_MS
       })
       return { success: true }
     } catch (e: any) {
+      // Killed by the timeout: whatever state it left is not a conflict.
+      if (core.timedOut(e)) {
+        return { success: false, error: core.timeoutMessage(this.rebaseInProgress() ? 'paused' : 'stopped') }
+      }
       // Stopped on a conflict → leave the rebase in progress so the user can
       // resolve via the conflict UI and continue (don't treat it as a failure).
       if (this.rebaseInProgress()) {
@@ -1923,6 +1945,9 @@ export class GitService {
       return { success: true }
     } catch (e: any) {
       if (!this.rebaseInProgress()) return { success: false, error: e.stderr ?? e.message }
+      // Stopped mid-step by the timeout: the step may be half applied, and
+      // skipping it would throw that half away. Leave it paused.
+      if (core.timedOut(e)) return { success: false, error: core.timeoutMessage('paused') }
       // Real conflicts remain → the user must resolve them first.
       if (await this.hasUnmergedPaths()) {
         return { success: false, conflict: true, error: 'Remaining conflicts — resolve them then continue' }

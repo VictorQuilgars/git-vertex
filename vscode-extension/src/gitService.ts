@@ -710,7 +710,7 @@ export class GitService {
     try {
       const fs = require('fs') as typeof import('fs')
       const path = require('path') as typeof import('path')
-      const p = path.join(this.repoPath, '.git', 'MERGE_MSG')
+      const p = path.join(this.gitDirPath(), 'MERGE_MSG')
       if (fs.existsSync(p)) {
         const raw = fs.readFileSync(p, 'utf8')
         // Strip comment lines git adds
@@ -947,7 +947,7 @@ export class GitService {
     try {
       const fs = require('fs') as typeof import('fs')
       const path = require('path') as typeof import('path')
-      const g = path.join(this.repoPath, '.git')
+      const g = this.gitDirPath()
       if (fs.existsSync(path.join(g, 'MERGE_HEAD'))) return { mode: 'merge' }
       if (fs.existsSync(path.join(g, 'rebase-merge')) || fs.existsSync(path.join(g, 'rebase-apply'))) return { mode: 'rebase' }
       if (fs.existsSync(path.join(g, 'CHERRY_PICK_HEAD'))) return { mode: 'cherry-pick' }
@@ -966,8 +966,8 @@ export class GitService {
     const dotGit = path.join(this.repoPath, '.git')
     try {
       if (fs.statSync(dotGit).isFile()) {
-        const m = fs.readFileSync(dotGit, 'utf8').match(/^gitdir:\s*(.+?)\s*$/m)
-        if (m) return path.resolve(this.repoPath, m[1])
+        const target = core.parseGitdirFile(fs.readFileSync(dotGit, 'utf8'))
+        if (target) return path.resolve(this.repoPath, target)
       }
     } catch { /* not a repo yet — existsSync checks below all fail */ }
     return dotGit
@@ -1286,11 +1286,12 @@ export class GitService {
 
       await execFileAsync('git', ['-C', this.repoPath, 'rebase', '-i', '--autostash', baseRef], {
         env: gitEnv({ GIT_SEQUENCE_EDITOR: core.editorCommand(scriptFile) }),
-        timeout: 30000
+        timeout: core.REWRITE_TIMEOUT_MS
       })
       return { success: true }
     } catch (e: any) {
       const aborted = await this.abortRebaseIfInProgress()
+      if (core.timedOut(e)) return { success: false, error: core.timeoutMessage(aborted ? 'aborted' : 'stopped') }
       const base = e.stderr ?? e.message
       return {
         success: false,
@@ -1385,7 +1386,7 @@ export class GitService {
     const execFileAsync = promisify(execFile)
     await execFileAsync('git', ['-C', this.repoPath, ...args], {
       env: gitEnv({ GIT_EDITOR: gitEditor }),
-      timeout: 30000,
+      timeout: core.REWRITE_TIMEOUT_MS,
     })
   }
 
@@ -1423,7 +1424,7 @@ export class GitService {
   private rebaseInProgress(): boolean {
     const fs = require('fs') as typeof import('fs')
     const path = require('path') as typeof import('path')
-    const g = path.join(this.repoPath, '.git')
+    const g = this.gitDirPath()
     return fs.existsSync(path.join(g, 'rebase-merge')) || fs.existsSync(path.join(g, 'rebase-apply'))
   }
 
@@ -1461,10 +1462,14 @@ export class GitService {
 
       await execFileAsync('git', ['-C', this.repoPath, 'rebase', '-i', '--autostash', sequence[0].hash + '^'], {
         env: gitEnv({ GIT_SEQUENCE_EDITOR: core.editorCommand(scriptFile), GIT_EDITOR: editor.gitEditor }),
-        timeout: 30000
+        timeout: core.REWRITE_TIMEOUT_MS
       })
       return { success: true }
     } catch (e: any) {
+      // Killed by the timeout: whatever state it left is not a conflict.
+      if (core.timedOut(e)) {
+        return { success: false, error: core.timeoutMessage(this.rebaseInProgress() ? 'paused' : 'stopped') }
+      }
       // If the rebase stopped on a conflict it is still in progress — do NOT
       // abort. Leave it so the user can resolve the conflicts and continue via
       // the conflict UI (the banner detects conflictMode='rebase').
@@ -1570,6 +1575,9 @@ export class GitService {
       return { success: true }
     } catch (e: any) {
       if (!this.rebaseInProgress()) return { success: false, error: e.stderr ?? e.message }
+      // Stopped mid-step by the timeout: the step may be half applied, and
+      // skipping it would throw that half away. Leave it paused.
+      if (core.timedOut(e)) return { success: false, error: core.timeoutMessage('paused') }
       // Real conflicts remain → the user must resolve them first.
       if (await this.hasUnmergedPaths()) {
         return { success: false, conflict: true, error: 'Remaining conflicts — resolve them then continue' }

@@ -176,3 +176,95 @@ describe('continue never skips a commit that still has changes', () => {
     expect(sh('git log --format=%s')).toBe('the work, rebased\nmain\nbase')
   })
 })
+
+describe('a rebase in a linked worktree', () => {
+  // `.git` is a FILE there ("gitdir: …/.git/worktrees/<name>"), and the
+  // rebase-merge/ of that tree lives where it points. The check joined
+  // '<tree>/.git/rebase-merge', found nothing, and a conflict was reported as a
+  // plain failure — no conflict screen, no Continue.
+  let root: string
+  let wt: string
+  let git: GitService
+  const sh = (cmd: string, cwd = wt): string => execSync(cmd, { cwd, encoding: 'utf8' }).trim()
+  const commit = (body: string, msg: string): string => {
+    fs.writeFileSync(path.join(wt, 'f.txt'), body)
+    sh(`git commit -q -am "${msg}"`)
+    return sh('git rev-parse HEAD')
+  }
+
+  beforeEach(() => {
+    root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'gv-wt-')))
+    const main = path.join(root, 'main')
+    wt = path.join(root, 'linked')
+    fs.mkdirSync(main)
+    sh('git init -q -b main && git config user.email t@t && git config user.name T', main)
+    fs.writeFileSync(path.join(main, 'f.txt'), 'zero\n')
+    sh('git add . && git commit -q -m base', main)
+    sh(`git worktree add -q -b topic "${wt}"`, main)
+    git = new GitService(wt)
+  })
+
+  afterEach(() => fs.rmSync(root, { recursive: true, force: true }))
+
+  test('really is a linked worktree', () => {
+    expect(fs.statSync(path.join(wt, '.git')).isFile()).toBe(true)
+  })
+
+  test('a conflict pauses the rebase, is seen as one, and continues', async () => {
+    const a = commit('one\n', 'a')
+    const b = commit('two\n', 'b')
+    // Dropping A and keeping B replays one→two onto zero: a conflict.
+    const r = await git.interactiveRebase([{ action: 'drop', hash: a }, { action: 'pick', hash: b }])
+    expect(r.conflict).toBe(true)
+    expect(await git.getConflictMode()).toEqual({ mode: 'rebase' })
+
+    fs.writeFileSync(path.join(wt, 'f.txt'), 'two\n')
+    sh('git add f.txt')
+    expect(await git.continueRebase()).toEqual({ success: true })
+    expect(sh('git log --format=%s')).toBe('b\nbase')
+    expect(await git.getConflictMode()).toEqual({ mode: null })
+  })
+})
+
+describe('a rewrite stopped by the timeout', () => {
+  test('is recognised by the kill, and said as what it is', () => {
+    expect(core.timedOut(Object.assign(new Error('x'), { killed: true }))).toBe(true)
+    expect(core.timedOut(Object.assign(new Error('x'), { killed: false, code: 1 }))).toBe(false)
+    expect(core.timedOut(null)).toBe(false)
+    expect(core.REWRITE_TIMEOUT_MS).toBeGreaterThanOrEqual(5 * 60 * 1000)
+    expect(core.timeoutMessage('paused')).toMatch(/still in progress/)
+    expect(core.timeoutMessage('paused')).not.toMatch(/conflict/i)
+  })
+
+  test('continue does not skip the step it was killed in', async () => {
+    const repo = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'gv-timeout-')))
+    const sh = (cmd: string): string => execSync(cmd, { cwd: repo, encoding: 'utf8' }).trim()
+    try {
+      sh('git init -q -b main && git config user.email t@t && git config user.name T')
+      fs.writeFileSync(path.join(repo, 'f.txt'), 'base\n')
+      sh('git add . && git commit -q -m base && git checkout -q -b feat')
+      fs.writeFileSync(path.join(repo, 'f.txt'), 'feat\n')
+      sh('git commit -q -am work && git checkout -q main')
+      fs.writeFileSync(path.join(repo, 'f.txt'), 'main\n')
+      sh('git commit -q -am main && git checkout -q feat')
+      try { sh('GIT_EDITOR=: git rebase main') } catch { /* stops on the conflict */ }
+      // Resolved to main's side: nothing staged against HEAD — exactly the
+      // state the skip fallback was written for, so only the kill can stop it.
+      fs.writeFileSync(path.join(repo, 'f.txt'), 'main\n')
+      sh('git add f.txt')
+
+      const git = new GitService(repo)
+      const calls: string[][] = []
+      ;(git as any).gitExec = async (args: string[]) => {
+        calls.push(args)
+        throw Object.assign(new Error('killed'), { killed: true, signal: 'SIGTERM' })
+      }
+      const r = await git.continueRebase()
+      expect(r.success).toBe(false)
+      expect(r.error).toMatch(/did not finish/)
+      expect(calls).toEqual([['rebase', '--continue']])
+    } finally {
+      fs.rmSync(repo, { recursive: true, force: true })
+    }
+  })
+})

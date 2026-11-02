@@ -612,12 +612,16 @@ server.tool(
         `Continue the ${st.mode} in ${root}? Every conflicted file is resolved and staged; continuing records the result as commit(s).`
       )
       if (answer === 'declined') return notConfirmed(`the ${st.mode} was not continued and is still in progress`)
-      // Plain execFile: simple-git forbids GIT_EDITOR overrides, and we need
-      // core.editor=true (a no-op editor) so --continue never blocks on one.
+      // Plain execFile: simple-git forbids GIT_EDITOR overrides, and --continue
+      // must never block on an editor. NOT `-c core.editor=true`: GIT_EDITOR in
+      // the environment outranks core.editor, so a user who exports it had their
+      // editor opened under a server nobody is looking at — and `true` is not on
+      // every Windows PATH. GIT_EDITOR=':' outranks both, and is git's own
+      // no-editor: it spawns nothing at all.
       const { execFile } = await import('node:child_process')
       const { promisify } = await import('node:util')
       const exec = promisify(execFile)
-      const r = await exec('git', ['-C', root, '-c', 'core.editor=true', OP_CMD[st.mode], '--continue'], { env: C_LOCALE_ENV })
+      const r = await exec('git', ['-C', root, OP_CMD[st.mode], '--continue'], { env: { ...C_LOCALE_ENV, GIT_EDITOR: ':' } })
       return text(`${st.mode} continued.\n${truncate((r.stdout + r.stderr).trim(), 2000)}`)
     } catch (e) { return errText(e) }
   }

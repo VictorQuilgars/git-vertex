@@ -11,6 +11,9 @@
 ### Changed
 - **The server's git no longer takes optional locks** (`GIT_OPTIONAL_LOCKS=0`). `git status` refreshes the index when it can, which briefly holds `index.lock`; with a resource being re-read in the background, that moment could land on the user's own `git add` and fail it. The writes the server makes still take their locks.
 
+### Fixed
+- **`continue_operation` no longer opens the user's own editor.** It suppressed the editor with `-c core.editor=true`, but a `GIT_EDITOR` exported in the environment outranks `core.editor`: git launched that editor under a server nobody was looking at, and `--continue` hung or failed. It now sets `GIT_EDITOR=:` — git's own no-editor, which outranks every other setting and spawns nothing, where `true` is not even on every Windows PATH.
+
 ## 0.5.3
 
 ### Fixed
