@@ -1,5 +1,6 @@
 // The GitHub API as this app uses it: the token, the remote, and the caches that keep it polite.
 import { bypassVerdict, RULESET_PROBE_CAP } from './ruleset-bypass'
+import { githubError } from './github-errors'
 import { netFetch } from './net-fetch'
 import { apiForUser, knownGithubHosts, type GithubApi } from './github-host'
 import { githubRemote, pickRemote, type GithubRemote, type Remote } from '../renderer/src/utils/remoteUrl'
@@ -154,7 +155,7 @@ export async function conditionalGet<T extends object>(
     },
   })
   if (res.status === 304 && hit) return { ...hit.body, notModified: true as const }
-  if (!res.ok) return { error: `HTTP ${res.status}` }
+  if (!res.ok) return { error: await githubError(res) }
   const body = await shape(await res.json())
   const etag = res.headers?.get?.('etag')
   if (etag) listCache.set(key, { etag, body })

@@ -1,5 +1,11 @@
 # Changelog — Git Vertex (desktop)
 
+## Unreleased
+
+### Fixed
+- **A refused GitHub request says why, instead of `HTTP 403`.** Pull requests, issues and every other GitHub read reported a bare status code and discarded GitHub's explanation. On a work account a 403 usually means one of two things, each with its own way out, and GitHub states which. An **organisation that restricts OAuth apps** and has not approved Git Vertex: the message now says so and points to *github.com/settings/applications › Git Vertex › Organization access › Request*, which an owner of the organisation then grants. An organisation behind **SAML single sign-on**: the message carries the authorisation link GitHub sends with the refusal. A spent rate limit says until when, a revoked token says to sign in again, and any other 403 quotes GitHub's own words.
+- **The Personal Access Token field is always offered on the desktop while no account is connected**, not only while a sign-in waits. A token you create yourself is not subject to an organisation's OAuth app restrictions, so it is the way through until the organisation approves the app.
+
 ## 1.41.1
 
 ### Fixed

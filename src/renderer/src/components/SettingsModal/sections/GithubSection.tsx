@@ -79,10 +79,12 @@ export function GithubSection({ page }: { page: SettingsPage }) {
                     already has. This stays for hosts that do not bundle that
                     provider (VSCodium and other OSS builds), and for anyone who
                     would rather hand over a narrowly scoped token. On desktop,
-                    OAuth handles it (prod builds carry the client id) — and the
-                    field appears while that waits, for when the browser never
-                    hands the sign-in back. */}
-                {!githubUser && (embedded || githubLoading) && (
+                    OAuth is the way in, but not always a way through: an
+                    organisation that restricts OAuth apps refuses Git Vertex's
+                    token on every request, and a browser can fail to hand the
+                    sign-in back. A token the user makes is not subject to the
+                    first, and needs no browser. */}
+                {!githubUser && (
                   <div className="stg-field" style={{ marginTop: 16 }}>
                     <label>{t('settings.github.pat')}</label>
                     <div style={{ display: 'flex', gap: 8 }}>
