@@ -2,6 +2,12 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🏢 GitHub on a work account
+- When GitHub refuses to list pull requests or issues, the app now **says why** instead of *HTTP 403*: an organisation that has not approved Git Vertex (with where to request it), SAML single sign-on (with the link to authorise), or a spent rate limit.
+- **Settings › GitHub** always offers the **Personal Access Token** field while no account is connected: a token you create yourself works even where the organisation has not approved the app.
+`,
   '1.41.1': `## What's new in 1.41.1
 
 ### 🔑 Sign in with GitHub behind a company proxy

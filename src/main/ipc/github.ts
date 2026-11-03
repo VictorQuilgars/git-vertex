@@ -1,5 +1,6 @@
 // github:* and avatar:* — the GitHub integration.
 import { handle } from './handle'
+import { githubError, describeGithubFailure } from '../github-errors'
 import { netFetch } from '../net-fetch'
 import { ipcMain, dialog } from 'electron'
 import { join } from 'path'
@@ -270,7 +271,7 @@ export function registerGithubHandlers(): void {
       // 404 on the gists endpoint almost always means the token lacks the `gist`
       // scope (GitHub hides it rather than 403) — tell the user to reconnect.
       if (res.status === 404) return { error: 'gist_scope' }
-      if (!res.ok) return { error: `HTTP ${res.status}` }
+      if (!res.ok) return { error: await githubError(res) }
       const data = await res.json() as any
       return { url: data.html_url }
     } catch (e: any) { return { error: e.message } }
@@ -363,7 +364,7 @@ export function registerGithubHandlers(): void {
       const prRes = await netFetch(`${api.base}/repos/${owner}/${repo}/pulls/${number}`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
       })
-      if (!prRes.ok) return { error: `HTTP ${prRes.status}` }
+      if (!prRes.ok) return { error: await githubError(prRes) }
       const nodeId = ((await prRes.json()) as any).node_id
       // GraphQL lives at the api host's /graphql — on GHES that is the same
       // base with /api/v3 swapped for /api/graphql.
@@ -380,7 +381,7 @@ export function registerGithubHandlers(): void {
       })
       const data = await res.json().catch(() => ({})) as any
       const gqlError = data?.errors?.[0]?.message
-      if (!res.ok || gqlError) return { error: gqlError ?? `HTTP ${res.status}` }
+      if (!res.ok || gqlError) return { error: gqlError ?? describeGithubFailure(res.status, res.headers, data, { withMessage: true }) }
       searchCache.clear()
       return { success: true }
     } catch (e: any) { return { error: e.message } }
@@ -447,7 +448,7 @@ export function registerGithubHandlers(): void {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
         body: JSON.stringify({ body }),
       })
-      if (!res.ok) return { error: `HTTP ${res.status}` }
+      if (!res.ok) return { error: await githubError(res) }
       return { success: true }
     } catch (e: any) { return { error: e.message } }
   })
@@ -466,7 +467,7 @@ export function registerGithubHandlers(): void {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
         body: JSON.stringify(patch),
       })
-      if (!res.ok) return { error: `HTTP ${res.status}` }
+      if (!res.ok) return { error: await githubError(res) }
       searchCache.clear()
       return { success: true }
     } catch (e: any) { return { error: e.message } }
@@ -492,7 +493,7 @@ export function registerGithubHandlers(): void {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({})) as any
-        return { error: data.message ?? `HTTP ${res.status}` }
+        return { error: describeGithubFailure(res.status, res.headers, data, { withMessage: true }) }
       }
       return { success: true }
     } catch (e: any) { return { error: e.message } }
@@ -506,7 +507,7 @@ export function registerGithubHandlers(): void {
       const res = await netFetch(`${api.base}/repos/${owner}/${repo}/assignees?per_page=100`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
       })
-      if (!res.ok) return { error: `HTTP ${res.status}` }
+      if (!res.ok) return { error: await githubError(res) }
       const data = await res.json() as any[]
       return { assignees: data.map(a => a.login) }
     } catch (e: any) { return { error: e.message } }
@@ -538,7 +539,7 @@ export function registerGithubHandlers(): void {
               .filter(Boolean)
               .join(' — ')
           : ''
-        const msg = data.message ?? `HTTP ${res.status}`
+        const msg = describeGithubFailure(res.status, res.headers, data, { withMessage: true })
         return { error: detail ? `${msg} (${detail})` : msg }
       }
       return { url: data.html_url, number: data.number }
@@ -568,7 +569,7 @@ export function registerGithubHandlers(): void {
         const detail = Array.isArray(data.errors)
           ? data.errors.map((e: any) => e.code ?? e.message).filter(Boolean).join(' — ')
           : ''
-        const msg = data.message ?? `HTTP ${res.status}`
+        const msg = describeGithubFailure(res.status, res.headers, data, { withMessage: true })
         return { error: detail ? `${msg} (${detail})` : msg }
       }
       return { label: { name: data.name, color: data.color } }
@@ -583,7 +584,7 @@ export function registerGithubHandlers(): void {
       const res = await netFetch(`${api.base}/repos/${owner}/${repo}/labels?per_page=100`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
       })
-      if (!res.ok) return { error: `HTTP ${res.status}` }
+      if (!res.ok) return { error: await githubError(res) }
       const data = await res.json() as any[]
       return { labels: data.map(l => ({ name: l.name, color: l.color })) }
     } catch (e: any) { return { error: e.message } }
@@ -601,7 +602,7 @@ export function registerGithubHandlers(): void {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
         body: JSON.stringify({ state: 'closed' }),
       })
-      if (!res.ok) return { error: `HTTP ${res.status}` }
+      if (!res.ok) return { error: await githubError(res) }
       searchCache.clear()
       return { success: true }
     } catch (e: any) { return { error: e.message } }
@@ -634,7 +635,7 @@ export function registerGithubHandlers(): void {
       // 404 on the gists endpoint almost always means the token lacks the `gist`
       // scope (GitHub hides it rather than 403) — tell the user to reconnect.
       if (res.status === 404) return { error: 'gist_scope' }
-      if (!res.ok) return { error: `HTTP ${res.status}` }
+      if (!res.ok) return { error: await githubError(res) }
       const data = await res.json() as any
       return { url: data.html_url }
     } catch (e: any) { return { error: e.message } }
@@ -685,7 +686,7 @@ export function registerGithubHandlers(): void {
         const secs = reset ? Math.max(1, Math.ceil((reset - Date.now()) / 1000)) : 60
         return { error: 'rate_limited', retryIn: secs }
       }
-      if (!res.ok) return { error: `HTTP ${res.status}` }
+      if (!res.ok) return { error: await githubError(res) }
       const data = await res.json() as any
       const result = {
         total: data.total_count ?? 0,
@@ -722,7 +723,7 @@ export function registerGithubHandlers(): void {
     try {
       // The issues endpoint resolves both issues and PRs by number
       const res = await netFetch(`${api.base}/repos/${owner}/${repo}/issues/${number}`, { headers })
-      if (!res.ok) return { error: `HTTP ${res.status}` }
+      if (!res.ok) return { error: await githubError(res) }
       const d = await res.json() as any
       return {
         issue: {
@@ -774,7 +775,7 @@ export function registerGithubHandlers(): void {
               .filter(Boolean)
               .join(' — ')
           : ''
-        const msg = data.message ?? `HTTP ${res.status}`
+        const msg = describeGithubFailure(res.status, res.headers, data, { withMessage: true })
         return { error: detail ? `${msg} (${detail})` : msg }
       }
       return { url: data.html_url, number: data.number }
@@ -833,7 +834,7 @@ export function registerGithubHandlers(): void {
           `${api.base}/user/repos?per_page=100&sort=updated&page=${page}`,
           { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
         )
-        if (!res.ok) return { error: `HTTP ${res.status}` }
+        if (!res.ok) return { error: await githubError(res) }
         const batch = await res.json() as any[]
         repos = repos.concat(batch)
         if (batch.length < 100) break
