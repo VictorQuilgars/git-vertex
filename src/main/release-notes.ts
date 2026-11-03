@@ -2,7 +2,7 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.41.2': `## What's new in 1.41.2
 
 ### 🏢 GitHub on a work account
 - When GitHub refuses to list pull requests or issues, the app now **says why** instead of *HTTP 403*: an organisation that has not approved Git Vertex (with where to request it), SAML single sign-on (with the link to authorise), or a spent rate limit.
