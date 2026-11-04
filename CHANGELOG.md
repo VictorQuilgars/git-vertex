@@ -1,6 +1,6 @@
 # Changelog — Git Vertex (desktop)
 
-## Unreleased
+## 1.42.0
 
 ### Added
 - **A review by the model before the pull request is opened.** In a comparison of two branches, **Review with AI** has the model read the diff and comment as a reviewer would — risks such as an error now swallowed or a behaviour changed without a test, and leftovers such as debug output or a TODO added. Each comment sits under the line it is about, in the model's colour, and can be dismissed; a comment about a file as a whole sits under its name. Nothing is sent until you ask, and nothing is posted anywhere. When the diff is too large to send whole, the review says which files it read only in part and which it did not read. The model, its instructions and how much of the diff it reads are set under **Settings › AI Assistant › Review before the pull request**. (#265)

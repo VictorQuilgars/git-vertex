@@ -2,7 +2,7 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.42.0': `## What's new in 1.42.0
 
 ### 🔍 A review before the pull request
 - In a comparison, **Review with AI**: the model comments on the lines a reviewer would — risks and leftovers — each one under its line, each one dismissible. Nothing is posted.
