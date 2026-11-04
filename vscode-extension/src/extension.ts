@@ -5,6 +5,7 @@ import * as fs from 'fs'
 import { findAppPath, launchApp } from './appLocator'
 import { GitVertexStatusBar } from './statusBar'
 import { findRefLinks, type RefLink } from './terminalLinks'
+import { registerRevisionFileSystem, browseRevision } from './panel/RevisionFileSystem'
 import { refChoiceArgs, historyChoiceArgs, parseRefChoices, parseHistoryChoices, revisionSections, shortRevision } from './revisionChoices'
 import { registerAuthCallback } from './oauthHost'
 import { getGitInfo, getGitDir, getRepoRootForFile } from './gitInfo'
@@ -367,6 +368,9 @@ async function moveView(destinationId: string): Promise<void> {
 }
 
 export function activate(context: vscode.ExtensionContext): void {
+  // First, and unconditionally: a window opened on a revision's tree (#72)
+  // activates the extension for this scheme alone, with no repository open.
+  registerRevisionFileSystem(context)
   // The panel, not the desktop app: the branch in the status bar is the most
   // visible door to the extension, and it opened something else — something
   // not always installed.
@@ -598,12 +602,13 @@ export function activate(context: vscode.ExtensionContext): void {
   // and tags of the repository. Something typed that is in neither — a hash,
   // `HEAD~3`, `main@{yesterday}` — is taken as a revision too, and checked
   // with git before anything opens.
-  const pickRevision = async (svc: GitService, rel: string, lead: 'history' | 'refs', placeholder: string): Promise<string | null> => {
+  const pickRevision = async (svc: GitService, rel: string | null, lead: 'history' | 'refs', placeholder: string): Promise<string | null> => {
     const [refsRaw, historyRaw] = await Promise.all([
       svc.raw(refChoiceArgs()).catch(() => ''),
       svc.raw(historyChoiceArgs(rel)).catch(() => ''),
     ])
-    const sections = revisionSections(parseRefChoices(refsRaw), parseHistoryChoices(historyRaw), lead, path.basename(rel))
+    const sections = revisionSections(parseRefChoices(refsRaw), parseHistoryChoices(historyRaw), lead,
+      rel ? `Commits that touched ${path.basename(rel)}` : 'Recent commits')
     const icon = { branch: '$(git-branch)', remote: '$(cloud)', tag: '$(tag)', commit: '$(git-commit)' } as const
     type Item = vscode.QuickPickItem & { ref?: string }
     const items: Item[] = sections.flatMap(sec => [
@@ -630,8 +635,10 @@ export function activate(context: vscode.ExtensionContext): void {
     // A full hash, so the tab and the document never move with a branch.
     const hash = (await svc.raw(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]).catch(() => '')).trim()
     if (!hash) { vscode.window.showWarningMessage(`${shortRevision(ref)} names no commit.`); return null }
-    const there = await svc.raw(['cat-file', '-e', `${hash}:${rel}`]).then(() => true, () => false)
-    if (!there) { vscode.window.showInformationMessage(`${path.basename(rel)} does not exist at ${shortRevision(ref)}.`); return null }
+    if (rel) {
+      const there = await svc.raw(['cat-file', '-e', `${hash}:${rel}`]).then(() => true, () => false)
+      if (!there) { vscode.window.showInformationMessage(`${path.basename(rel)} does not exist at ${shortRevision(ref)}.`); return null }
+    }
     return hash
   }
   const againstRevision = async (mode: 'diff' | 'diffFrom' | 'open'): Promise<void> => {
@@ -654,6 +661,32 @@ export function activate(context: vscode.ExtensionContext): void {
     const right = editor.document.uri
     const rightName = at.ref ? at.ref.slice(0, 7) : 'Working Tree'
     await vscode.commands.executeCommand('vscode.diff', refUri(hash, at.rel), right, `${name} (${short} ↔ ${rightName})`)
+  }
+
+  // ── The whole repository at a revision, as a folder (#72) ──
+  // `before` is the commit's first parent: the tree as it was just before
+  // the commit landed, which is what "what did this replace" is asked of.
+  const browseAt = async (opts: { before: boolean; newWindow: boolean; hash?: string }): Promise<void> => {
+    const fileUri = vscode.window.activeTextEditor?.document.uri
+    const root = (fileUri && revisionOf(fileUri)?.root) || resolveRepoRoot()
+    if (!root) { vscode.window.showWarningMessage('Open a folder inside a Git repository to browse it at a revision.'); return }
+    const svc = new GitService(root)
+    let hash = opts.hash
+      ? (await svc.raw(['rev-parse', '--verify', '--quiet', `${opts.hash}^{commit}`]).catch(() => '')).trim() || null
+      : await pickRevision(svc, null, 'refs', opts.before ? 'Browse the repository as it was before…' : 'Browse the repository at…')
+    if (!hash) return
+    let label: string | undefined
+    if (opts.before) {
+      const parent = (await svc.raw(['rev-parse', '--verify', '--quiet', `${hash}^1`]).catch(() => '')).trim()
+      if (!parent) { vscode.window.showInformationMessage(`${hash.slice(0, 7)} is the first commit: there is nothing before it.`); return }
+      label = `${hash.slice(0, 7)}^`
+      hash = parent
+    }
+    try {
+      await browseRevision(root, hash, { newWindow: opts.newWindow, label })
+    } catch (e) {
+      vscode.window.showErrorMessage(`Git Vertex: ${e instanceof Error ? e.message : String(e)}`)
+    }
   }
 
   // Resolve initial repo and inject into provider
@@ -780,6 +813,21 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('gitVertex.diffWithRevision', () => againstRevision('diff')),
     vscode.commands.registerCommand('gitVertex.diffWithRevisionFrom', () => againstRevision('diffFrom')),
     vscode.commands.registerCommand('gitVertex.openFileRevisionFrom', () => againstRevision('open')),
+    // A hash arrives when the graph's commit menu asks (#72); from the palette, the picker asks.
+    vscode.commands.registerCommand('gitVertex.browseRepoAtRevision', (hash?: string) => browseAt({ before: false, newWindow: false, hash })),
+    vscode.commands.registerCommand('gitVertex.browseRepoAtRevisionInNewWindow', (hash?: string) => browseAt({ before: false, newWindow: true, hash })),
+    vscode.commands.registerCommand('gitVertex.browseRepoBeforeRevision', (hash?: string) => browseAt({ before: true, newWindow: false, hash })),
+    vscode.commands.registerCommand('gitVertex.browseRepoBeforeRevisionInNewWindow', (hash?: string) => browseAt({ before: true, newWindow: true, hash })),
+    // The same four from a graph row's native menu, which hands over the
+    // row's data-vscode-context — the hash is in it, so no picker is shown.
+    ...([
+      ['browseAt', false, false], ['browseAtNewWindow', false, true],
+      ['browseBefore', true, false], ['browseBeforeNewWindow', true, true],
+    ] as const).map(([id, before, newWindow]) =>
+      vscode.commands.registerCommand(`gitVertex.commitMenu.${id}`, (arg?: { commitHash?: string }) => {
+        const hash = arg?.commitHash ?? lastCommitMenuHash
+        if (hash) void browseAt({ before, newWindow, hash })
+      })),
     vscode.commands.registerCommand('gitVertex.revealRevisionCommit', () => {
       const uri = vscode.window.activeTextEditor?.document.uri
       if (uri?.scheme === 'gitvertex' && uri.query) void revealInPanel(uri.query)

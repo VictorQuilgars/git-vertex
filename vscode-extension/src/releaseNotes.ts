@@ -26,6 +26,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 🕰 A file against any revision
 - **Open Changes with Revision…**, **Open Changes with Branch or Tag…** and **Open File at Revision…**, on an editor tab's menu: pick from the file's history, the branches and tags, or type any revision.
+
+### 📂 The repository at any commit
+- **Browse Repository at Revision…** opens the whole tree as it was at a commit, read-only, in the Explorer or a new window — nothing is checked out. A graph row's menu offers it for that commit, and *Before* opens it as it was just before.
 `,
   '1.39.0': `## What's new in 1.39.0
 

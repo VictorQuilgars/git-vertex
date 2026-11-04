@@ -40,8 +40,10 @@ export function refChoiceArgs(): string[] {
  * under its OLD path, and every command here reads it at the current one — the
  * picker would offer revisions whose side of the diff comes up empty.
  */
-export function historyChoiceArgs(rel: string, max = 50): string[] {
-  return ['log', `-n${max}`, `--format=%H${US}%h${US}%s${US}%an${US}%ar`, '--', rel]
+export function historyChoiceArgs(rel: string | null, max = 50): string[] {
+  const args = ['log', `-n${max}`, `--format=%H${US}%h${US}%s${US}%an${US}%ar`]
+  // No file: the repository's own recent commits, for a command about all of it.
+  return rel ? [...args, '--', rel] : args
 }
 
 export function parseRefChoices(raw: string): RevisionChoice[] {
@@ -77,11 +79,11 @@ export interface RevisionSection { title: string; choices: RevisionChoice[] }
  * shown as a heading over nothing.
  */
 export function revisionSections(
-  refs: RevisionChoice[], history: RevisionChoice[], lead: 'history' | 'refs', fileName: string,
+  refs: RevisionChoice[], history: RevisionChoice[], lead: 'history' | 'refs', historyTitle: string,
 ): RevisionSection[] {
   const branches = refs.filter(r => r.kind === 'branch' || r.kind === 'remote')
   const tags = refs.filter(r => r.kind === 'tag')
-  const fileHistory: RevisionSection = { title: `Commits that touched ${fileName}`, choices: history }
+  const fileHistory: RevisionSection = { title: historyTitle, choices: history }
   const named: RevisionSection[] = [{ title: 'Branches', choices: branches }, { title: 'Tags', choices: tags }]
   return (lead === 'history' ? [fileHistory, ...named] : [...named, fileHistory]).filter(s => s.choices.length > 0)
 }

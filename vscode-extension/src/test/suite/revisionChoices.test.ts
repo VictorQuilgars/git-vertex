@@ -41,9 +41,9 @@ suite('revision choices', () => {
   test('the file\'s own history leads, or the branches do, and an empty section is not drawn', () => {
     const refs = parseRefChoices(['refs/heads/main', 'main', 'abc1234', 's'].join(US))
     const history = parseHistoryChoices(['b'.repeat(40), 'bbbbbbb', 's', 'a', 'now'].join(US))
-    assert.deepStrictEqual(revisionSections(refs, history, 'history', 'x.ts').map(s => s.title),
+    assert.deepStrictEqual(revisionSections(refs, history, 'history', 'Commits that touched x.ts').map(s => s.title),
       ['Commits that touched x.ts', 'Branches'])
-    assert.deepStrictEqual(revisionSections(refs, history, 'refs', 'x.ts').map(s => s.title),
+    assert.deepStrictEqual(revisionSections(refs, history, 'refs', 'Commits that touched x.ts').map(s => s.title),
       ['Branches', 'Commits that touched x.ts'])
   })
 
@@ -59,6 +59,8 @@ suite('revision choices', () => {
     const args = historyChoiceArgs('-rf.txt')
     assert.deepStrictEqual(args.slice(-2), ['--', '-rf.txt'])
     assert.ok(refChoiceArgs().includes('refs/tags'))
+    // No file: the repository's history, with no pathspec at all.
+    assert.ok(!historyChoiceArgs(null).includes('--'))
   })
 
   test('the three commands are declared, offered on an editor tab, and registered', () => {
