@@ -34,6 +34,8 @@ export const BASE_BUDGET: Record<AIFeature, number> = {
   issue: 1024,
   changelog: 2048,
   compose: 2048,
+  // Up to twenty comments as JSON, each anchored and a sentence or two (#265).
+  review: 2048,
 }
 
 /** The steps offered, and what they mean. Not a free-text number: nobody can

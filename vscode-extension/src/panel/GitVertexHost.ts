@@ -15,6 +15,7 @@ import { execFile, spawn } from 'child_process'
 import { promisify } from 'util'
 import { getRepoRootForFile } from '../gitInfo'
 import { changeSet, type ChangeSetSpec } from '../../../src/main/git-core'
+import { reviewComparison } from '../../../src/main/ai-review'
 import { GitService, gitEnv, parseGitVersion } from '../gitService'
 import { buildToolInvocation, findAvailableKeyPath, safeTempFileName } from '../hostTools'
 import { findAppPath, launchApp } from '../appLocator'
@@ -1249,6 +1250,7 @@ export class GitVertexHost implements vscode.Disposable {
         const r = await svc.predictConflicts(base, head)
         return { base, files: r.files, error: r.error }
       }
+      case 'aiReviewComparison':
       case 'aiExplainBranch':
       case 'aiExplainStash':
       case 'aiExplainWorking':
@@ -1298,6 +1300,7 @@ export class GitVertexHost implements vscode.Disposable {
           },
         }
         switch (method) {
+          case 'aiReviewComparison': return reviewComparison(raw, run, args[0], args[1], { axis: args[2], guidance: args[3], detail: this._detail('review') })
           case 'aiExplainBranch': return explainBranch(raw, run, args[0], { guidance: args[1], store: notes, diff: { detail: this._detail('explain') } })
           case 'aiExplainStash': return explainStash(raw, run, args[0], { guidance: args[1], store: notes, diff: { detail: this._detail('explain') } })
           case 'aiExplainWorking': return explainWorking(raw, run, { guidance: args[0], store: notes, diff: { detail: this._detail('explain') } })

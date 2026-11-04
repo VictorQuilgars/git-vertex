@@ -295,3 +295,21 @@
   color: var(--text-tertiary);
   border-bottom: 1px solid var(--border-muted);
 }
+
+/* The review (#265) is the model's: its ink on the button — never a filled
+   one — and a quiet bar that says what it read and what it did not. */
+.cv-review {
+  background: none; border: 1px solid var(--ai-border); color: var(--ai-text);
+  border-radius: var(--radius-md); padding: var(--space-2xs) var(--space-lg);
+  font-size: var(--text-sm); cursor: pointer;
+}
+.cv-review:hover:not(:disabled) { background: color-mix(in srgb, var(--ai-text) var(--alpha-faint), transparent); }
+.cv-review:disabled { opacity: 0.6; cursor: default; }
+.cv-review-bar {
+  display: flex; align-items: center; gap: var(--space-lg); flex-wrap: wrap;
+  padding: var(--space-xs) var(--space-xl); font-size: var(--text-sm); color: var(--ai-text);
+  border-bottom: 1px solid var(--border-muted);
+}
+.cv-review-bar--error { color: var(--danger); }
+.cv-review-clear { margin-left: auto; background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: var(--text-sm); }
+.cv-review-clear:hover { color: var(--text-primary); }

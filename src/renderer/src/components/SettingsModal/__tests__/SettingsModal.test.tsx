@@ -358,12 +358,12 @@ describe('SettingsModal — per-feature AI overrides', () => {
     await open()
     for (const label of ['Commit messages', 'Explain a change', 'Conflict resolution',
       'Commit search', 'Filter queries', 'Pull request descriptions', 'Issue drafting',
-      'Changelog generation', 'Splitting into commits']) {
+      'Changelog generation', 'Splitting into commits', 'Review before the pull request']) {
       expect(screen.getByText(label)).toBeInTheDocument()
     }
     // and every one carries its own picker, the fallback named on its face
-    expect(document.querySelectorAll('.stg-ai-feature .stg-msel-face').length).toBe(9)
-    expect(screen.getAllByText(/^Global model \(/).length).toBe(9)
+    expect(document.querySelectorAll('.stg-ai-feature .stg-msel-face').length).toBe(10)
+    expect(screen.getAllByText(/^Global model \(/).length).toBe(10)
   })
 
   test('the ready-made fragments wait behind Templates; a pick writes, then reads taken', async () => {
@@ -414,7 +414,7 @@ describe('SettingsModal — per-feature AI overrides', () => {
     // one line under each heading; a reasoning model's tax on one-liners is
     // said where the choice is made, not learned from an empty reply.
     expect(screen.getAllByText(/a fast, small model shines here/).length).toBe(3)
-    expect(screen.getAllByText(/earns its cost here/).length).toBe(5)
+    expect(screen.getAllByText(/earns its cost here/).length).toBe(6)
     expect(screen.getAllByText(/mid-tier model does well/).length).toBe(1)
   })
 

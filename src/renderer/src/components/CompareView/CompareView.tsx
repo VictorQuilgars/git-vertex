@@ -3,7 +3,7 @@
 // ahead/behind commit lists on the left, the full diff on the right.
 
 import { useState, useEffect, useCallback } from 'react'
-import DiffViewer from '../DiffViewer/DiffViewer'
+import DiffViewer, { type DiffNote } from '../DiffViewer/DiffViewer'
 import type { FileChange } from '../../types'
 import { useLang } from '../../i18n/LanguageContext'
 import { repoFromRemotes, remoteUrl, type RemoteRepo } from '../../utils/remoteUrl'
@@ -62,6 +62,12 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
   // removed files it never touched.
   const [axis, setAxis] = useState<CompareAxis>(initialAxis ?? 'diverged')
   const [mergeBase, setMergeBase] = useState<string | null>(null)
+  // The model's review of this comparison (#265): asked for, never sent on
+  // its own; dropped as soon as the comparison it was about changes.
+  const [review, setReview] = useState<{ notes: DiffNote[]; partial: string[]; unread: string[] } | null>(null)
+  const [reviewing, setReviewing] = useState(false)
+  const [reviewError, setReviewError] = useState<string | null>(null)
+  useEffect(() => { setReview(null); setReviewError(null) }, [refA, refB, axis])
   const { history, remember, clear } = useCompareHistory(repoKey ?? null)
   // The commit lists and the diff share the width, and which one deserves it
   // depends on what you are reading: long messages on one side, a wide diff
@@ -231,6 +237,26 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
   )
 
   const ready = refA && refB
+  // A review reads a comparison between two commits; the working tree is
+  // not one, and a host without the call offers no button.
+  const canReview = !!ready && against !== null && typeof (window as any).gitAPI?.aiReviewComparison === 'function'
+  const runReview = async () => {
+    if (!against) return
+    setReviewing(true); setReviewError(null)
+    try {
+      const r = await api.aiReviewComparison(refA, against, axis)
+      if (r?.error) setReviewError(r.error)
+      else setReview({
+        notes: (r?.comments ?? []).map((c: Omit<DiffNote, 'id'>, i: number) => ({ ...c, id: `${i}:${c.file}:${c.line ?? 'file'}` })),
+        partial: r?.partial ?? [], unread: r?.unread ?? [],
+      })
+    } catch (e: any) {
+      setReviewError(String(e?.message ?? e))
+    } finally {
+      setReviewing(false)
+    }
+  }
+  const dismissNote = (id: string) => setReview(r => r && { ...r, notes: r.notes.filter(n => n.id !== id) })
   // Who the comparison is *about*: `A...B` reports what B did. Naming it is
   // what turns an empty pane from "broken" into "nothing to show, and here is
   // where the commits actually are".
@@ -269,6 +295,12 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
             <span className="cv-sum-ahead">+{ahead.length}</span> / <span className="cv-sum-behind">−{behind.length}</span> commits
           </span>
         )}
+        {canReview && (
+          <button className="cv-review" disabled={reviewing || loading || !!loadError} onClick={() => void runReview()}
+            title={t('cv.review.title')}>
+            {reviewing ? t('cv.review.running') : review ? t('cv.review.again') : t('cv.review.ask')}
+          </button>
+        )}
         {ready && repoKey && <button className="cv-copy-link" disabled={!!saved || loading || !!loadError}
           onClick={() => void kept.keep({ kind: 'comparison', a: refA, b: against, axis, reviewed: [] }, labelFor({ a: refA, b: against, axis }))}>
           {t(saved ? 'kept.saved' : 'kept.keep')}
@@ -289,6 +321,15 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
       </div>
 
       {kept.error && <div role="alert">{t('kept.error')}</div>}
+      {reviewError && <div className="cv-review-bar cv-review-bar--error" role="alert">{t('cv.review.failed', reviewError)}</div>}
+      {review && !picked && (
+        <div className="cv-review-bar" role="status">
+          <span>{review.notes.length ? t('cv.review.count', review.notes.length) : t('cv.review.none')}</span>
+          {review.partial.length > 0 && <span title={review.partial.join('\n')}>{t('cv.review.partial', review.partial.length)}</span>}
+          {review.unread.length > 0 && <span title={review.unread.join('\n')}>{t('cv.review.unread', review.unread.length)}</span>}
+          <button className="cv-review-clear" onClick={() => setReview(null)}>{t('cv.review.clear')}</button>
+        </div>
+      )}
       {ready && (
         <div className="cv-reading">
           {against === null
@@ -361,6 +402,8 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
                 headerLabel={against === null
                   ? `${shortRef(refA)} → ${t('cv.workingTree')}`
                   : `${shortRef(refA)}${axis === 'diverged' ? '...' : '..'}${shortRef(refB)}`}
+                notes={review?.notes}
+                onDismissNote={dismissNote}
                 reviewed={saved?.kind === 'comparison' ? saved.reviewed : undefined}
                 onReview={saved ? (path, checked) => void kept.review(saved.id, path, checked) : undefined}
                 diff={diff}

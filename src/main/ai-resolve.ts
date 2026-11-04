@@ -15,7 +15,7 @@ import { providerById, providerCredential, providerUsable, providerServes, provi
  */
 export type AIFeature =
   | 'commit' | 'explain' | 'conflict' | 'search' | 'filter' | 'pr' | 'issue'
-  | 'changelog' | 'compose'
+  | 'changelog' | 'compose' | 'review'
 
 export interface ResolvedAI {
   provider: string

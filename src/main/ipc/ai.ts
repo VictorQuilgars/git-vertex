@@ -6,6 +6,7 @@ import { is } from '@electron-toolkit/utils'
 import { providerById, providerCredential, authHeaders } from '../../renderer/src/utils/aiProviders'
 import { SECRET_MASK, maskSecrets, resolveSecretWrite } from '../settings-secrets'
 import { commitMessagePrompt, rewordCommitPrompt, explainCommitPrompt, pullRequestPrompt, parsePullRequest, truncateDiff } from '../ai-prompts'
+import { reviewComparison } from '../ai-review'
 import { explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit, changelogState, changelogList, noteList, insertedIn, withInserted, scopeHasChanges, insertRefusal, type NoteRecord } from '../ai-features'
 import { findChangelogs, mergeIntoChangelog } from '../changelog-file'
 import fs from 'fs'
@@ -457,6 +458,13 @@ export function registerAiHandlers(): void {
   })
 
   /** How much of a diff a feature shows, as this user has set it (#185). */
+
+  // A review before the pull request is opened (#265): the comparison's own
+  // diff, read by the model, answered as comments anchored to lines.
+  handle('ai:review-comparison', async (_e, base: string, head: string, axis?: 'diverged' | 'endpoints', guidance?: string) =>
+    state.gitService
+      ? reviewComparison(rawGit(), runFeature, base, head, { axis, guidance, detail: diffOptsFor('review').detail })
+      : { comments: [], partial: [], unread: [], error: 'No repository open' })
 
   handle('ai:explain-branch', async (_e, branch: string, guidance?: string) =>
     state.gitService
