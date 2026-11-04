@@ -9,7 +9,7 @@ const superscript = (n?: string) => (n ? (SUP[n] ?? n) : '')
 // The palette moved to ./theme, which is the only file allowed to write a
 // colour. Re-exported because this is where it has always been imported from.
 // Panel draws with it as well as re-exporting it.
-import { THEME } from './theme'
+import { THEME } from './theme.js'
 export { THEME }
 
 function TopLine({ width, title, num, menu, accent, borderColor }: {
