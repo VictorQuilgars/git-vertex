@@ -141,6 +141,22 @@
         "icon": "$(arrow-right)"
       },
       {
+        "command": "gitVertex.diffDirectory",
+        "title": "Git Vertex: Compare Working Tree with Revision (External Tool)..."
+      },
+      {
+        "command": "gitVertex.diffDirectoryWithHead",
+        "title": "Git Vertex: Compare Working Tree with HEAD (External Tool)"
+      },
+      {
+        "command": "gitVertex.openDirectoryDiff",
+        "title": "Git Vertex: Compare a Commit's Folders (External Tool)..."
+      },
+      {
+        "command": "gitVertex.openDirectoryDiffWithWorking",
+        "title": "Git Vertex: Compare a Commit with the Working Tree (External Tool)..."
+      },
+      {
         "command": "gitVertex.browseRepoAtRevision",
         "title": "Git Vertex: Browse Repository at Revision..."
       },
@@ -252,6 +268,14 @@
       {
         "command": "gitVertex.commitMenu.browseBeforeNewWindow",
         "title": "Browse Repository Before This Commit in New Window"
+      },
+      {
+        "command": "gitVertex.commitMenu.openDirectoryDiff",
+        "title": "Compare Folders with Parent (External Tool)"
+      },
+      {
+        "command": "gitVertex.commitMenu.openDirectoryDiffWithWorking",
+        "title": "Compare Folders with Working Tree (External Tool)"
       },
       {
         "command": "gitVertex.commitMenu.switchTo",
@@ -515,6 +539,14 @@
           "when": "false"
         },
         {
+          "command": "gitVertex.commitMenu.openDirectoryDiff",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.openDirectoryDiffWithWorking",
+          "when": "false"
+        },
+        {
           "command": "gitVertex.commitMenu.switchTo",
           "when": "false"
         },
@@ -744,6 +776,16 @@
           "command": "gitVertex.commitMenu.compareWithSelected",
           "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit' && hasCompareBase",
           "group": "8_compare@3"
+        },
+        {
+          "command": "gitVertex.commitMenu.openDirectoryDiff",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit' && hasCompareBase",
+          "group": "8_compare@4"
+        },
+        {
+          "command": "gitVertex.commitMenu.openDirectoryDiffWithWorking",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit' && hasCompareBase",
+          "group": "8_compare@5"
         },
         {
           "command": "gitVertex.commitMenu.browseAt",

@@ -6,6 +6,8 @@ import { findAppPath, launchApp } from './appLocator'
 import { GitVertexStatusBar } from './statusBar'
 import { findRefLinks, type RefLink } from './terminalLinks'
 import { registerRevisionFileSystem, browseRevision } from './panel/RevisionFileSystem'
+import { prepareDirDiff, WORKING } from './dirDiff'
+import { buildToolInvocation } from './hostTools'
 import { refChoiceArgs, historyChoiceArgs, parseRefChoices, parseHistoryChoices, revisionSections, shortRevision } from './revisionChoices'
 import { registerAuthCallback } from './oauthHost'
 import { getGitInfo, getGitDir, getRepoRootForFile } from './gitInfo'
@@ -21,7 +23,7 @@ import { CommitMsgEditor } from './panel/CommitMsgEditor'
 import { InlineBlameController } from './blame/inlineBlame'
 import { gitEnv, parseGitVersion, isGitVersionAtLeast, MIN_GIT_FOR_CONFLICT_PREDICTION } from './gitService'
 import { BlameCodeLensProvider } from './blame/codeLens'
-import { execFile, execSync } from 'child_process'
+import { execFile, execSync, spawn } from 'child_process'
 
 let statusBar: GitVertexStatusBar | null = null
 let refreshTimer: NodeJS.Timeout | null = null
@@ -689,6 +691,51 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   }
 
+  // ── Two trees in the external folder-compare tool (#79) ──
+  // The tool is the one set in Settings › External tools — the same setting
+  // the single-file external diff uses. A tool that only compares files will
+  // be handed two folders; that is the tool's limit, said by the tool.
+  const dirDiff = async (mode: 'pickVsWorking' | 'headVsWorking' | 'commit' | 'commitVsWorking', hash?: string): Promise<void> => {
+    const tool = (context.globalState.get<Record<string, string>>('gvSettings', {}).externalDiffTool ?? '').trim()
+    if (!tool) {
+      const open = 'Open Settings'
+      if (await vscode.window.showWarningMessage('Comparing folders needs an external diff tool — set one in Git Vertex Settings › External tools.', open) === open) {
+        void vscode.commands.executeCommand('gitVertex.openPanelSettings')
+      }
+      return
+    }
+    const fileUri = vscode.window.activeTextEditor?.document.uri
+    const root = (fileUri && revisionOf(fileUri)?.root) || resolveRepoRoot()
+    if (!root) { vscode.window.showWarningMessage('Open a folder inside a Git repository to compare it.'); return }
+    const svc = new GitService(root)
+    const resolve = async (ref: string) => (await svc.raw(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]).catch(() => '')).trim() || null
+    let left: string | null, right: string
+    if (mode === 'headVsWorking') { left = await resolve('HEAD'); right = WORKING }
+    else if (mode === 'pickVsWorking') { left = await pickRevision(svc, null, 'refs', 'Compare the working tree with…'); right = WORKING }
+    else {
+      const commit = hash ? await resolve(hash) : await pickRevision(svc, null, 'history', 'Compare the folders of…')
+      if (!commit) return
+      if (mode === 'commitVsWorking') { left = commit; right = WORKING }
+      else {
+        left = await resolve(`${commit}^1`)
+        if (!left) { vscode.window.showInformationMessage(`${commit.slice(0, 7)} is the first commit: there is nothing to compare it with.`); return }
+        right = commit
+      }
+    }
+    if (!left) return
+    try {
+      const d = await prepareDirDiff(root, left, right)
+      if (d.files === 0) { vscode.window.showInformationMessage('Nothing differs between the two.'); return }
+      const inv = buildToolInvocation(tool, d.leftDir, d.rightDir)
+      if (!inv) return
+      const child = spawn(inv.cmd, inv.args, { detached: true, stdio: 'ignore' })
+      child.on('error', e => vscode.window.showErrorMessage(`Git Vertex: could not start ${inv.cmd} — ${e.message}`))
+      child.unref()
+    } catch (e) {
+      vscode.window.showErrorMessage(`Git Vertex: ${e instanceof Error ? e.message : String(e)}`)
+    }
+  }
+
   // Resolve initial repo and inject into provider
   const repoRoot = resolveRepoRoot()
   if (repoRoot) {
@@ -813,6 +860,18 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('gitVertex.diffWithRevision', () => againstRevision('diff')),
     vscode.commands.registerCommand('gitVertex.diffWithRevisionFrom', () => againstRevision('diffFrom')),
     vscode.commands.registerCommand('gitVertex.openFileRevisionFrom', () => againstRevision('open')),
+    vscode.commands.registerCommand('gitVertex.diffDirectory', () => dirDiff('pickVsWorking')),
+    vscode.commands.registerCommand('gitVertex.diffDirectoryWithHead', () => dirDiff('headVsWorking')),
+    vscode.commands.registerCommand('gitVertex.openDirectoryDiff', (hash?: string) => dirDiff('commit', hash)),
+    vscode.commands.registerCommand('gitVertex.openDirectoryDiffWithWorking', (hash?: string) => dirDiff('commitVsWorking', hash)),
+    vscode.commands.registerCommand('gitVertex.commitMenu.openDirectoryDiff', (arg?: { commitHash?: string }) => {
+      const hash = arg?.commitHash ?? lastCommitMenuHash
+      if (hash) void dirDiff('commit', hash)
+    }),
+    vscode.commands.registerCommand('gitVertex.commitMenu.openDirectoryDiffWithWorking', (arg?: { commitHash?: string }) => {
+      const hash = arg?.commitHash ?? lastCommitMenuHash
+      if (hash) void dirDiff('commitVsWorking', hash)
+    }),
     // A hash arrives when the graph's commit menu asks (#72); from the palette, the picker asks.
     vscode.commands.registerCommand('gitVertex.browseRepoAtRevision', (hash?: string) => browseAt({ before: false, newWindow: false, hash })),
     vscode.commands.registerCommand('gitVertex.browseRepoAtRevisionInNewWindow', (hash?: string) => browseAt({ before: false, newWindow: true, hash })),
