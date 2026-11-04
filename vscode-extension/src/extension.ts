@@ -5,6 +5,7 @@ import * as fs from 'fs'
 import { findAppPath, launchApp } from './appLocator'
 import { GitVertexStatusBar } from './statusBar'
 import { findRefLinks, type RefLink } from './terminalLinks'
+import { refChoiceArgs, historyChoiceArgs, parseRefChoices, parseHistoryChoices, revisionSections, shortRevision } from './revisionChoices'
 import { registerAuthCallback } from './oauthHost'
 import { getGitInfo, getGitDir, getRepoRootForFile } from './gitInfo'
 import { GitVertexViewProvider } from './panel/GitVertexViewProvider'
@@ -592,6 +593,69 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   }
 
+  // ── Against any revision (#79) ──
+  // One picker for three commands: the file's own history, and the branches
+  // and tags of the repository. Something typed that is in neither — a hash,
+  // `HEAD~3`, `main@{yesterday}` — is taken as a revision too, and checked
+  // with git before anything opens.
+  const pickRevision = async (svc: GitService, rel: string, lead: 'history' | 'refs', placeholder: string): Promise<string | null> => {
+    const [refsRaw, historyRaw] = await Promise.all([
+      svc.raw(refChoiceArgs()).catch(() => ''),
+      svc.raw(historyChoiceArgs(rel)).catch(() => ''),
+    ])
+    const sections = revisionSections(parseRefChoices(refsRaw), parseHistoryChoices(historyRaw), lead, path.basename(rel))
+    const icon = { branch: '$(git-branch)', remote: '$(cloud)', tag: '$(tag)', commit: '$(git-commit)' } as const
+    type Item = vscode.QuickPickItem & { ref?: string }
+    const items: Item[] = sections.flatMap(sec => [
+      { label: sec.title, kind: vscode.QuickPickItemKind.Separator } as Item,
+      ...sec.choices.map(c => ({ label: `${icon[c.kind]} ${c.label}`, description: c.description, detail: c.detail, ref: c.ref })),
+    ])
+    const qp = vscode.window.createQuickPick<Item>()
+    qp.items = items
+    qp.placeholder = placeholder
+    qp.matchOnDescription = true
+    qp.matchOnDetail = true
+    const typed = (value: string): Item => ({ label: `$(edit) ${value}`, description: 'Use this revision', ref: value })
+    qp.onDidChangeValue(v => {
+      const value = v.trim()
+      qp.items = value && !value.startsWith('-') ? [...items, typed(value)] : items
+    })
+    const ref = await new Promise<string | null>(resolve => {
+      qp.onDidAccept(() => { resolve(qp.selectedItems[0]?.ref ?? null); qp.hide() })
+      qp.onDidHide(() => resolve(null))
+      qp.show()
+    })
+    qp.dispose()
+    if (!ref) return null
+    // A full hash, so the tab and the document never move with a branch.
+    const hash = (await svc.raw(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]).catch(() => '')).trim()
+    if (!hash) { vscode.window.showWarningMessage(`${shortRevision(ref)} names no commit.`); return null }
+    const there = await svc.raw(['cat-file', '-e', `${hash}:${rel}`]).then(() => true, () => false)
+    if (!there) { vscode.window.showInformationMessage(`${path.basename(rel)} does not exist at ${shortRevision(ref)}.`); return null }
+    return hash
+  }
+  const againstRevision = async (mode: 'diff' | 'diffFrom' | 'open'): Promise<void> => {
+    const editor = vscode.window.activeTextEditor
+    const at = editor ? revisionOf(editor.document.uri) : null
+    if (!editor || !at) { vscode.window.showWarningMessage('Open a file inside a Git repository to compare it with a revision.'); return }
+    const svc = new GitService(at.root)
+    ensureDiffProvider(svc)
+    const name = path.basename(at.rel)
+    const prompt = mode === 'open' ? `Open ${name} at…` : `Compare ${name} with…`
+    const hash = await pickRevision(svc, at.rel, mode === 'diff' ? 'history' : 'refs', prompt)
+    if (!hash) return
+    const short = hash.slice(0, 7)
+    if (mode === 'open') {
+      await vscode.window.showTextDocument(refUri(hash, at.rel), { preview: false })
+      return
+    }
+    // The right side is what the editor shows: the working file, or the
+    // revision it is already open at.
+    const right = editor.document.uri
+    const rightName = at.ref ? at.ref.slice(0, 7) : 'Working Tree'
+    await vscode.commands.executeCommand('vscode.diff', refUri(hash, at.rel), right, `${name} (${short} ↔ ${rightName})`)
+  }
+
   // Resolve initial repo and inject into provider
   const repoRoot = resolveRepoRoot()
   if (repoRoot) {
@@ -713,6 +777,9 @@ export function activate(context: vscode.ExtensionContext): void {
     // rather than depending on the annotations being switched on.
     vscode.commands.registerCommand('gitVertex.diffWithPrevious', () => revisionDiff('previous')),
     vscode.commands.registerCommand('gitVertex.diffWithNext', () => revisionDiff('next')),
+    vscode.commands.registerCommand('gitVertex.diffWithRevision', () => againstRevision('diff')),
+    vscode.commands.registerCommand('gitVertex.diffWithRevisionFrom', () => againstRevision('diffFrom')),
+    vscode.commands.registerCommand('gitVertex.openFileRevisionFrom', () => againstRevision('open')),
     vscode.commands.registerCommand('gitVertex.revealRevisionCommit', () => {
       const uri = vscode.window.activeTextEditor?.document.uri
       if (uri?.scheme === 'gitvertex' && uri.query) void revealInPanel(uri.query)

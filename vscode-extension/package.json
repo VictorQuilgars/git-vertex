@@ -140,6 +140,18 @@
         "icon": "$(arrow-right)"
       },
       {
+        "command": "gitVertex.diffWithRevision",
+        "title": "Git Vertex: Open Changes with Revision..."
+      },
+      {
+        "command": "gitVertex.diffWithRevisionFrom",
+        "title": "Git Vertex: Open Changes with Branch or Tag..."
+      },
+      {
+        "command": "gitVertex.openFileRevisionFrom",
+        "title": "Git Vertex: Open File at Revision..."
+      },
+      {
         "command": "gitVertex.revealRevisionCommit",
         "title": "Git Vertex: Show Revision Commit in Graph",
         "icon": "$(git-commit)"
@@ -366,6 +378,21 @@
           "command": "gitVertex.fileHistory",
           "when": "resourceScheme == file",
           "group": "1_diff@99"
+        },
+        {
+          "command": "gitVertex.diffWithRevision",
+          "when": "resourceScheme == file || resourceScheme == gitvertex",
+          "group": "1_diff@94"
+        },
+        {
+          "command": "gitVertex.diffWithRevisionFrom",
+          "when": "resourceScheme == file || resourceScheme == gitvertex",
+          "group": "1_diff@95"
+        },
+        {
+          "command": "gitVertex.openFileRevisionFrom",
+          "when": "resourceScheme == file || resourceScheme == gitvertex",
+          "group": "1_diff@96"
         },
         {
           "command": "gitVertex.toggleFileBlame",

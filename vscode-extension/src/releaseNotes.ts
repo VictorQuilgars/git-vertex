@@ -23,6 +23,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 🗂 Every change at once
 - **Open All Changes** on a branch, a stash or a pull request opens every file it changes together, in the editor's multi-file diff — renamed, added and deleted files included.
+
+### 🕰 A file against any revision
+- **Open Changes with Revision…**, **Open Changes with Branch or Tag…** and **Open File at Revision…**, on an editor tab's menu: pick from the file's history, the branches and tags, or type any revision.
 `,
   '1.39.0': `## What's new in 1.39.0
 
