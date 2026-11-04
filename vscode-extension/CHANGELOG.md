@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- **Write / Preview on every markdown field of GitHub.** The comment box and the description editor of an issue or a pull request, and the body of the pull request and issue composers, gain a **Preview** tab that draws the draft with the renderer the posted text is read with. The field is only hidden while you look, so the caret and the undo history are where you left them, and a field emptied by posting is back on Write. (#337)
+
 ## 1.39.0
 
 ### Fixed

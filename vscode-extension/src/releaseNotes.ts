@@ -16,6 +16,11 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 👁 Preview before you post
+- The comment box and the description of an **issue** or a **pull request**, and the body of both composers, have a **Preview** tab: see your markdown as it will be read before you post it.
+`,
   '1.39.0': `## What's new in 1.39.0
 
 ### 🪟 Rewriting history works on Windows
