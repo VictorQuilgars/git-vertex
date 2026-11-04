@@ -121,6 +121,11 @@
 .sb-ov-recent-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sb-ov-recent-when { flex-shrink: 0; font-size: var(--text-tiny); color: var(--text-tertiary); }
 .sb-ov-recent-pr { display: inline-flex; align-items: center; gap: var(--space-2xs); flex-shrink: 0; font-size: var(--text-tiny); color: var(--text-tertiary); }
+/* A card per branch checked out in another worktree (#279): the current
+   card's shape, quieter — it is work in progress, not the work on screen. */
+.sb-ov-card--elsewhere { cursor: pointer; }
+.sb-ov-card--elsewhere:hover, .sb-ov-card--elsewhere:focus-visible { background: var(--surface-sunken); outline: none; }
+.sb-ov-card-folder { flex-shrink: 0; margin-left: auto; font-size: var(--text-tiny); color: var(--text-tertiary); }
 .sb-ov-older {
   display: block; margin: var(--space-xs) var(--space-md); background: none; border: none; padding: 0;
   color: var(--text-tertiary); font-size: var(--text-tiny); cursor: pointer;

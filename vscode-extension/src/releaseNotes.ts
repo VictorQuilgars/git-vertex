@@ -18,6 +18,12 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🗂 Folders in your compare tool
+- **Compare Folders with Parent / with Working Tree** on a graph row, and **Compare Working Tree with Revision…** in the palette, open two folders — only the files that differ — in the external diff tool set in Settings.
+
+### 🌳 Every worktree, on the Overview
+- A card for each branch checked out in another worktree, with how it stands; double-click to open it, right-click for its menu. **RECENT** now goes back as far as your history does.
+
 ### 👁 Preview before you post
 - The comment box and the description of an **issue** or a **pull request**, and the body of both composers, have a **Preview** tab: see your markdown as it will be read before you post it.
 

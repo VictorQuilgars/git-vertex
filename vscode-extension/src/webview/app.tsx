@@ -791,11 +791,15 @@ function VertexApp() {
 
   // Same as the desktop: it asks, then leaves the change pending rather than
   // staged, so what you restored can be read before you keep it.
-  const handleRestoreFile = useCallback(async (hash: string, filePath: string) => {
-    const ok = await showConfirm(t('confirm.restoreFile', filePath, hash.slice(0, 7)))
+  const handleRestoreFile = useCallback(async (hash: string, paths: string[]) => {
+    if (!paths.length) return
+    const one = paths.length === 1
+    const ok = await showConfirm(one
+      ? t('confirm.restoreFile', paths[0], hash.slice(0, 7))
+      : t('confirm.restoreFiles', paths.length, hash.slice(0, 7)))
     if (!ok) return
-    const r = await window.gitAPI.restoreFileFromCommit(hash, [filePath])
-    if (r?.success) { showToast(t('toast.fileRestored', filePath)); loadRepoData(true) }
+    const r = await window.gitAPI.restoreFileFromCommit(hash, paths)
+    if (r?.success) { showToast(one ? t('toast.fileRestored', paths[0]) : t('toast.filesRestored', paths.length)); loadRepoData(true) }
     else showToast(r?.error ?? t('toast.restoreFailed'), 'err')
   }, [showConfirm, showToast, loadRepoData])
 

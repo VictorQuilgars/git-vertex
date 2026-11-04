@@ -45,7 +45,8 @@ export interface RightPanelProps {
   onOpenFileOnRemote?: (hash: string, filePath: string) => void
   onCopyFileLink?: (hash: string, filePath: string) => void
   /** Put this file back the way it was at this commit. Asks first. */
-  onRestoreFile?: (hash: string, filePath: string) => void
+  /** Put files back as they were at a commit — one, or a batch (#69). */
+  onRestoreFile?: (hash: string, paths: string[]) => void
   /**
    * Show this file's history — the host decides where a view goes: a tab in the
    * app, an editor tab in the panel. Omitted ⇒ the button disappears rather

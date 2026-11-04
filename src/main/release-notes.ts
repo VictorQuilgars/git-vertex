@@ -4,6 +4,9 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🌳 Every worktree, on the Overview
+- A card for each branch checked out in another worktree, with how it stands; double-click to open it, right-click for its menu. **RECENT** now goes back as far as your history does.
+
 ### 👁 Preview before you post
 - The comment box and the description of an **issue** or a **pull request**, and the body of both composers, have a **Preview** tab: see your markdown as it will be read before you post it.
 
