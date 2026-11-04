@@ -327,3 +327,19 @@ td.diff-context.line-content code { color: var(--text-secondary); }
 .split-table td:nth-child(3) {
   border-right: 2px solid var(--border-default);
 }
+
+/* The model's review comments (#265): proposals in its ink — the agent seed,
+   never a filled button — each one a sentence and a way to dismiss it. */
+.diff-note-row td { padding: 0; }
+.dv-note {
+  display: flex; align-items: flex-start; gap: var(--space-sm);
+  margin: var(--space-2xs) var(--space-md); padding: var(--space-xs) var(--space-md);
+  border-left: 2px solid var(--ai-text); border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--ai-text) var(--alpha-faint), transparent);
+  color: var(--text-primary); font-size: var(--text-sm); font-family: inherit; white-space: normal;
+}
+.dv-note-kind { flex-shrink: 0; color: var(--ai-text); font-weight: var(--weight-semibold); font-size: var(--text-xs); text-transform: uppercase; }
+.dv-note--risk .dv-note-kind { color: var(--warning); }
+.dv-note-body { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.dv-note-dismiss { flex-shrink: 0; background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: var(--text-sm); padding: 0 var(--space-2xs); }
+.dv-note-dismiss:hover { color: var(--text-primary); }

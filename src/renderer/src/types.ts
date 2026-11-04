@@ -439,6 +439,11 @@ declare global {
     // The same explanation, on the three other diffs a repository has (#70).
     // None of them is cached: a branch, a stash and a working tree all move
     // under their answer, where a commit's diff cannot.
+    /** What a reviewer would say about a comparison, anchored to its lines (#265). */
+    aiReviewComparison: (base: string, head: string, axis?: 'diverged' | 'endpoints', guidance?: string) => Promise<{
+      comments: { file: string; line: number | null; severity: 'risk' | 'leftover' | 'note'; body: string }[]
+      partial: string[]; unread: string[]; error?: string
+    }>
     aiExplainBranch: (branch: string, guidance?: string) => Promise<{ explanation?: string; base?: string; error?: string }>
     aiExplainStash: (index: number | string, guidance?: string) => Promise<{ explanation?: string; error?: string }>
     aiExplainWorking: (guidance?: string) => Promise<{ explanation?: string; error?: string }>

@@ -33,7 +33,7 @@ export const DIFF_DETAILS: DiffDetail[] = ['summary', 'standard', 'full']
  * `BUILT_IN_THEME_IDS`, and made safe the same way: `ai-diff.test.ts` reads
  * the other list out of its source and fails if the two disagree.
  */
-export const DIFF_FEATURES = ['commit', 'explain', 'pr', 'compose'] as const
+export const DIFF_FEATURES = ['commit', 'explain', 'pr', 'compose', 'review'] as const
 
 /**
  * One level down, or null at the bottom.

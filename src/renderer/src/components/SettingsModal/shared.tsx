@@ -229,6 +229,10 @@ export const AI_FEATURES: { id: string; labelKey: string; kind: AITemperament; c
     'One bullet per change, no more', 'Name the affected area first', 'Keep internal refactors out'] },
   { id: 'compose', kind: 'thorough', labelKey: 'settings.ai.feat.compose', chips: [
     'Prefer fewer, larger commits', 'Tests with the code they cover', 'Keep documentation in its own commit'] },
+  // A review before the pull request is opened (#265): it reads lines, and
+  // what it is worth is what it notices — the thorough temperament.
+  { id: 'review', kind: 'thorough', labelKey: 'settings.ai.feat.review', chips: [
+    'Only risks, no style remarks', 'Flag missing tests', 'Point out leftover debug output'] },
 ]
 
 /**
@@ -240,7 +244,7 @@ export const AI_FEATURES: { id: string; labelKey: string; kind: AITemperament; c
  * `src/main/ai-diff.ts`), because the two are built separately and this side
  * imports nothing from `src/main`. `ai-diff.test.ts` fails if they disagree.
  */
-export const DIFF_FEATURES = ['commit', 'explain', 'pr', 'compose']
+export const DIFF_FEATURES = ['commit', 'explain', 'pr', 'compose', 'review']
 
 /** A model choice that knows which credential it runs on. */
 export interface AIPair { provider: AIProvider; model: string }

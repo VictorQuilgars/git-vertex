@@ -18,6 +18,9 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🔍 A review before the pull request
+- In a comparison, **Review with AI**: the model comments on the lines a reviewer would — risks and leftovers — each one under its line, each one dismissible. Nothing is posted.
+
 ### 🗂 Folders in your compare tool
 - **Compare Folders with Parent / with Working Tree** on a graph row, and **Compare Working Tree with Revision…** in the palette, open two folders — only the files that differ — in the external diff tool set in Settings.
 

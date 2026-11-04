@@ -19,6 +19,28 @@ interface DiffViewerProps {
   headerLabel?: string
   reviewed?: string[]
   onReview?: (path: string, checked: boolean) => void
+  /**
+   * The model's review comments (#265), drawn under the line they are about —
+   * or under the file's name when they are about the file, or about a line
+   * this diff does not show. Proposals, in the model's ink; each dismissible.
+   */
+  notes?: DiffNote[]
+  onDismissNote?: (id: string) => void
+}
+
+export interface DiffNote { id: string; file: string; line: number | null; severity: 'risk' | 'leftover' | 'note'; body: string }
+
+function NoteCard({ note, onDismiss, t }: { note: DiffNote; onDismiss?: (id: string) => void; t: ReturnType<typeof useLang>['t'] }) {
+  return (
+    <div className={`dv-note dv-note--${note.severity}`} role="note">
+      <span className="dv-note-kind">{t(`dv.note.${note.severity}` as any)}</span>
+      <span className="dv-note-body">{note.body}</span>
+      {onDismiss && (
+        <button className="dv-note-dismiss" title={t('dv.note.dismiss')} aria-label={t('dv.note.dismiss')}
+          onClick={() => onDismiss(note.id)}>×</button>
+      )}
+    </div>
+  )
 }
 
 interface DiffLine {
@@ -170,13 +192,16 @@ function FileList({ files, t, reviewed, onReview }: Pick<DiffViewerProps, 'files
   )
 }
 
-function UnifiedHunk({ hunk, lang }: { hunk: DiffHunk; lang?: string }) {
+type NotesAt = (line: number | undefined) => DiffNote[]
+interface NoteProps { notesAt?: NotesAt; onDismissNote?: (id: string) => void; t?: ReturnType<typeof useLang>['t'] }
+
+function UnifiedHunk({ hunk, lang, notesAt, onDismissNote, t }: { hunk: DiffHunk; lang?: string } & NoteProps) {
   return (
     <div className="hunk">
       <div className="hunk-header">{hunk.header}</div>
       <table className="diff-table">
         <tbody>
-          {hunk.lines.map((line, li) => (
+          {hunk.lines.map((line, li) => [
             <tr key={li} className={`diff-line diff-${line.type}`}>
               <td className="line-num old">{line.type !== 'add' ? line.oldLine : ''}</td>
               <td className="line-num new">{line.type !== 'remove' ? line.newLine : ''}</td>
@@ -189,15 +214,18 @@ function UnifiedHunk({ hunk, lang }: { hunk: DiffHunk; lang?: string }) {
                   dangerouslySetInnerHTML={{ __html: highlightCode(line.content, lang) }}
                 />
               </td>
-            </tr>
-          ))}
+            </tr>,
+            ...(line.type !== 'remove' && notesAt && t ? notesAt(line.newLine).map(n => (
+              <tr key={`${li}-${n.id}`} className="diff-note-row"><td colSpan={4}><NoteCard note={n} onDismiss={onDismissNote} t={t} /></td></tr>
+            )) : []),
+          ])}
         </tbody>
       </table>
     </div>
   )
 }
 
-function SplitHunk({ hunk, lang }: { hunk: DiffHunk; lang?: string }) {
+function SplitHunk({ hunk, lang, notesAt, onDismissNote, t }: { hunk: DiffHunk; lang?: string } & NoteProps) {
   const rows = useMemo(() => buildSplitRows(hunk.lines), [hunk.lines])
   return (
     <div className="hunk">
@@ -207,7 +235,8 @@ function SplitHunk({ hunk, lang }: { hunk: DiffHunk; lang?: string }) {
           {rows.map((row, ri) => {
             const leftType = row.left?.type ?? 'empty'
             const rightType = row.right?.type ?? 'empty'
-            return (
+            const rowNotes = row.right && row.right.type !== 'remove' && notesAt && t ? notesAt(row.right.newLine) : []
+            return [
               <tr key={ri} className="split-row">
                 {/* Left side */}
                 <td className={`line-num old split-num ${leftType === 'remove' ? 'diff-remove' : leftType === 'context' ? 'diff-context' : 'diff-empty-cell'}`}>
@@ -233,8 +262,11 @@ function SplitHunk({ hunk, lang }: { hunk: DiffHunk; lang?: string }) {
                     <code className="hljs" dangerouslySetInnerHTML={{ __html: highlightCode(row.right.content, lang) }} />
                   ) : null}
                 </td>
-              </tr>
-            )
+              </tr>,
+              ...rowNotes.map(n => (
+                <tr key={`${ri}-${n.id}`} className="diff-note-row"><td colSpan={6}><NoteCard note={n} onDismiss={onDismissNote} t={t!} /></td></tr>
+              )),
+            ]
           })}
         </tbody>
       </table>
@@ -242,7 +274,7 @@ function SplitHunk({ hunk, lang }: { hunk: DiffHunk; lang?: string }) {
   )
 }
 
-export default function DiffViewer({ commit, diff, files, loading, headerLabel, reviewed, onReview }: DiffViewerProps) {
+export default function DiffViewer({ commit, diff, files, loading, headerLabel, reviewed, onReview, notes, onDismissNote }: DiffViewerProps) {
   const { t } = useLang()
   const [viewMode, setViewMode] = useState<'unified' | 'split'>('unified')
   const parsedDiff = useMemo(() => parseDiff(diff), [diff])
@@ -317,18 +349,28 @@ export default function DiffViewer({ commit, diff, files, loading, headerLabel, 
           <div className="diff-scroll">
             {parsedDiff.map((file, fi) => {
               const lang = detectLanguage(file.to)
+              // A note on a line this diff shows goes under that line; one on
+              // the file, or on a line no hunk shows, under the file's name —
+              // never dropped for want of a row to hang it on.
+              const mine = (notes ?? []).filter(n => n.file === file.to)
+              const shown = new Set(file.hunks.flatMap(h => h.lines.filter(l => l.type !== 'remove').map(l => l.newLine)))
+              const onFile = mine.filter(n => n.line === null || !shown.has(n.line))
+              const notesAt: NotesAt | undefined = mine.length
+                ? (line) => mine.filter(n => n.line !== null && n.line === line)
+                : undefined
               return (
                 <div key={fi} className="file-diff">
                   <div className="file-diff-header">
                     <span className="file-icon">📄</span>
                     <span className="file-diff-name">{file.to}</span>
                   </div>
+                  {onFile.map(n => <NoteCard key={n.id} note={n} onDismiss={onDismissNote} t={t} />)}
                   {viewMode === 'unified'
                     ? file.hunks.map((hunk, hi) => (
-                        <UnifiedHunk key={hi} hunk={hunk} lang={lang} />
+                        <UnifiedHunk key={hi} hunk={hunk} lang={lang} notesAt={notesAt} onDismissNote={onDismissNote} t={t} />
                       ))
                     : file.hunks.map((hunk, hi) => (
-                        <SplitHunk key={hi} hunk={hunk} lang={lang} />
+                        <SplitHunk key={hi} hunk={hunk} lang={lang} notesAt={notesAt} onDismissNote={onDismissNote} t={t} />
                       ))
                   }
                 </div>

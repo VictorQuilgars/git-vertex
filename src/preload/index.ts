@@ -194,6 +194,7 @@ const gitAPI = {
   aiRecomposeCommit: (hash: string) => invoke('ai:recompose-commit', hash),
   aiExplainCommit: (hash: string, force?: boolean, guidance?: string) => invoke('ai:explain-commit', hash, force, guidance),
   aiGetExplanations: () => invoke('ai:get-explanations'),
+  aiReviewComparison: (base: string, head: string, axis?: 'diverged' | 'endpoints', guidance?: string) => invoke('ai:review-comparison', base, head, axis, guidance),
   aiExplainBranch: (branch: string, guidance?: string) => invoke('ai:explain-branch', branch, guidance),
   aiExplainStash: (index: number | string, guidance?: string) => invoke('ai:explain-stash', index, guidance),
   aiExplainWorking: (guidance?: string) => invoke('ai:explain-working', guidance),

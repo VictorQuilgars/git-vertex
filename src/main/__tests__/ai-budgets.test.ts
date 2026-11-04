@@ -11,7 +11,7 @@ import type { AIFeature } from '../ai-resolve'
 // get it, and that what it got is visible afterwards.
 
 const FEATURES: AIFeature[] = [
-  'commit', 'explain', 'conflict', 'search', 'filter', 'pr', 'issue', 'changelog', 'compose',
+  'commit', 'explain', 'conflict', 'search', 'filter', 'pr', 'issue', 'changelog', 'compose', 'review',
 ]
 
 describe('what each feature asks for', () => {

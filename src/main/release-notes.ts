@@ -4,6 +4,9 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🔍 A review before the pull request
+- In a comparison, **Review with AI**: the model comments on the lines a reviewer would — risks and leftovers — each one under its line, each one dismissible. Nothing is posted.
+
 ### 🌳 Every worktree, on the Overview
 - A card for each branch checked out in another worktree, with how it stands; double-click to open it, right-click for its menu. **RECENT** now goes back as far as your history does.
 
