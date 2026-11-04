@@ -112,7 +112,7 @@ export function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOp
   onOpenFileOnRemote?: (hash: string, filePath: string) => void
   onCopyFileLink?: (hash: string, filePath: string) => void
   /** Put this file back the way it was at this commit. Asks first. */
-  onRestoreFile?: (hash: string, filePath: string) => void
+  onRestoreFile?: (hash: string, paths: string[]) => void
   /**
    * Show this file's history — the host decides where a view goes: a tab in the
    * app, an editor tab in the panel. Omitted ⇒ the button disappears rather
@@ -605,8 +605,19 @@ export function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOp
                   { separator: true },
                   {
                     label: t('panel.file.restore'),
-                    action: () => onRestoreFile(commit.hash, fileMenu.path),
+                    action: () => onRestoreFile(commit.hash, [fileMenu.path]),
                   },
+                  // The batch the list API always allowed (#69): every file
+                  // the list shows — the filter's, when one is typed — that
+                  // EXISTS at the commit. A file the commit deleted has no
+                  // version there to restore.
+                  ...(() => {
+                    const restorable = visibleCdFiles.filter(f => f.status !== 'D').map(f => f.path)
+                    return restorable.length > 1 ? [{
+                      label: cdq ? t('panel.file.restoreShown', restorable.length) : t('panel.file.restoreAll', restorable.length),
+                      action: () => onRestoreFile(commit.hash, restorable),
+                    }] : []
+                  })(),
                 ] as MenuItemDef[] : []),
               ]}
               onClose={() => setFileMenu(null)}

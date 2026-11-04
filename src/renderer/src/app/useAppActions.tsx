@@ -450,11 +450,15 @@ export function useAppActions(app: AppChrome & RepoSession & AppGithub & AppConf
   // Restoring writes over the working copy, so it asks first — and it lands as
   // a pending change rather than a staged one, which is what makes "I did not
   // mean that" a diff you can read instead of an unstage.
-  const handleRestoreFile = async (hash: string, filePath: string) => {
-    const ok = await showConfirm(t('confirm.restoreFile', filePath, hash.slice(0, 7)), true)
+  const handleRestoreFile = async (hash: string, paths: string[]) => {
+    if (!paths.length) return
+    const one = paths.length === 1
+    const ok = await showConfirm(one
+      ? t('confirm.restoreFile', paths[0], hash.slice(0, 7))
+      : t('confirm.restoreFiles', paths.length, hash.slice(0, 7)), true)
     if (!ok) return
-    const r = await window.gitAPI.restoreFileFromCommit(hash, [filePath])
-    if (r.success) { showToast(t('toast.fileRestored', filePath)); loadRepoData(true) }
+    const r = await window.gitAPI.restoreFileFromCommit(hash, paths)
+    if (r.success) { showToast(one ? t('toast.fileRestored', paths[0]) : t('toast.filesRestored', paths.length)); loadRepoData(true) }
     else showToast(r.error ?? t('toast.restoreFailed'), 'err')
   }
   const handleCopyCommitLink = (hash: string) => {
