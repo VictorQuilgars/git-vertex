@@ -5,12 +5,16 @@
 // on recently, by the date of their tip; then what is waiting on the user
 // across the repository's pull requests; then what to start. Reads its slice
 // of the sidebar's state; the state itself lives in useSidebar.
-import { useState } from 'react'
+import { useState, type MouseEvent } from 'react'
 import { Icon } from '../../Icon/Icon'
+import ContextMenu, { type MenuItemDef } from '../../ContextMenu/ContextMenu'
+import { localBranchProps } from '../localBranchProps'
+import { branchItemMenu } from '../BranchItem'
 import { askForPRGroup } from './PrsSection'
 import { nextSteps } from '../../RightPanel/WorkingChangesEmpty'
 import type { SidebarState } from '../useSidebar'
 import type { BranchInfo } from '../../../types'
+import type { WorktreeEntry } from '../types'
 
 const RECENT_KEY = 'gv-sb-recent-days'
 const THRESHOLDS: { days: number; key: 'sb.recent.day' | 'sb.recent.week' | 'sb.recent.month' }[] = [
@@ -29,9 +33,40 @@ export function agoLabel(unixSeconds: number, locale: string, now = Date.now()):
   return rtf.format(Math.round(sec / (365 * 86400)), 'year')
 }
 
+/**
+ * How far back RECENT reaches, a page at a time (#279). The first three are
+ * the timeframes the menu offers; *Show older* walks on past them — a
+ * quarter, a year, then everything — instead of stopping at a month.
+ */
+export const RECENT_PAGES = [1, 7, 30, 90, 365, Infinity] as const
+
+/**
+ * The next page that would show MORE, or null when nothing older exists.
+ * A page that adds no branch is skipped: *Show older* that changes nothing
+ * would read as broken.
+ */
+export function nextRecentPage(branches: BranchInfo[], days: number, now = Date.now()): number | null {
+  const shown = recentBranches(branches, days, now).length
+  for (const page of RECENT_PAGES) {
+    if (page <= days) continue
+    if (recentBranches(branches, page, now).length > shown) return page
+  }
+  return null
+}
+
+/**
+ * The branches checked out in the OTHER worktrees, one card each (#279) — the
+ * work in progress the Overview did not show, since it only had a card for
+ * the branch on screen. A detached worktree is on no branch, and a prunable
+ * one is gone from disk; neither has a card.
+ */
+export function worktreeCards(worktrees: readonly WorktreeEntry[], currentBranch: string): WorktreeEntry[] {
+  return worktrees.filter(w => !w.prunable && w.branch && w.branch !== '(detached)' && w.branch !== currentBranch)
+}
+
 /** The local branches worked on within `days`, newest tip first, the current one aside. */
 export function recentBranches(branches: BranchInfo[], days: number, now = Date.now()): BranchInfo[] {
-  const floor = now / 1000 - days * 86400
+  const floor = days === Infinity ? -Infinity : now / 1000 - days * 86400
   return branches
     .filter(b => !b.remote && !b.current && !b.detached && (b.date ?? 0) >= floor)
     .sort((a, b) => (b.date ?? 0) - (a.date ?? 0))
@@ -40,9 +75,18 @@ export function recentBranches(branches: BranchInfo[], days: number, now = Date.
 export function OverviewSection({ s }: { s: SidebarState }) {
   const {
     branches, currentBranch, agents, work, t, home, mergeTarget, launchpad, githubPRs, worktrees,
-    onSelectCommit, onCheckout, onCreatePR, prIntentFor, issueFor,
+    onSelectCommit, onCheckout, onCreatePR, prIntentFor, issueFor, onSetRepo,
   } = s
-  const [days, setDays] = useState(() => {
+  // Right-click on a card: the branch's own menu, the one its row in
+  // Branches opens (#279).
+  const [cardMenu, setCardMenu] = useState<{ x: number; y: number; items: MenuItemDef[] } | null>(null)
+  const openCardMenu = (e: MouseEvent, name: string) => {
+    const b = branches.find(x => !x.remote && x.name === name)
+    if (!b) return
+    e.preventDefault()
+    setCardMenu({ x: e.clientX, y: e.clientY, items: branchItemMenu(localBranchProps(s, b), t) })
+  }
+  const [days, setDays] = useState<number>(() => {
     const saved = Number(localStorage.getItem(RECENT_KEY))
     return THRESHOLDS.some(x => x.days === saved) ? saved : 7
   })
@@ -69,13 +113,20 @@ export function OverviewSection({ s }: { s: SidebarState }) {
   ].filter(a => a.onClick) : []
 
   const recent = recentBranches(branches, days)
+  const older = nextRecentPage(branches, days)
+  const elsewhere = worktreeCards(worktrees, currentBranch)
+  const pageLabel = (d: number) => {
+    const preset = THRESHOLDS.find(x => x.days === d)
+    if (preset) return t(preset.key)
+    return d === Infinity ? t('sb.recent.all') : d >= 365 ? t('sb.recent.year') : t('sb.recent.quarter')
+  }
   const worktreeOf = (name: string) => worktrees.find(w => w.branch === name)
   const waiting = launchpad ? launchpad.needsReview + launchpad.changesRequested + launchpad.approved : 0
 
   return (
     <div className="sb-overview">
       <div className="sb-ov-label">{t('sb.currentWork')}</div>
-      <div className="sb-ov-card">
+      <div className="sb-ov-card" onContextMenu={e => openCardMenu(e, currentBranch)}>
         <div className="sb-ov-branch">
           <Icon name="branch" size={14} />
           <span className="sb-ov-branch-name" title={currentBranch}>{currentBranch}</span>
@@ -131,13 +182,47 @@ export function OverviewSection({ s }: { s: SidebarState }) {
         )}
       </div>
 
+      {/* ELSEWHERE — the branches checked out in the other worktrees (#279) */}
+      {elsewhere.length > 0 && (
+        <>
+          <div className="sb-ov-head"><span className="sb-ov-label">{t('sb.ov.elsewhere')} ({elsewhere.length})</span></div>
+          {elsewhere.map(w => {
+            const b = branches.find(x => !x.remote && x.name === w.branch)
+            const wpr = githubPRs?.find(p => p.headRef === w.branch)
+            const folder = w.path.split(/[\\/]/).filter(Boolean).pop() ?? w.path
+            const preview = [w.path, w.dirty ? t('sb.ov.cardDirty') : t('sb.clean'), wpr ? `#${wpr.number} ${wpr.title}` : null].filter(Boolean).join('\n')
+            return (
+              <div key={w.path} className="sb-ov-card sb-ov-card--elsewhere" role="button" tabIndex={0}
+                title={`${preview}\n${t('sb.ov.cardHint')}`}
+                onClick={() => b && onSelectCommit(b.commit)}
+                onDoubleClick={() => onSetRepo(w.path)}
+                onKeyDown={e => { if (e.key === 'Enter') onSetRepo(w.path) }}
+                onContextMenu={e => openCardMenu(e, w.branch)}>
+                <div className="sb-ov-branch">
+                  <Icon name="worktree" size={14} />
+                  <span className="sb-ov-branch-name">{w.branch}</span>
+                  <span className="sb-ov-card-folder">{folder}</span>
+                </div>
+                <div className="sb-ov-stats">
+                  {(w.ahead ?? 0) > 0 && <span className="sb-track-ahead">↑{w.ahead}</span>}
+                  {(w.behind ?? 0) > 0 && <span className="sb-track-behind">↓{w.behind}</span>}
+                  {w.dirty ? <span className="sb-ov-changed" title={t('sb.ov.cardDirty')}>✎</span> : <span className="sb-ov-clean">{t('sb.clean')}</span>}
+                  {w.locked && <span className="sb-wt-flag" title={w.lockReason ? t('sb.wt.lockedWhy', w.lockReason) : t('sb.wt.lockedFlag')}>🔒</span>}
+                  {wpr && <span className="sb-ov-recent-pr" title={wpr.title}><Icon name="pullRequest" size={11} />#{wpr.number}</span>}
+                </div>
+              </div>
+            )
+          })}
+        </>
+      )}
+
       {/* RECENT — the branches whose tip moved within the threshold */}
       <div className="sb-ov-head">
         <span className="sb-ov-label">{t('sb.recent')}{recent.length > 0 ? ` (${recent.length})` : ''}</span>
         <div className="sb-ov-threshold">
           <button className="sb-ov-threshold-btn" title={t('sb.recent.change')} aria-haspopup="menu" aria-expanded={thresholdMenu}
             onClick={() => setThresholdMenu(v => !v)}>
-            {t(THRESHOLDS.find(x => x.days === days)!.key)}<Icon name="chevronDown" size={8} />
+            {pageLabel(days)}<Icon name="chevronDown" size={8} />
           </button>
           {thresholdMenu && (
             <div className="sb-ov-threshold-menu" role="menu">
@@ -172,8 +257,10 @@ export function OverviewSection({ s }: { s: SidebarState }) {
             )
           })
       }
-      {recent.length === 0 && days < 30 && (
-        <button className="sb-ov-older" onClick={() => chooseDays(30)}>{t('sb.recent.older')}</button>
+      {/* A page further back at a time, for as long as there is older work —
+          not only when the list is empty, and not only as far as a month. */}
+      {older !== null && (
+        <button className="sb-ov-older" onClick={() => { setDays(older); setThresholdMenu(false) }}>{t('sb.recent.older')}</button>
       )}
 
       {/* LAUNCHPAD — what waits on the user, across the repository's pull requests */}
@@ -217,6 +304,7 @@ export function OverviewSection({ s }: { s: SidebarState }) {
           </div>
         </>
       )}
+      {cardMenu && <ContextMenu x={cardMenu.x} y={cardMenu.y} items={cardMenu.items} onClose={() => setCardMenu(null)} />}
     </div>
   )
 }
