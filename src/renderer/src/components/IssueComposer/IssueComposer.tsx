@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, type RefObject } from 'react'
 import { Icon } from '../Icon/Icon'
+import MarkdownField from '../MarkdownField/MarkdownField'
 import './IssueComposer.css'
 import { useLang } from '../../i18n/LanguageContext'
 import { PickField } from '../PRComposer/PRComposer'
@@ -158,15 +159,17 @@ export default function IssueComposer({ owner, repo, anchor, onClose, onCreated,
 
         <div className="pr-field">
           <label className="pr-label" htmlFor="gv-issue-body">{t('ghn.bodyLabel')}</label>
-          <textarea
-            id="gv-issue-body"
-            className={`pr-textarea${generating || writing ? ' pr-ai-writing' : ''}`}
-            value={body}
-            readOnly={writing}
-            onChange={e => setBody(e.target.value)}
-            placeholder={t('ghn.bodyPlaceholder')}
-            rows={8}
-          />
+          <MarkdownField value={body} openLink={url => (window.gitAPI as any).openExternal?.(url)}>
+            <textarea
+              id="gv-issue-body"
+              className={`pr-textarea${generating || writing ? ' pr-ai-writing' : ''}`}
+              value={body}
+              readOnly={writing}
+              onChange={e => setBody(e.target.value)}
+              placeholder={t('ghn.bodyPlaceholder')}
+              rows={8}
+            />
+          </MarkdownField>
         </div>
         {restorePoint && !writing && (
           <div className="pr-restore">

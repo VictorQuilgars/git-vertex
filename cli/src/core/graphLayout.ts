@@ -1,4 +1,4 @@
-import { LANES } from '../ui/theme'
+import { LANES } from '../ui/theme.js'
 // Graph layout algorithm — adapted from src/renderer/src/components/CommitGraph/graph-layout.ts
 // Computes lane assignments and edges for a commit graph.
 

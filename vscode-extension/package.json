@@ -32,7 +32,8 @@
   ],
   "activationEvents": [
     "workspaceContains:.git",
-    "onUri"
+    "onUri",
+    "onFileSystem:gitvertex-tree"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -140,6 +141,34 @@
         "icon": "$(arrow-right)"
       },
       {
+        "command": "gitVertex.browseRepoAtRevision",
+        "title": "Git Vertex: Browse Repository at Revision..."
+      },
+      {
+        "command": "gitVertex.browseRepoAtRevisionInNewWindow",
+        "title": "Git Vertex: Browse Repository at Revision in New Window..."
+      },
+      {
+        "command": "gitVertex.browseRepoBeforeRevision",
+        "title": "Git Vertex: Browse Repository Before Revision..."
+      },
+      {
+        "command": "gitVertex.browseRepoBeforeRevisionInNewWindow",
+        "title": "Git Vertex: Browse Repository Before Revision in New Window..."
+      },
+      {
+        "command": "gitVertex.diffWithRevision",
+        "title": "Git Vertex: Open Changes with Revision..."
+      },
+      {
+        "command": "gitVertex.diffWithRevisionFrom",
+        "title": "Git Vertex: Open Changes with Branch or Tag..."
+      },
+      {
+        "command": "gitVertex.openFileRevisionFrom",
+        "title": "Git Vertex: Open File at Revision..."
+      },
+      {
         "command": "gitVertex.revealRevisionCommit",
         "title": "Git Vertex: Show Revision Commit in Graph",
         "icon": "$(git-commit)"
@@ -207,6 +236,22 @@
       {
         "command": "gitVertex.configure",
         "title": "Git Vertex: Configure App Path"
+      },
+      {
+        "command": "gitVertex.commitMenu.browseAt",
+        "title": "Browse Repository at This Commit"
+      },
+      {
+        "command": "gitVertex.commitMenu.browseAtNewWindow",
+        "title": "Browse Repository at This Commit in New Window"
+      },
+      {
+        "command": "gitVertex.commitMenu.browseBefore",
+        "title": "Browse Repository Before This Commit"
+      },
+      {
+        "command": "gitVertex.commitMenu.browseBeforeNewWindow",
+        "title": "Browse Repository Before This Commit in New Window"
       },
       {
         "command": "gitVertex.commitMenu.switchTo",
@@ -368,6 +413,21 @@
           "group": "1_diff@99"
         },
         {
+          "command": "gitVertex.diffWithRevision",
+          "when": "resourceScheme == file || resourceScheme == gitvertex",
+          "group": "1_diff@94"
+        },
+        {
+          "command": "gitVertex.diffWithRevisionFrom",
+          "when": "resourceScheme == file || resourceScheme == gitvertex",
+          "group": "1_diff@95"
+        },
+        {
+          "command": "gitVertex.openFileRevisionFrom",
+          "when": "resourceScheme == file || resourceScheme == gitvertex",
+          "group": "1_diff@96"
+        },
+        {
           "command": "gitVertex.toggleFileBlame",
           "when": "resourceScheme == file",
           "group": "1_diff@100"
@@ -437,6 +497,22 @@
         },
         {
           "command": "gitVertex.configure"
+        },
+        {
+          "command": "gitVertex.commitMenu.browseAt",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.browseAtNewWindow",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.browseBefore",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.browseBeforeNewWindow",
+          "when": "false"
         },
         {
           "command": "gitVertex.commitMenu.switchTo",
@@ -668,6 +744,26 @@
           "command": "gitVertex.commitMenu.compareWithSelected",
           "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit' && hasCompareBase",
           "group": "8_compare@3"
+        },
+        {
+          "command": "gitVertex.commitMenu.browseAt",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit' && hasCompareBase",
+          "group": "9_browse@1"
+        },
+        {
+          "command": "gitVertex.commitMenu.browseAtNewWindow",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit' && hasCompareBase",
+          "group": "9_browse@2"
+        },
+        {
+          "command": "gitVertex.commitMenu.browseBefore",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit' && hasCompareBase",
+          "group": "9_browse@3"
+        },
+        {
+          "command": "gitVertex.commitMenu.browseBeforeNewWindow",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit' && hasCompareBase",
+          "group": "9_browse@4"
         }
       ],
       "editor/context": [

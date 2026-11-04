@@ -1801,6 +1801,9 @@ function VertexApp() {
             onDropCommit={handleDropCommit}
             onCherryPickMany={handleCherryPickMany}
             onDropCommits={handleDropCommits}
+            // The plan travels with the tab, which opens the same editor the
+            // desktop does (#69).
+            onSquashCommits={(base: string, plan: { hash: string; action: string }[]) => { void window.gitAPI.openInteractiveRebaseTab(base, plan) }}
             onMoveCommit={handleMoveCommit}
             onBranchDrop={handleBranchDrop}
             onMergeBranch={handleMergeBranch}
@@ -2168,6 +2171,8 @@ const boot = (window as any).__GV_BOOT__ as
     aiKey?: string; aiLabel?: string
     // A stash's contents, from the side bar's preview.
     stashIndex?: number; stashMessage?: string
+    // A rebase plan preloaded into the interactive-rebase tab (#69's squash).
+    plan?: { hash: string; action: string; message?: string }[]
   } | undefined
 
 // The 3-way conflict resolver in its own tab: resolving or closing disposes
@@ -2184,13 +2189,13 @@ function ConflictTab({ file }: { file: string }) {
 // Interactive rebase planner in its own tab (was a modal overlay). Launching
 // closes the tab either way — success/no-op or a real conflict both hand off
 // to the auto-opened rebase tab, which the .git watcher pops on its own.
-function InteractiveRebaseTab({ baseHash }: { baseHash: string }) {
+function InteractiveRebaseTab({ baseHash, plan }: { baseHash: string; plan?: { hash: string; action: string; message?: string }[] }) {
   const toast = useToast()
   const showToast = useCallback((msg: string, type?: 'ok' | 'err') => {
     if (type === 'err') toast.error(msg); else toast.success(msg)
   }, [toast])
   const close = useCallback(() => { window.gitAPI.closeSelf() }, [])
-  return <InteractiveRebase embedded baseHash={baseHash} onClose={close} onSuccess={() => {}} showToast={showToast} />
+  return <InteractiveRebase embedded baseHash={baseHash} initialPlan={plan} onClose={close} onSuccess={() => {}} showToast={showToast} />
 }
 
 
@@ -2277,7 +2282,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                     : boot?.mode === 'todo'
                       ? <RebaseTodoApp />
                       : boot?.mode === 'plan' && boot.baseHash
-                        ? <InteractiveRebaseTab baseHash={boot.baseHash} />
+                        ? <InteractiveRebaseTab baseHash={boot.baseHash} plan={boot.plan} />
                         : boot?.mode === 'commitMsg'
                           ? <CommitMsgEditorView boot={boot} />
                           : boot?.mode === 'ai' && boot.aiKind

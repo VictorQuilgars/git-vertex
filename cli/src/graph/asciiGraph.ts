@@ -1,4 +1,4 @@
-import { THEME } from '../ui/theme'
+import { THEME } from '../ui/theme.js'
 import type { LayoutCommit } from '../core/graphLayout.js'
 
 export interface GraphCell { char: string; color: string }

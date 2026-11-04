@@ -140,6 +140,12 @@ jobs:
         working-directory: cli
       - run: npm run typecheck
         working-directory: cli
+      # The typecheck resolves imports like a bundler and accepts './x'; the
+      # published build is NodeNext and refuses it. Four extensionless imports
+      # of ui/theme passed the first and broke the second, unseen until a
+      # release would have run it — so the release's own build runs here too.
+      - run: npm run build
+        working-directory: cli
 
   # A job of its own rather than a step of the one above, because "CLI
   # typecheck" is the name the branch ruleset requires: renaming it would

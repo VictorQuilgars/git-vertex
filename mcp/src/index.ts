@@ -15,7 +15,7 @@
 // entirely with --read-only or GV_MCP_READONLY=1.
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
-import { ErrorCode, McpError, SubscribeRequestSchema, UnsubscribeRequestSchema } from '@modelcontextprotocol/sdk/types.js'
+import { ErrorCode, McpError, SubscribeRequestSchema, UnsubscribeRequestSchema, type ToolAnnotations } from '@modelcontextprotocol/sdk/types.js'
 import { createHash } from 'node:crypto'
 import { z } from 'zod'
 import { simpleGit, SimpleGit } from 'simple-git'
@@ -228,10 +228,70 @@ function preview(content: string, maxLines = 40, maxChars = 2000): string {
   return cut ? `${out}\n… (${lines.length} lines in all)` : out
 }
 
+// ── What each tool does to the machine — MCP tool annotations (#89) ──
+// Clients read these to decide what needs a prompt: Cline, Continue and
+// others auto-approve a `readOnlyHint` tool, and ask before one that is
+// `destructiveHint`. They are HINTS — the server's own guards (--read-only,
+// the confirmation through elicitation) stay where they are — but a hint that
+// lies costs the user either a prompt for nothing or a write without one, so
+// each entry says what the tool really does, and the test suite fails on a
+// tool registered without one.
+//
+// `openWorldHint` is false throughout: every tool reads or writes this
+// machine's repositories and nothing else — none fetches, pushes or calls out.
+// Under --read-only, the tools that write are refused at the top of their
+// handler, so they are announced read-only too rather than as the writes they
+// would otherwise be.
+const LOCAL = { openWorldHint: false } as const
+const READS = { ...LOCAL, readOnlyHint: true } as const
+const writes = (w: { destructiveHint: boolean; idempotentHint: boolean }) =>
+  READ_ONLY ? READS : { ...LOCAL, readOnlyHint: false, ...w }
+
+const TOOL_ANNOTATIONS: Record<string, ToolAnnotations> = {
+  git_status: { title: 'Working-tree status', ...READS },
+  git_log: { title: 'Commit history', ...READS },
+  git_branches: { title: 'Branches', ...READS },
+  git_diff: { title: 'Diff', ...READS },
+  git_show: { title: 'Show a commit', ...READS },
+  git_blame: { title: 'Blame', ...READS },
+  // `git merge-tree --write-tree` writes loose objects and no ref, index or
+  // file a user can see: read-only in every sense a client means.
+  predict_conflicts: { title: 'Predict merge conflicts', ...READS },
+  git_pickaxe: { title: 'Find commits adding or removing a string', ...READS },
+  find_lost_work: { title: 'Find lost work', ...READS },
+  git_conflicts: { title: 'Conflict state', ...READS },
+  // Overwrites a file with the given content and stages it: what was in the
+  // file before is gone. The same content twice is the same result.
+  resolve_conflict: { title: 'Resolve a conflicted file', ...writes({ destructiveHint: true, idempotentHint: true }) },
+  // Makes the commit the operation was waiting for — new history, none lost.
+  continue_operation: { title: 'Continue the merge or rebase', ...writes({ destructiveHint: false, idempotentHint: false }) },
+  // Throws away the resolutions made so far and puts the branch back.
+  abort_operation: { title: 'Abort the merge or rebase', ...writes({ destructiveHint: true, idempotentHint: false }) },
+  // Checks out commits (on a clean tree, which it requires) and moves the
+  // session's refs; `reset` puts HEAD back. Nothing a user made is lost.
+  git_bisect: { title: 'Bisect', ...writes({ destructiveHint: false, idempotentHint: false }) },
+  // These five open the desktop app on a proposal the HUMAN then applies: the
+  // repository is untouched, but a window opens and a proposal file is
+  // written, which is not "does not modify its environment".
+  open_in_git_vertex: { title: 'Open in Git Vertex', ...LOCAL, readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+  propose_commit: { title: 'Propose a commit for review', ...LOCAL, readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  propose_rebase_plan: { title: 'Propose a rebase plan for review', ...LOCAL, readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  propose_split: { title: 'Propose a split into commits for review', ...LOCAL, readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  // Reads the staged diff and asks the CLIENT's model; returns text, writes nothing.
+  generate_commit_message: { title: 'Draft a commit message', ...READS },
+}
+
+function annotationsFor(name: string): ToolAnnotations {
+  const a = TOOL_ANNOTATIONS[name]
+  if (!a) throw new Error(`Tool ${name} has no annotations — add it to TOOL_ANNOTATIONS`)
+  return a
+}
+
 server.tool(
   'git_status',
   'Working-tree status: current branch, upstream ahead/behind, staged, unstaged, untracked and conflicted files.',
   { repo: repoParam },
+  annotationsFor('git_status'),
   async ({ repo }) => {
     try {
       const { git, root } = await openRepo(repo)
@@ -251,6 +311,7 @@ server.tool(
     since: z.string().optional().describe('Filter: only commits after this date (e.g. "2 weeks ago", "2026-06-01")'),
     path: z.string().optional().describe('Filter: only commits touching this file or directory'),
   },
+  annotationsFor('git_log'),
   async ({ repo, maxCount, all, author, since, path: filePath }) => {
     try {
       const { git } = await openRepo(repo)
@@ -263,6 +324,7 @@ server.tool(
   'git_branches',
   'Local and remote branches with their tip commit; marks the current branch and upstream tracking (ahead/behind).',
   { repo: repoParam },
+  annotationsFor('git_branches'),
   async ({ repo }) => {
     try {
       const { git } = await openRepo(repo)
@@ -286,6 +348,7 @@ server.tool(
     path: z.string().optional().describe('Limit the diff to this file or directory'),
     statOnly: z.boolean().optional().describe('Only the per-file summary (--stat), not the full patch'),
   },
+  annotationsFor('git_diff'),
   async ({ repo, target, path: filePath, statOnly }) => {
     try {
       const { git } = await openRepo(repo)
@@ -309,6 +372,7 @@ server.tool(
     ref: z.string().describe('Commit hash, branch, tag, or any ref (e.g. HEAD~2)'),
     patch: z.boolean().optional().describe('Include the full patch (default false: stats only)'),
   },
+  annotationsFor('git_show'),
   async ({ repo, ref, patch }) => {
     try {
       const { git } = await openRepo(repo)
@@ -334,6 +398,7 @@ server.tool(
     startLine: z.number().int().min(1).optional().describe('First line of the range'),
     endLine: z.number().int().min(1).optional().describe('Last line of the range'),
   },
+  annotationsFor('git_blame'),
   async ({ repo, path: filePath, startLine, endLine }) => {
     try {
       const { git } = await openRepo(repo)
@@ -374,6 +439,7 @@ server.tool(
     theirs: z.string().describe('The branch/ref that would be merged in'),
     ours: z.string().optional().describe('The branch/ref merged into (default: HEAD)'),
   },
+  annotationsFor('predict_conflicts'),
   async ({ repo, theirs, ours }) => {
     try {
       const { git, root } = await openRepo(repo)
@@ -411,6 +477,7 @@ server.tool(
     maxCount: z.number().int().min(1).max(200).optional().describe('Max commits to return (default 30)'),
     all: z.boolean().optional().describe('Search all branches, not just HEAD (default true)'),
   },
+  annotationsFor('git_pickaxe'),
   async ({ repo, term, mode, path: filePath, maxCount, all }) => {
     try {
       const { git } = await openRepo(repo)
@@ -436,6 +503,7 @@ server.tool(
     repo: repoParam,
     limit: z.number().int().min(1).max(100).optional().describe('Max reflog entries and dangling commits to list (default 30)'),
   },
+  annotationsFor('find_lost_work'),
   async ({ repo, limit }) => {
     try {
       const { git, root } = await openRepo(repo)
@@ -534,6 +602,7 @@ server.tool(
     repo: repoParam,
     file: z.string().optional().describe('Conflicted file path (relative to the repo root) whose marker-annotated content to include'),
   },
+  annotationsFor('git_conflicts'),
   async ({ repo, file }) => {
     try {
       const { git, root } = await openRepo(repo)
@@ -571,6 +640,7 @@ server.tool(
     file: z.string().describe('Conflicted file path, relative to the repo root'),
     content: z.string().describe('The complete resolved file content — every line, no conflict markers'),
   },
+  annotationsFor('resolve_conflict'),
   async ({ repo, file, content }) => {
     if (READ_ONLY) return errText(new Error('This server runs with --read-only: resolve_conflict is disabled'))
     try {
@@ -601,6 +671,7 @@ server.tool(
     ? 'DISABLED (--read-only): would run git rebase/merge/cherry-pick/revert --continue.'
     : 'Continue the ongoing rebase/merge/cherry-pick/revert once every conflicted file is resolved and staged (equivalent of `git <op> --continue`, editor suppressed). Before calling this, the user should have had a chance to review each resolution — via open_in_git_vertex if the desktop app is installed, otherwise a quick confirmation in chat. Don\'t call this right after resolve_conflict without that step unless the user explicitly told you to just proceed. When the MCP client supports elicitation, the server also asks the user to confirm before continuing.',
   { repo: repoParam },
+  annotationsFor('continue_operation'),
   async ({ repo }) => {
     if (READ_ONLY) return errText(new Error('This server runs with --read-only: continue_operation is disabled'))
     try {
@@ -633,6 +704,7 @@ server.tool(
     ? 'DISABLED (--read-only): would run git rebase/merge/cherry-pick/revert --abort.'
     : 'Abort the ongoing rebase/merge/cherry-pick/revert and restore the pre-operation state (equivalent of `git <op> --abort`). Every resolution made so far in the operation is lost. When the MCP client supports elicitation, the server asks the user to confirm first.',
   { repo: repoParam },
+  annotationsFor('abort_operation'),
   async ({ repo }) => {
     if (READ_ONLY) return errText(new Error('This server runs with --read-only: abort_operation is disabled'))
     try {
@@ -700,6 +772,7 @@ server.tool(
     bad: z.string().optional().describe('For action=start: a commit known to be BAD (default: HEAD)'),
     good: z.string().optional().describe('For action=start: a commit known to be GOOD (required)'),
   },
+  annotationsFor('git_bisect'),
   async ({ repo, action, bad, good }) => {
     if (READ_ONLY && action !== 'log') return errText(new Error('This server runs with --read-only: only git_bisect action "log" is allowed'))
     try {
@@ -774,6 +847,7 @@ server.tool(
     hash: z.string().optional().describe('For view=commit: the commit to select — a full or short hash, or any revision that names one (tag like "v1.0", branch, "HEAD~2"); it is resolved to a SHA for you'),
     resolution: z.string().optional().describe('For view=resolve: a proposed resolved-file content to preload into the resolver\'s editor for review — NOT written to disk or staged until the user saves it themselves'),
   },
+  annotationsFor('open_in_git_vertex'),
   async ({ repo, view, file, hash, resolution }) => {
     try {
       const { git, root } = await openRepo(repo)
@@ -824,6 +898,7 @@ server.tool(
     message: z.string().min(1).describe('Full proposed commit message: first line = summary (English, imperative, ≤72 chars), optional body after a blank line'),
     files: z.array(z.string()).optional().describe('Paths (relative to the repo root) this commit should include — shown to the user as the proposed selection to stage'),
   },
+  annotationsFor('propose_commit'),
   async ({ repo, message, files }) => {
     try {
       const { root } = await openRepo(repo)
@@ -848,6 +923,7 @@ server.tool(
       message: z.string().optional().describe('New commit message — applies when action is "reword", or on the first commit of a squash group'),
     })).min(1).describe('Per-commit actions; unlisted commits stay "pick"'),
   },
+  annotationsFor('propose_rebase_plan'),
   async ({ repo, base, steps }) => {
     try {
       const { git, root } = await openRepo(repo)
@@ -905,6 +981,7 @@ server.tool(
       files: z.array(z.string().min(1)).min(1).describe('Paths relative to the repo root, each with uncommitted changes — the whole file goes into this commit'),
     })).min(1).describe('The commits in the order they should be made'),
   },
+  annotationsFor('propose_split'),
   async ({ repo, commits }) => {
     try {
       const { git, root } = await openRepo(repo)
@@ -956,6 +1033,7 @@ server.tool(
   'generate_commit_message',
   'Draft a commit message from the STAGED changes using the MCP client\'s own LLM (MCP sampling) — no API key needed on this server, works with any provider. Returns the proposed message to YOU, the calling agent — it does NOT open the app and does NOT put anything in the app\'s commit box. Nothing is committed. If the client does not support sampling, returns the staged diff with instructions so you write the message yourself. ALWAYS call propose_commit with the resulting message afterwards if the user expects to see it in Git Vertex — this tool alone leaves the app untouched, so never tell the user the message is waiting in the app unless you called propose_commit.',
   { repo: repoParam },
+  annotationsFor('generate_commit_message'),
   async ({ repo }) => {
     try {
       const { git } = await openRepo(repo)

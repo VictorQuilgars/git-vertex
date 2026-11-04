@@ -16,6 +16,23 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 👁 Preview before you post
+- The comment box and the description of an **issue** or a **pull request**, and the body of both composers, have a **Preview** tab: see your markdown as it will be read before you post it.
+
+### 🧩 Squash from the graph
+- Select several commits in a row, right-click, **Squash N Commits into One…**: the interactive rebase opens with the plan made, for you to check and launch.
+
+### 🗂 Every change at once
+- **Open All Changes** on a branch, a stash or a pull request opens every file it changes together, in the editor's multi-file diff — renamed, added and deleted files included.
+
+### 🕰 A file against any revision
+- **Open Changes with Revision…**, **Open Changes with Branch or Tag…** and **Open File at Revision…**, on an editor tab's menu: pick from the file's history, the branches and tags, or type any revision.
+
+### 📂 The repository at any commit
+- **Browse Repository at Revision…** opens the whole tree as it was at a commit, read-only, in the Explorer or a new window — nothing is checked out. A graph row's menu offers it for that commit, and *Before* opens it as it was just before.
+`,
   '1.39.0': `## What's new in 1.39.0
 
 ### 🪟 Rewriting history works on Windows

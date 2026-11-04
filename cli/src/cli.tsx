@@ -1,4 +1,4 @@
-import { THEME } from './ui/theme'
+import { THEME } from './ui/theme.js'
 import React from 'react'
 import { render } from 'ink'
 import { execFileSync } from 'child_process'

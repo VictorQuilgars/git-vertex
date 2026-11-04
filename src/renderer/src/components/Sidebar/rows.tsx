@@ -12,7 +12,7 @@ import { type StashEntry, type TagEntry, type ReflogEntry, type RemoteEntry, typ
 import { stashLabel, stashFacts, stashTooltip, tagTooltip } from './rowFacts'
 
 // ── Stash item ────────────────────────────────────────────────────
-export function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, onExplain, onReveal, onCompareHead, onCompareWorking, onSelectForCompare, onCopySha, onCopyPatch, hidden }: {
+export function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, onExplain, onReveal, onCompareHead, onCompareWorking, onSelectForCompare, onCopySha, onCopyPatch, onOpenAllChanges, hidden }: {
   stash: StashEntry
   onApply: () => void
   onPop: () => void
@@ -34,6 +34,8 @@ export function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, 
   /** Its sha — for EVERY stash, not only the one with a graph row. */
   onCopySha?: () => void
   onCopyPatch?: () => void
+  /** Every file it holds, at once, in the editor's multi-file diff — the panel only (#284). */
+  onOpenAllChanges?: () => void
   /** Reads it aloud — what work is parked here (#70 P1). */
   onExplain?: () => void
   /**
@@ -69,6 +71,7 @@ export function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, 
   ]
   const menuItems: MenuItemDef[] = [
     ...(onPreview ? [{ label: t('sb.stash.preview'), action: onPreview }] : []),
+    ...(onOpenAllChanges ? [{ label: t('changes.openAll'), action: onOpenAllChanges }] : []),
     { label: t('sb.stash.applyKeep'), action: onApply },
     { label: t('sb.stash.applyPop'), action: onPop },
     ...(onRename ? [{ label: t('sb.stash.rename'), action: onRename }] : []),

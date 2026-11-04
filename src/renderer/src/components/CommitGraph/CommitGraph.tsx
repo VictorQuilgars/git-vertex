@@ -177,6 +177,12 @@ export interface CommitGraphProps {
    *  first, the order a cherry-pick applies and a drop sequence reads. */
   onCherryPickMany?: (hashes: string[]) => void
   onDropCommits?: (hashes: string[]) => void
+  /**
+   * Fold the selection into one commit (#69 P2): opens the interactive rebase
+   * on `base` with `plan` preloaded — nothing is rewritten until the user
+   * launches it there. See squashPlan.ts for when a plan can be made.
+   */
+  onSquashCommits?: (base: string, plan: { hash: string; action: 'pick' | 'squash' }[]) => void
   onMoveCommit?: (hash: string, direction: 'up' | 'down') => void
   onBranchDrop?: (branch: string, hash: string, action: 'reset' | 'rebase' | 'merge', targetBranch?: string) => void
   // Commit-menu actions added for competitive parity (all optional — only

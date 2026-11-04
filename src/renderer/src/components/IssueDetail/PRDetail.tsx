@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Icon } from '../Icon/Icon'
 import MdLite from '../GitHubPanel/mdLite'
+import MarkdownField from '../MarkdownField/MarkdownField'
 import { LabelChip, timeAgo, type GithubLabel } from '../GitHubPanel/GithubRow'
 import { SideBlock, PickerEditor, useClickAway } from './IssueDetail'
 import { useLang } from '../../i18n/LanguageContext'
@@ -540,8 +541,10 @@ export default function PRDetail({ repo, number, onClose, onChanged, onCode, onT
                 </div>
                 {editingBody ? (
                   <div className="idv-body-edit">
-                    <textarea className="idv-textarea" value={bodyDraft} autoFocus
-                      onChange={e => setBodyDraft(e.target.value)} />
+                    <MarkdownField value={bodyDraft} openLink={url => api().openExternal(url)}>
+                      <textarea className="idv-textarea" value={bodyDraft} autoFocus
+                        onChange={e => setBodyDraft(e.target.value)} />
+                    </MarkdownField>
                     <div className="idv-check-actions">
                       <button className="idv-btn idv-btn--primary" disabled={busy}
                         onClick={() => void patch({ body: bodyDraft }, () => setPr({ ...pr, body: bodyDraft })).then(ok => { if (ok) setEditingBody(false) })}>
@@ -568,8 +571,10 @@ export default function PRDetail({ repo, number, onClose, onChanged, onCode, onT
                     </div>
                   ))}
                   <div className="idv-add-comment">
-                    <textarea className="idv-textarea" placeholder={t('gh.detail.commentPlaceholder')}
-                      value={newComment} onChange={e => setNewComment(e.target.value)} />
+                    <MarkdownField value={newComment} openLink={url => api().openExternal(url)}>
+                      <textarea className="idv-textarea" placeholder={t('gh.detail.commentPlaceholder')}
+                        value={newComment} onChange={e => setNewComment(e.target.value)} />
+                    </MarkdownField>
                     <button className="idv-btn idv-btn--primary" disabled={busy || !newComment.trim()}
                       onClick={() => void submitComment()}>
                       {t('gh.detail.addComment')}

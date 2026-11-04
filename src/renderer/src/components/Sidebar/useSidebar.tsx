@@ -8,6 +8,7 @@ import { folderPaths, type BranchNode } from './branchTree'
 import { resolveTagCommit } from './tagMenu'
 import { readLayout, writeLayout, hasPaths, matchesFilter, type SbLayout, type SbLayoutView } from './sidebarLayout'
 import { usePullRequestCode } from '../../hooks/usePullRequestCode'
+import { hostOpenAllChanges } from '../../utils/changeSet'
 import { useChangeUpstream } from '../../hooks/useChangeUpstream'
 import { isRefHidden, type RefFamily } from '../../utils/graphVisibility'
 import { useLang } from '../../i18n/LanguageContext'
@@ -224,8 +225,11 @@ export function useSidebar(props: SidebarProps) {
   }
   // The four acts on a request's code live in one hook, because the sheet
   // that also offers them is mounted by the host, outside this panel (#290).
+  // Every change at once, in the editor's multi-file diff (#284). The
+  // panel's host has one; the desktop's has not, and so offers no row.
+  const openAllChanges = hostOpenAllChanges(error => showToast(t('toast.err', error), 'err'))
   const handlePullRequestCode = usePullRequestCode({
-    t, showToast, defaultRemote, onCompare: onComparePullRequest,
+    t, showToast, defaultRemote, onCompare: onComparePullRequest, openAll: openAllChanges ?? undefined,
     onSwitched: () => onRefresh?.(), onWorktreeAdded: loadWorktrees,
   })
   /** A terminal, and the file manager, at a worktree rather than at the repo (#285). */
@@ -650,6 +654,7 @@ export function useSidebar(props: SidebarProps) {
     repoPath, repoName, currentBranch, branches, recentRepos, stashes, tags, wipCount, wipSelected, onViewWip, onOpenRepo, onClone, onSetRepo, onCheckout, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch, onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream, onCreateStash, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onRefreshStashes, onExplainBranch, onBranchChangelog, onRecomposeBranch, onOpenChangelog, onOpenExplanation, onOpenNote, onShowCommits, subjectFor, tab, onTab, memoryToken, onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag, onSelectCommit, onCompareBranch, soloBranch, visibility, onToggleSolo, onToggleHide, onToggleHideTag, onToggleHideRemote, onSetFamilyHidden, onPull, githubPRs, githubIssues, onOpenGithubItem, onComparePullRequest, onStartBranchFromIssue, onShowGithubDetail, githubDetailOpen, githubLogin, githubRepo, isFavorite, issueFor, onToggleFavorite, onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR, showAllBranches, onToggleAllBranches, onRefreshGithub, onStartPR, onNewIssue, githubRefreshing, githubRefreshTick, githubPollTick, onCopyBranchLink, onDeleteBranchBoth, showToast, showPrompt, showConfirm, onRefresh, view, single, activeTab, showAI, show, reflog, setReflog, contributors, onFilterAuthor, authorFilter, home, mergeTarget, launchpad, remotes, setRemotes, defaultRemote, setDefaultRemote, submodules, setSubmodules, worktrees, setWorktrees, agents, setAgents, work, setWork, t, loadAgents, changelogs, setChangelogs, explanations, setExplanations, notes, setNotes, loadMemory, loadWorktrees, agentsFor, handleAddWorktree, handleRemoveWorktree, handleInitSubmodule, handleUpdateSubmodule, handleSyncSubmodule, handleDeinitSubmodule, handleAddRemote, handleRemoveRemote, handleRenameRemote, stashMenu, setStashMenu, prsQuery, setPrsQuery, issuesQuery, setIssuesQuery, ghFilters, setGhFilters, filterEditor, setFilterEditor, mutateFilters, stashScopeItems, handleRenameStash, handlePruneRemote, handleSetDefaultRemote, handleFetchRemote, branchFilter, setBranchFilter, localBranches, branchHidden, tagHidden, remoteHidden, stashesHidden, familyMenu, foldersKey, closedFolders, setClosedFolders, toggleFolder, openFolders, filtering, rootRef, filterDraft, setFilterDraft, showAll, localMenu, remoteBranches, onReveal, onOpenCard, onRebaseOntoUpstream, onCompareUpstream, tipActions, handlePullBranchRow, handleChangeUpstreamRow, handleSquashFixupsRow, handleWorktreeTerminal, handleWorktreeReveal, handleToggleWorktreeLock, handleCopyChangesTo, worktreeOf, handleCreateWorktreeFor, handlePullRequestCode, onCompareRef, resolveTag, onSelectStashForCompare, handleCopyStashSha, handleCopyStashPatch, filteredTags, filteredStashes, filteredRemotes, filteredWorktrees, layouts, toggleLayout, layoutFor, layoutToggle, filterView, filterPlaceholder,
     counts, loadErrors, retryLoad, githubErrors, onOpenSettings,
     defaultRemoteExplicit, handleUnsetDefaultRemote, expandedRemotes, toggleRemoteExpanded,
+    openAllChanges,
   }
 }
 

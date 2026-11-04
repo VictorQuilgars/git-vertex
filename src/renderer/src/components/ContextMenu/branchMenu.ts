@@ -74,6 +74,8 @@ export interface BranchMenuActions {
   onHideRemote?: () => void
   /** What this branch is against the branch it tracks (#281). */
   onCompareUpstream?: () => void
+  /** Every change it carries, in the editor's multi-file diff (#284) — the panel only. */
+  onOpenAllChanges?: () => void
   /** Open the worktree that holds it, where *Switch* would be refused (#285). */
   onOpenItsWorktree?: () => void
   /** Make a worktree for this branch, named after it (#285). */
@@ -296,6 +298,7 @@ export function buildBranchMenu(
   }
   copies.push(...(extras.copy ?? []))
   if (copies.length) inspect.push({ label: t('sb.branch.copyMenu'), submenu: copies })
+  if (actions.onOpenAllChanges) inspect.push({ label: t('changes.openAll'), action: actions.onOpenAllChanges })
   const compares: MenuItemDef[] = []
   if (!current && actions.onCompare) {
     compares.push({ label: t('sb.branch.compareWith', state.currentBranch), action: actions.onCompare })
