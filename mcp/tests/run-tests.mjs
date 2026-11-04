@@ -108,6 +108,27 @@ const c1 = await connect()
     [...missing.map((m) => `missing ${m}`), ...extra.map((e) => `extra ${e}`)], names.join(', '))
 }
 
+// ── tool annotations (#89): what a client may auto-approve ──
+{
+  const { tools } = await c1.listTools()
+  const ann = Object.fromEntries(tools.map((t) => [t.name, t.annotations ?? null]))
+  const unannotated = tools.filter((t) => typeof t.annotations?.readOnlyHint !== 'boolean').map((t) => t.name)
+  record('annotations: every tool says whether it is read-only', 'tools/list', unannotated.length === 0,
+    unannotated.map((n) => `no readOnlyHint: ${n}`), JSON.stringify(ann).slice(0, 400))
+  const reads = ['git_status', 'git_log', 'git_branches', 'git_diff', 'git_show', 'git_blame', 'predict_conflicts', 'git_pickaxe', 'find_lost_work', 'git_conflicts', 'generate_commit_message']
+  const wrongReads = reads.filter((n) => ann[n]?.readOnlyHint !== true)
+  record('annotations: the reads are read-only', 'tools/list', wrongReads.length === 0, wrongReads, '')
+  // What throws work away must say so; what only adds must not cry wolf.
+  const destructive = ['resolve_conflict', 'abort_operation']
+  const additive = ['continue_operation', 'git_bisect', 'open_in_git_vertex', 'propose_commit', 'propose_rebase_plan', 'propose_split']
+  const fails = [
+    ...destructive.filter((n) => !(ann[n]?.readOnlyHint === false && ann[n]?.destructiveHint === true)).map((n) => `${n} not destructive`),
+    ...additive.filter((n) => !(ann[n]?.readOnlyHint === false && ann[n]?.destructiveHint === false)).map((n) => `${n} not additive`),
+    ...tools.filter((t) => t.annotations?.openWorldHint !== false).map((t) => `${t.name} claims the open world`),
+  ]
+  record('annotations: writes say what they cost, and nothing reaches beyond this machine', 'tools/list', fails.length === 0, fails, '')
+}
+
 // ── git_status ──
 await t(c1, 'git_status: full working-tree state', 'git_status', { repo: main }, {
   expect: ['branch: main', 'staged (2)', 'staged-file.txt', 'big.txt', 'untracked (1): untracked.txt', /modified \(1\): README.md/, 'conflicted (0)'],
@@ -432,6 +453,11 @@ const c4 = await connect({ readOnly: true })
   record('read-only: mutating tool descriptions say DISABLED', 'tools/list',
     ['resolve_conflict', 'continue_operation', 'abort_operation', 'git_bisect'].every((n) => desc[n]?.startsWith('DISABLED')),
     [], desc.resolve_conflict ?? '')
+  // Refused at the top of their handler, so announced as what they now are.
+  const ann = Object.fromEntries(tools.map((t) => [t.name, t.annotations ?? {}]))
+  record('read-only: the disabled writes are annotated read-only', 'tools/list',
+    ['resolve_conflict', 'continue_operation', 'abort_operation', 'git_bisect'].every((n) => ann[n].readOnlyHint === true),
+    [], JSON.stringify(ann.resolve_conflict))
 }
 await t(c4, 'read-only: git_status still works', 'git_status', { repo: main }, { expect: ['branch: main'] })
 await t(c4, 'read-only: resolve_conflict blocked', 'resolve_conflict', { repo: main, file: 'x', content: 'y' }, {
