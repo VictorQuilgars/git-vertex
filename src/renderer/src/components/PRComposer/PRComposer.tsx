@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, type RefObject } from 'react'
 import { Icon } from '../Icon/Icon'
+import MarkdownField from '../MarkdownField/MarkdownField'
 import './PRComposer.css'
 import { useLang } from '../../i18n/LanguageContext'
 import type { PRIntent } from '../ContextMenu/prIntent'
@@ -472,15 +473,17 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
           {/* Body */}
           <div className="pr-field">
             <label className="pr-label" htmlFor="gv-pr-body">{t('pr.bodyLabel')}</label>
-            <textarea
-              id="gv-pr-body"
-              className={`pr-textarea${generating || writing ? ' pr-ai-writing' : ''}`}
-              value={body}
-              readOnly={writing}
-              onChange={e => setBody(e.target.value)}
-              placeholder={t('pr.bodyPlaceholder')}
-              rows={6}
-            />
+            <MarkdownField value={body} openLink={url => (window.gitAPI as any).openExternal?.(url)}>
+              <textarea
+                id="gv-pr-body"
+                className={`pr-textarea${generating || writing ? ' pr-ai-writing' : ''}`}
+                value={body}
+                readOnly={writing}
+                onChange={e => setBody(e.target.value)}
+                placeholder={t('pr.bodyPlaceholder')}
+                rows={6}
+              />
+            </MarkdownField>
           </div>
           {restorePoint && !writing && (
             <div className="pr-restore">
