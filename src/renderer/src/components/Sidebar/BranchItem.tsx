@@ -79,6 +79,8 @@ export interface BranchItemProps {
   onSquashFixups?: () => void
   onHideRemote?: () => void
   onCompareUpstream?: () => void
+  /** Every change it carries, at once, in the editor's multi-file diff (#284). */
+  onOpenAllChanges?: () => void
   /** Its tip commit, so the row can offer what the tip's graph row offers. */
   tip?: BranchTip
   tipActions?: BranchTipActions
@@ -95,7 +97,7 @@ export interface BranchItemProps {
   openPR?: BranchPR
 }
 
-export function branchItemMenu({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, hidden, favorite, issue, onPull, onToggleSolo, onToggleHide, onToggleFavorite, onOpenOnRemote, onAssociateIssue, onExplain, onChangelog, onExplainUnpushed, onRecompose, onPullBranch, onChangeUpstream, onRebaseOntoUpstream, onSquashFixups, onHideRemote, onCompareUpstream, tip, tipActions, checkedOutIn, onOpenItsWorktree, onCreateWorktreeFor, pr, onCreatePR, publishedAs, onCopyLink, onDeleteBoth, showRemotePrefix = false }: BranchItemProps, t: ReturnType<typeof useLang>['t']): MenuItemDef[] {
+export function branchItemMenu({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, hidden, favorite, issue, onPull, onToggleSolo, onToggleHide, onToggleFavorite, onOpenOnRemote, onAssociateIssue, onExplain, onChangelog, onExplainUnpushed, onRecompose, onPullBranch, onChangeUpstream, onRebaseOntoUpstream, onSquashFixups, onHideRemote, onCompareUpstream, onOpenAllChanges, tip, tipActions, checkedOutIn, onOpenItsWorktree, onCreateWorktreeFor, pr, onCreatePR, publishedAs, onCopyLink, onDeleteBoth, showRemotePrefix = false }: BranchItemProps, t: ReturnType<typeof useLang>['t']): MenuItemDef[] {
   const fullDisplay = remote
     ? (showRemotePrefix ? name.replace(/^remotes\//, '') : name.replace(/^remotes\/[^/]+\//, ''))
     : name
@@ -121,6 +123,7 @@ export function branchItemMenu({ name, current, remote, currentBranch, onCheckou
       onRename, onDelete, onDeleteRemote, onDeleteBoth,
       onPullBranch, onChangeUpstream, onRebaseOntoUpstream, onSquashFixups,
       onHideRemote, onCompareUpstream, onOpenItsWorktree, onCreateWorktreeFor,
+      onOpenAllChanges,
     },
     t,
     // The tip's own actions, in the slots the graph fills from its row (#281).

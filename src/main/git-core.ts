@@ -816,6 +816,123 @@ export async function mergeBase(
   }
 }
 
+// ── Every change of a branch, a stash or a pull request, as pairs ─
+//
+// What an editor's multi-file diff needs (#284): for each touched file, the
+// file BEFORE (a ref and a path) and the file AFTER, either of which may be
+// absent — an added file has no before, a deleted one no after, and a renamed
+// one is two paths. `FileChange` keeps only the new path, which is right for
+// a list and wrong here: the before of a rename read at its new name is an
+// empty document, and the diff would show the whole file as added.
+//
+// Every ref handed back is a full commit hash, never `stash@{0}` or a branch
+// name: the documents are read lazily, and a stash list or a branch that moves
+// while the diff is open must not change what its left side shows.
+
+/** One side of a pair: the file as it is at a commit. */
+export interface ChangeSide { ref: string; path: string }
+
+export interface ChangePair {
+  /** The path the file is known by now — the after's, or the before's when it was deleted. */
+  path: string
+  status: 'A' | 'M' | 'D' | 'R'
+  before: ChangeSide | null
+  after: ChangeSide | null
+}
+
+/** What to open: a range between two refs, or a stash against its parent. */
+export type ChangeSetSpec =
+  | { kind: 'range'; base: string; head: string; axis: CompareAxis }
+  | { kind: 'stash'; index: number }
+
+/**
+ * `git diff --name-status -z -M <a> <b>` into pairs. Pure.
+ *
+ * `-z` because a path may hold a tab or a newline and the line format quotes
+ * those; NUL-separated, a status is followed by one path, or by two for a
+ * rename or a copy (old, then new).
+ */
+export function parseChangePairs(raw: string, before: string, after: string): ChangePair[] {
+  const parts = raw.split('\0')
+  const out: ChangePair[] = []
+  let i = 0
+  while (i < parts.length) {
+    const code = parts[i++]
+    if (!code) continue
+    const kind = code[0]
+    if (kind === 'R' || kind === 'C') {
+      const from = parts[i++], to = parts[i++]
+      if (!from || !to) break
+      // A copy keeps its source, so it reads as the source against the copy —
+      // which is what was done — and is a rename to the eye.
+      out.push({ path: to, status: 'R', before: { ref: before, path: from }, after: { ref: after, path: to } })
+      continue
+    }
+    const file = parts[i++]
+    if (!file) break
+    if (kind === 'A') out.push({ path: file, status: 'A', before: null, after: { ref: after, path: file } })
+    else if (kind === 'D') out.push({ path: file, status: 'D', before: { ref: before, path: file }, after: null })
+    // M, and T (a file that became a symlink or back): both sides exist. U, an
+    // unmerged entry, never appears between two commits.
+    else if (kind !== 'U') out.push({ path: file, status: 'M', before: { ref: before, path: file }, after: { ref: after, path: file } })
+  }
+  return out
+}
+
+/** The full hash a name stands for, or null. */
+async function commitOf(run: GitRunner, ref: string): Promise<string | null> {
+  try { return (await run(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`])).trim() || null } catch { return null }
+}
+
+/**
+ * Every change of a range or a stash, as before/after pairs.
+ *
+ * A `diverged` range is what the head did since the two parted — the merge
+ * base against the head, which is what a pull request shows. A stash is its
+ * commit against its first parent, and the files it holds untracked — in a
+ * third parent, when it was made with `-u` — are added files.
+ */
+export async function changeSet(
+  run: GitRunner, spec: ChangeSetSpec,
+): Promise<{ pairs: ChangePair[]; error?: string }> {
+  let before: string | null, after: string | null
+  let untracked: string | null = null
+  if (spec.kind === 'stash') {
+    if (!Number.isInteger(spec.index) || spec.index < 0) return { pairs: [], error: `${spec.index} is not a stash` }
+    after = await commitOf(run, `stash@{${spec.index}}`)
+    if (!after) return { pairs: [], error: `There is no stash@{${spec.index}}` }
+    before = await commitOf(run, `${after}^1`)
+    untracked = await commitOf(run, `${after}^3`)
+  } else {
+    const bad = assertRef(spec.base, 'ref') || assertRef(spec.head, 'ref')
+    if (bad) return { pairs: [], error: bad }
+    after = await commitOf(run, spec.head)
+    if (!after) return { pairs: [], error: `${spec.head} names no commit` }
+    if (spec.axis === 'diverged') {
+      const { base } = await mergeBase(run, spec.base, after)
+      if (!base) return { pairs: [], error: `${spec.base} and ${spec.head} share no history` }
+      before = base
+    } else {
+      before = await commitOf(run, spec.base)
+    }
+    if (!before) return { pairs: [], error: `${spec.base} names no commit` }
+  }
+  if (!before) return { pairs: [], error: 'The stash has no parent' }
+  try {
+    const pairs = parseChangePairs(await run(['diff', '--name-status', '-z', '-M', before, after]), before, after)
+    if (untracked) {
+      const listed = new Set(pairs.map(p => p.path))
+      const files = (await run(['ls-tree', '-r', '--name-only', '-z', untracked])).split('\0').filter(Boolean)
+      for (const f of files) {
+        if (!listed.has(f)) pairs.push({ path: f, status: 'A', before: null, after: { ref: untracked, path: f } })
+      }
+    }
+    return { pairs }
+  } catch (e) {
+    return { pairs: [], error: reason(e) }
+  }
+}
+
 /**
  * The commit a name stands for — a branch, a tag, a SHA, `HEAD~2`, anything
  * rev-parse takes — as a full hash, or null when it names no commit.

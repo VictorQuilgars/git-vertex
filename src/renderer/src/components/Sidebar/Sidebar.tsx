@@ -31,7 +31,7 @@ export type { SidebarView, GithubListItem } from './types'
 
 export default function Sidebar(props: SidebarProps) {
   const s = useSidebar(props)
-  const { repoPath, recentRepos, filteredStashes, onReveal, wipCount, wipSelected, onViewWip, onOpenRepo, onClone, onSetRepo, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onTab, githubPRs, githubIssues, githubRepo, view, single, showAI, show, submodules, t, stashMenu, setStashMenu, ghFilters, filterEditor, setFilterEditor, mutateFilters, stashScopeItems, handleRenameStash, branchFilter, setBranchFilter, stashesHidden, familyMenu, rootRef, filterDraft, setFilterDraft, showAll, remoteBranches, filterView, filterPlaceholder, onCompareRef, onSelectStashForCompare, handleCopyStashSha, handleCopyStashPatch, counts, loadErrors } = s
+  const { repoPath, recentRepos, filteredStashes, onReveal, wipCount, wipSelected, onViewWip, onOpenRepo, onClone, onSetRepo, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onTab, githubPRs, githubIssues, githubRepo, view, single, showAI, show, submodules, t, stashMenu, setStashMenu, ghFilters, filterEditor, setFilterEditor, mutateFilters, stashScopeItems, handleRenameStash, branchFilter, setBranchFilter, stashesHidden, familyMenu, rootRef, filterDraft, setFilterDraft, showAll, remoteBranches, filterView, filterPlaceholder, onCompareRef, onSelectStashForCompare, handleCopyStashSha, handleCopyStashPatch, counts, loadErrors, openAllChanges } = s
   return (
     // `--single`: the VS Code panel, one view at a time — an open section's +
     // stays on screen there (Sidebar.css).
@@ -233,6 +233,7 @@ export default function Sidebar(props: SidebarProps) {
                     onSelectForCompare={onSelectStashForCompare && (() => onSelectStashForCompare(`stash@{${s.index}}`))}
                     onCopySha={() => handleCopyStashSha(s.index)}
                     onCopyPatch={() => handleCopyStashPatch(s.index)}
+                    onOpenAllChanges={openAllChanges ? () => openAllChanges({ kind: 'stash', index: s.index }, t('changes.stash', s.index)) : undefined}
                     hidden={stashesHidden}
                   />
                 ))

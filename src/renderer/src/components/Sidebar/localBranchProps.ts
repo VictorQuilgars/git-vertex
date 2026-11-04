@@ -5,9 +5,10 @@ import type { SidebarState } from './useSidebar'
 import { publishedNameFor } from '../ContextMenu/branchRefs'
 import { recomposeOffer, unpushedSubject } from './refReadings'
 import { prForBranch } from './rowFacts'
+import { branchChangesBase } from '../../utils/changeSet'
 
 export function localBranchProps(s: SidebarState, b: BranchInfo): BranchItemProps {
-  const { currentBranch, branches, onReveal, onOpenCard, onDeleteBranch, onMergeBranch, onRenameBranch, onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream, onExplainBranch, onBranchChangelog, onGoTo, onCompareBranch, soloBranch, onToggleSolo, onToggleHide, onPull, isFavorite, issueFor, onToggleFavorite, onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR, onCopyBranchLink, onDeleteBranchBoth, onRebaseOntoUpstream, onCompareUpstream, tipActions, mergeTarget, handlePullBranchRow, handleChangeUpstreamRow, handleSquashFixupsRow, worktreeOf, handleCreateWorktreeFor, onSetRepo, branchHidden, githubPRs, onRecomposeBranch } = s
+  const { currentBranch, branches, onReveal, onOpenCard, onDeleteBranch, onMergeBranch, onRenameBranch, onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream, onExplainBranch, onBranchChangelog, onGoTo, onCompareBranch, soloBranch, onToggleSolo, onToggleHide, onPull, isFavorite, issueFor, onToggleFavorite, onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR, onCopyBranchLink, onDeleteBranchBoth, onRebaseOntoUpstream, onCompareUpstream, tipActions, mergeTarget, handlePullBranchRow, handleChangeUpstreamRow, handleSquashFixupsRow, worktreeOf, handleCreateWorktreeFor, onSetRepo, branchHidden, githubPRs, onRecomposeBranch, openAllChanges, t } = s
   return {
     name: b.name,
     current: b.current,
@@ -32,6 +33,14 @@ export function localBranchProps(s: SidebarState, b: BranchInfo): BranchItemProp
       ? () => handleSquashFixupsRow(b.upstream ?? mergeTarget!.name) : undefined,
     onCompareUpstream: b.upstream && onCompareUpstream
       ? () => onCompareUpstream(b.name, b.upstream!) : undefined,
+    // What the branch did since it forked from the one it is read against
+    // (#284) — offered only where the host has a multi-file diff to open.
+    onOpenAllChanges: (() => {
+      const base = branchChangesBase(b.name, b.current, currentBranch, mergeTarget?.name)
+      return openAllChanges && base
+        ? () => openAllChanges({ kind: 'range', base, head: b.name, axis: 'diverged' }, t('changes.branch', b.name, base))
+        : undefined
+    })(),
     tip: { ref: b.name, hash: b.commit, subject: b.label },
     tipActions,
     checkedOutIn: worktreeOf(b.name),

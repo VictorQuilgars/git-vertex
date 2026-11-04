@@ -91,6 +91,12 @@ declare global {
     openAIReadingTab: (kind: 'branch' | 'stash' | 'working' | 'changelog' | 'split', key?: string, label?: string) => Promise<unknown>
     openConflictResolver: (path: string) => Promise<unknown>
     openDiff: (target: unknown) => Promise<unknown>
+    /**
+     * Every change of a range or a stash in the editor's multi-file diff
+     * (#284). The panel only: the desktop has no such editor, and the shared
+     * side bar offers the row only where this exists.
+     */
+    openAllChanges: (spec: import('../../../src/main/git-core').ChangeSetSpec, title?: string) => Promise<{ success: boolean; error?: string }>
     /** Hands the repository over to the desktop app, if it is installed. */
     openDesktop: () => Promise<{ success: boolean }>
     /** The gallery is a quick-pick here, not the desktop's settings page. */

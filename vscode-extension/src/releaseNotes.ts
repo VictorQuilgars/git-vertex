@@ -20,6 +20,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 👁 Preview before you post
 - The comment box and the description of an **issue** or a **pull request**, and the body of both composers, have a **Preview** tab: see your markdown as it will be read before you post it.
+
+### 🗂 Every change at once
+- **Open All Changes** on a branch, a stash or a pull request opens every file it changes together, in the editor's multi-file diff — renamed, added and deleted files included.
 `,
   '1.39.0': `## What's new in 1.39.0
 

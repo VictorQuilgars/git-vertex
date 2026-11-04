@@ -104,6 +104,8 @@ export default function GithubRow({ item, onOpen, onDetail, onCreateBranch, prAc
     onSwitchTo?: () => void
     onOpenInWorktree?: () => void
     onViewChanges?: () => void
+    /** Every change at once, in the editor's multi-file diff — the panel only (#284). */
+    onOpenAllChanges?: () => void
     onCompare?: () => void
   }
 }) {
@@ -118,6 +120,7 @@ export default function GithubRow({ item, onOpen, onDetail, onCreateBranch, prAc
   const menuItems = [
     ...(onDetail ? [{ label: t(item.kind === 'pr' ? 'gh.pr.view' : 'gh.issue.view'), action: onDetail }] : []),
     ...(code?.onViewChanges ? [{ label: t('gh.pr.viewChanges'), action: code.onViewChanges }] : []),
+    ...(code?.onOpenAllChanges ? [{ label: t('changes.openAll'), action: code.onOpenAllChanges }] : []),
     ...(menued ? [{ label: t('gh.issue.createBranch'), action: onCreateBranch! }] : []),
     ...(code?.onSwitchTo || code?.onOpenInWorktree || code?.onCompare ? [{ separator: true } as any] : []),
     ...(code?.onSwitchTo ? [{ label: t('gh.pr.switchTo'), action: code.onSwitchTo }] : []),

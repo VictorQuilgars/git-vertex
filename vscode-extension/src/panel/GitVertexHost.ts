@@ -14,6 +14,7 @@ import * as os from 'os'
 import { execFile, spawn } from 'child_process'
 import { promisify } from 'util'
 import { getRepoRootForFile } from '../gitInfo'
+import { changeSet, type ChangeSetSpec } from '../../../src/main/git-core'
 import { GitService, gitEnv, parseGitVersion } from '../gitService'
 import { buildToolInvocation, findAvailableKeyPath, safeTempFileName } from '../hostTools'
 import { findAppPath, launchApp } from '../appLocator'
@@ -469,6 +470,39 @@ export class GitVertexHost implements vscode.Disposable {
     }
   }
 
+  /**
+   * Every change of a branch, a stash or a pull request in VS Code's
+   * multi-file diff editor, at once (#284) — `vscode.changes`, the command the
+   * built-in Git extension opens a commit's changes with.
+   *
+   * The pairs come from git-core (`changeSet`), so an added file opens with no
+   * left side and a deleted one with no right, instead of a side reading an
+   * empty document; a rename opens its old path on the left.
+   */
+  private async _openAllChanges(spec: ChangeSetSpec, title?: string): Promise<{ success: boolean; error?: string }> {
+    const svc = this._gitService
+    if (!svc || !this._repoPath) return { success: false, error: 'No repository open' }
+    // `vscode.changes` is in 1.85, the oldest editor this extension runs on —
+    // read off that release's extHostApiCommands.ts. Still looked for rather
+    // than assumed: a fork of the editor may not carry it, and a missing
+    // command should be a sentence, not a silent nothing.
+    if (!(await vscode.commands.getCommands(true)).includes('vscode.changes')) {
+      return { success: false, error: 'This editor has no multi-file diff to open the changes in' }
+    }
+    ensureDiffProvider(svc)
+    const r = await changeSet(args => svc.raw(args), spec)
+    if (r.error) return { success: false, error: r.error }
+    if (!r.pairs.length) return { success: false, error: 'There are no changes to open' }
+    const repo = this._repoPath
+    const resources = r.pairs.map(p => [
+      vscode.Uri.file(path.join(repo, p.path)),
+      p.before ? refUri(p.before.ref, p.before.path) : undefined,
+      p.after ? refUri(p.after.ref, p.after.path) : undefined,
+    ])
+    await vscode.commands.executeCommand('vscode.changes', title || 'All Changes', resources)
+    return { success: true }
+  }
+
   // Open a conflicted file in a native editor — VS Code shows its built-in
   // merge-conflict CodeLens (Accept Current / Incoming / Both).
   private async _openConflict(file: string): Promise<{ success: boolean }> {
@@ -719,6 +753,7 @@ export class GitVertexHost implements vscode.Disposable {
         return { success: true }
       }
       case 'openDiff': return this._openDiff(args[0])
+      case 'openAllChanges': return this._openAllChanges(args[0], args[1])
       case 'openConflict': return this._openConflict(args[0])
       case 'openConflictResolver': {
         if (this._repoPath && args[0]) {

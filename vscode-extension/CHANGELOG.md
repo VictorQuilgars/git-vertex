@@ -4,6 +4,7 @@
 
 ### Added
 - **Write / Preview on every markdown field of GitHub.** The comment box and the description editor of an issue or a pull request, and the body of the pull request and issue composers, gain a **Preview** tab that draws the draft with the renderer the posted text is read with. The field is only hidden while you look, so the caret and the undo history are where you left them, and a field emptied by posting is back on Write. (#337)
+- **Open All Changes, for a branch, a stash or a pull request.** One row in each of their menus opens every file they change in the editor's multi-file diff, at once. A branch is read from where it forked from the checked-out branch (the checked-out branch, from the repository's merge target); a stash against the commit it was made on, its untracked files included; a pull request is fetched and read from where it left its base on the remote. An added file opens with no left side and a deleted one with no right, instead of an empty document on one side, and a renamed file opens its old name on the left. (#284)
 
 ## 1.39.0
 

@@ -31,7 +31,7 @@ export function askForPRGroup(group: PRGroupKey): void {
 }
 
 export function PrsSection({ s }: { s: SidebarState }) {
-  const { githubPRs, onOpenGithubItem, handlePullRequestCode, onShowGithubDetail, githubDetailOpen, githubLogin, githubRepo, onRefreshGithub, onStartPR, githubRefreshing, githubRefreshTick, githubPollTick, single, t, prsQuery, setPrsQuery, ghFilters, setFilterEditor, mutateFilters, currentBranch, counts } = s
+  const { githubPRs, onOpenGithubItem, handlePullRequestCode, onShowGithubDetail, githubDetailOpen, githubLogin, githubRepo, onRefreshGithub, onStartPR, githubRefreshing, githubRefreshTick, githubPollTick, single, t, prsQuery, setPrsQuery, ghFilters, setFilterEditor, mutateFilters, currentBranch, counts, openAllChanges } = s
   const repoKey = githubRepo ? `${githubRepo.owner}/${githubRepo.repo}` : null
   const [groupBy, setGroupBy] = useState<'account' | 'need'>(() => {
     try { return localStorage.getItem(GROUP_BY_KEY) === 'need' ? 'need' : 'account' } catch { return 'account' }
@@ -172,6 +172,7 @@ export function PrsSection({ s }: { s: SidebarState }) {
                       onSwitchTo: () => handlePullRequestCode(pr, 'switch'),
                       onOpenInWorktree: () => handlePullRequestCode(pr, 'worktree'),
                       onViewChanges: () => handlePullRequestCode(pr, 'changes'),
+                      onOpenAllChanges: openAllChanges ? () => handlePullRequestCode(pr, 'openAll') : undefined,
                       onCompare: () => handlePullRequestCode(pr, 'compare'),
                     }}
                     onDetail={onShowGithubDetail ? () => onShowGithubDetail(pr, 'pr') : undefined}
