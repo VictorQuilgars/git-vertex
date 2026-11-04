@@ -41,7 +41,11 @@ suite('revision tree — URIs', () => {
   })
 })
 
-suite('revision tree — ls-tree, on a real repository', () => {
+suite('revision tree — ls-tree, on a real repository', function () {
+  // Every test spawns git several times, and the display-free runner keeps
+  // mocha's 2 s default (the editor's runner allows 10 s): on a cold disk
+  // that is not enough, and a timeout would read as a failure of the code.
+  this.timeout(20_000)
   let dir = ''
   let head = ''
   const git = (...args: string[]) => execFileSync('git', ['-C', dir, ...args], { encoding: 'utf8', env: { ...process.env, LC_ALL: 'C' } })
