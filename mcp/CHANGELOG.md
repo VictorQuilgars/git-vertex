@@ -1,6 +1,6 @@
 # Changelog — Git Vertex MCP
 
-## Unreleased
+## 0.6.0
 
 ### Added
 - **Every tool says what it does to your machine — MCP tool annotations** (#89). Clients that auto-approve reads (Cline, Continue and others) can now tell them apart: the ten tools that only read, and `generate_commit_message`, carry `readOnlyHint`; `resolve_conflict` and `abort_operation` say they are destructive, since what was in the file, or the resolutions made so far, is gone; `continue_operation`, `git_bisect` and the four tools that open the desktop app on a proposal say they write without destroying. None reaches beyond this machine (`openWorldHint: false`). Under `--read-only`, the writes are refused and are announced as read-only. The server's own guards — `--read-only`, the confirmation through elicitation — are unchanged: an annotation is a hint for the client, not a permission.

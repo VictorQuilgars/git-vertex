@@ -16,7 +16,7 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.40.0': `## What's new in 1.40.0
 
 ### 🔍 A review before the pull request
 - In a comparison, **Review with AI**: the model comments on the lines a reviewer would — risks and leftovers — each one under its line, each one dismissible. Nothing is posted.
