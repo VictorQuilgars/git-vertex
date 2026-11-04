@@ -768,7 +768,7 @@ export class GitVertexHost implements vscode.Disposable {
       }
       case 'openInteractiveRebaseTab': {
         if (this._repoPath && args[0]) {
-          openGitVertexRebasePlanTab(this._extensionUri, this._state, this._repoPath, args[0])
+          openGitVertexRebasePlanTab(this._extensionUri, this._state, this._repoPath, args[0], Array.isArray(args[1]) ? args[1] : undefined)
         }
         return { success: true }
       }
@@ -1637,6 +1637,9 @@ export function openGitVertexRebasePlanTab(
   state: vscode.Memento,
   repoPath: string,
   baseHash: string,
+  // A plan to preload (#69's squash). A tab already open on this base keeps
+  // its own: it may hold edits, and a plan is a starting point, not an order.
+  plan?: { hash: string; action: string; message?: string }[],
 ): void {
   const existing = planPanels.get(baseHash)
   if (existing) { existing.reveal(existing.viewColumn); return }
@@ -1653,7 +1656,7 @@ export function openGitVertexRebasePlanTab(
   )
   panel.iconPath = vscode.Uri.joinPath(extensionUri, 'images', 'icon.png')
 
-  const host = new GitVertexHost(panel.webview, extensionUri, state, { mode: 'plan', baseHash }, () => panel.dispose())
+  const host = new GitVertexHost(panel.webview, extensionUri, state, { mode: 'plan', baseHash, ...(plan ? { plan } : {}) }, () => panel.dispose())
   host.setRepo(repoPath)
 
   panel.onDidDispose(() => {

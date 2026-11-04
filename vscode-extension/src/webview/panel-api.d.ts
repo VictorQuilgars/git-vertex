@@ -81,7 +81,7 @@ declare global {
      * the same way wherever the user has moved it.
      */
     revealCommit: (ref: string) => Promise<{ success: boolean; error?: string }>
-    openInteractiveRebaseTab: (hash: string) => Promise<unknown>
+    openInteractiveRebaseTab: (hash: string, plan?: { hash: string; action: string; message?: string }[]) => Promise<unknown>
     openStagingEditor: (path?: string) => Promise<unknown>
     /**
      * A model's reading, in its own editor tab. The desktop shows these in a

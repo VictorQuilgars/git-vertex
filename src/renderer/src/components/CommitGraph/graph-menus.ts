@@ -7,6 +7,7 @@ import { useLang } from '../../i18n/LanguageContext'
 import { LayoutCommit } from './graph-layout'
 import { WIP_HASH, type ProcessedRef, processRefs } from './graph-parts'
 import type { CommitGraphProps, CtxState, DropState } from './CommitGraph'
+import { squashPlanFor } from './squashPlan'
 
 export interface GraphMenuContext {
   t: ReturnType<typeof useLang>['t']
@@ -32,7 +33,7 @@ export interface GraphMenuContext {
 
 export function useGraphMenus(props: CommitGraphProps, ctx: GraphMenuContext) {
   const {
-    currentBranch, onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt, onCheckoutBranch, onInteractiveRebase, onCheckoutCommit, onRewordCommit, onCompareWorking, onSelectForCompare, onCompareWithSelected, compareBaseHash, onDropCommit, onMoveCommit, onBranchDrop, onCherryPickMany, onDropCommits, onMergeBranch, onRebaseCurrentOnto, onRenameBranch, onDeleteBranch, onPushBranch, onSetUpstream, prIntentFor, onCreatePR, branchMenuItems, onCopyCommitLink, onCreateAnnotatedTag, onDeleteRemoteBranch, onPushTag, onDeleteTag, onDeleteRemoteTag, onRebaseCurrentOntoCommit, onPushToCommit, onCreatePatch, onCopyPatch, onSharePatch, onCreateWorktreeAt, onOpenCommitOnRemote, nativeContextMenu = false, onNativeMenuTarget,
+    currentBranch, onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt, onCheckoutBranch, onInteractiveRebase, onCheckoutCommit, onRewordCommit, onCompareWorking, onSelectForCompare, onCompareWithSelected, compareBaseHash, onDropCommit, onMoveCommit, onBranchDrop, onCherryPickMany, onDropCommits, onSquashCommits, onMergeBranch, onRebaseCurrentOnto, onRenameBranch, onDeleteBranch, onPushBranch, onSetUpstream, prIntentFor, onCreatePR, branchMenuItems, onCopyCommitLink, onCreateAnnotatedTag, onDeleteRemoteBranch, onPushTag, onDeleteTag, onDeleteRemoteTag, onRebaseCurrentOntoCommit, onPushToCommit, onCreatePatch, onCopyPatch, onSharePatch, onCreateWorktreeAt, onOpenCommitOnRemote, nativeContextMenu = false, onNativeMenuTarget,
   } = props
   const { t, set, showAvatars, showAuthor, showDate, showSha, showStats, showTimeline, showMinimap, compactColumns, displayLayout, multiSel, setMultiSel, setCtx, localBranchAt, openFinder, openShortcuts } = ctx
 
@@ -192,6 +193,14 @@ export function useGraphMenus(props: CommitGraphProps, ctx: GraphMenuContext) {
     if (onCherryPickMany) {
       items.push({ label: t('graph.multi.cherryPick', n), action: () => { setMultiSel(new Set()); onCherryPickMany(hashes) } })
     }
+    if (onSquashCommits) {
+      // Offered whenever the host can, and disabled — saying why — when the
+      // selection cannot be folded: a missing row would read as "never".
+      const squash = squashPlanFor(multiSel, displayLayout)
+      items.push(squash.ok
+        ? { label: t('graph.multi.squash', n), action: () => { setMultiSel(new Set()); onSquashCommits(squash.base, squash.plan) } }
+        : { label: t(`graph.multi.squashNo.${squash.reason}` as any), disabled: true })
+    }
     if (onDropCommits) {
       items.push({ label: t('graph.multi.drop', n), action: () => { setMultiSel(new Set()); onDropCommits(hashes) }, danger: true })
     }
@@ -204,7 +213,7 @@ export function useGraphMenus(props: CommitGraphProps, ctx: GraphMenuContext) {
       { label: t('graph.multi.copyMessages', n), action: () => navigator.clipboard.writeText(asShown.map(c => c.message).join('\n')) },
     )
     return items
-  }, [displayLayout, multiSel, onCherryPickMany, onDropCommits, onOpenCommitOnRemote, t])
+  }, [displayLayout, multiSel, onCherryPickMany, onDropCommits, onSquashCommits, onOpenCommitOnRemote, t])
   const handleRowContextMenu = useCallback((e: React.MouseEvent, commit: LayoutCommit) => {
     if (commit.hash === WIP_HASH) return
     // A right-click on a row IN the set opens the batch menu — ours on both

@@ -21,6 +21,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 👁 Preview before you post
 - The comment box and the description of an **issue** or a **pull request**, and the body of both composers, have a **Preview** tab: see your markdown as it will be read before you post it.
 
+### 🧩 Squash from the graph
+- Select several commits in a row, right-click, **Squash N Commits into One…**: the interactive rebase opens with the plan made, for you to check and launch.
+
 ### 🗂 Every change at once
 - **Open All Changes** on a branch, a stash or a pull request opens every file it changes together, in the editor's multi-file diff — renamed, added and deleted files included.
 

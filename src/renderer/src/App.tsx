@@ -1204,6 +1204,7 @@ export default function App() {
               onDropCommit={handleDropCommit}
               onCherryPickMany={handleCherryPickMany}
               onDropCommits={handleDropCommits}
+              onSquashCommits={(base, plan) => { setRebasePlanProposal(plan); setRebaseHash(base) }}
               onMoveCommit={handleMoveCommit}
               onBranchDrop={handleBranchDrop}
               onRebaseCurrentOntoCommit={handleRebaseCurrentOntoCommit}

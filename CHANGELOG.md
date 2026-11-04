@@ -4,6 +4,7 @@
 
 ### Added
 - **Write / Preview on every markdown field of GitHub.** The comment box and the description editor of an issue or a pull request, and the body of the pull request and issue composers, gain a **Preview** tab that draws the draft with the renderer the posted text is read with. The field is only hidden while you look, so the caret and the undo history are where you left them, and a field emptied by posting is back on Write. (#337)
+- **Squash several commits into one, from the graph.** Select a run of commits with shift-click or ctrl/cmd-click, right-click it, and **Squash N Commits into One…** opens the interactive rebase with the plan already made — the oldest picked, the others squashed into it, git's combined message ready to edit. Nothing is rewritten until you launch it there. A selection that cannot be folded keeps the row, disabled, saying why: commits with a gap between them, on another branch than the checked-out one, down to the first commit, or with a merge the rebase would flatten. (#69)
 
 ### Fixed
 - **The toolbar leaves its compact layout when the window widens, every time.** It listened only to the media query's change event, which a window that produces no frame can hold back while the width has already moved; it now re-reads the query on every resize too. (#245)

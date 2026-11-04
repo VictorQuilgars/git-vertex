@@ -7,6 +7,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 👁 Preview before you post
 - The comment box and the description of an **issue** or a **pull request**, and the body of both composers, have a **Preview** tab: see your markdown as it will be read before you post it.
 
+### 🧩 Squash from the graph
+- Select several commits in a row, right-click, **Squash N Commits into One…**: the interactive rebase opens with the plan made, for you to check and launch.
+
 ### 🧰 Fixed
 - The toolbar always leaves its **compact** layout when the window widens again.
 `,
